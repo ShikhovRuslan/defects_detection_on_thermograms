@@ -2,10 +2,11 @@ package main;
 
 import javenue.csv.Csv;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,8 +18,8 @@ http://www.javenue.info/post/78 - чтение и запись CSV файлов 
 
 class Main {
     private static final String FILENAME = "/home/ruslan/geo" + "/file.txt";
-    private static final int T_MIN = 30;
-    private static final int T_MAX = 100;
+    private static final double T_MIN = 30;
+    private static final double T_MAX = 100;
     private static final int HEIGHT = 250;
     private static final int RES_X = 640;
     private static final int RES_Y = 512;
@@ -29,31 +30,46 @@ class Main {
         }
     }
 
-    private static List<List<String>> extractTable(List<List<String>> table) {
+    private static void printTable(int[][] arr) {
+        for (int[] ints : arr) {
+            for (int num : ints)
+                System.out.print(num);
+            System.out.println();
+        }
+    }
+
+    private static List<List<String>> extractTable(List<List<String>> rawTable) {
         Pattern pattern = Pattern.compile("-?\\d{1,2},\\d{1,3}");
         Matcher matcher;
-        List<List<String>> result = new ArrayList<>();
-        int startingIndex = 0;
+        List<List<String>> table = new ArrayList<>();
+        int fromIndex = 0;
         int count = 0;
-        boolean lineWithNumbers = false;
-        for (List<String> line : table) {
+        boolean rightLine = false;
+        boolean found;
+        for (List<String> line : rawTable) {
             if (line != null) {
                 for (int i = 0; i < line.size(); i++) {
                     matcher = pattern.matcher(line.get(i));
-                    // Желательно, чтобы последовательно находить совпадения.
-                    if (matcher.find()) count++;
-                    if (count == 1) startingIndex = i;
+                    found = matcher.find();
+                    if (found) count++;
+                    if (count == 1) fromIndex = i;
+                    if (!found && (i == fromIndex + 1 || i == fromIndex + 2)) break;
                     if (count >= 3) {
-                        lineWithNumbers = true;
+                        rightLine = true;
                         break;
                     }
                 }
-                if (lineWithNumbers) result.add(line.subList(startingIndex, line.size()));
+                for (String s : line.subList(fromIndex, line.size()))
+                    if (s.equals("")) {
+                        rightLine = false;
+                        break;
+                    }
+                if (rightLine) table.add(line.subList(fromIndex, line.size()));
                 count = 0;
-                lineWithNumbers = false;
+                rightLine = false;
             }
         }
-        return result;
+        return table;
     }
 
     private static List<List<String>> extractRawTable(String filename) throws FileNotFoundException {
@@ -68,20 +84,28 @@ class Main {
         return rawTable;
     }
 
-    private static int[][] detectHighTemp(List<List<String>> table) {
+    private static int[][] findIf(List<List<String>> table, Predicate<Double> predicate) {
         int[][] arr = new int[table.size()][table.get(0).size()];
         for (int i = 0; i < table.size(); i++)
             for (int j = 0; j < table.get(i).size(); j++)
-                if (new Double(table.get(i).get(j)) > T_MIN) arr[i][j] = 1;
+                if (predicate.test(new Double(table.get(i).get(j).replace(',', '.')))) arr[i][j] = 1;
         return arr;
     }
 
     private static void f() throws FileNotFoundException {
         List<List<String>> rawTable = extractRawTable(FILENAME);
         List<List<String>> table = extractTable(rawTable);
-        printTable(table);
-        int [][] arr = detectHighTemp(table);
-        //printTable(arr);
+        //printTable(table);
+        int[][] arr = findIf(table, num -> num > T_MIN);
+        printTable(arr);
+    }
+
+    private static void find(List<List<Integer>> table) {
+        for(int i = 0; i<table.size(); i++){
+            for(int j = 0; j<table.get(0).size(); j++){
+
+            }
+        }
     }
 
     public static void main(String[] args) {
@@ -97,10 +121,32 @@ class Main {
 //            e.printStackTrace();
 //        }
 
+//        try {
+//            f();
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+
+        List<List<Integer>> table = new ArrayList<>();
         try {
-            f();
-        } catch (FileNotFoundException e) {
+            File file = new File("/home/ruslan/geo" + "/file2.txt");
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String line;
+            table = new ArrayList<>();
+            int i = 0;
+            do {
+                line = reader.readLine();
+                for(int j = 0; j<line.length();j++){
+                    table.add(new ArrayList<>());
+                    table.get(i).add(line.toCharArray()[j] - '0');
+                }
+                i++;
+            } while (!line.equals(""));
+        } catch (IOException e) {
             e.printStackTrace();
         }
+        int y = 0;
+        List<List<Integer>> l = table;
+        find(table);
     }
 }
