@@ -2,8 +2,11 @@ package main;
 
 import javenue.csv.Csv;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -92,20 +95,91 @@ class Main {
         return arr;
     }
 
+    private static int amountOfOnes(List<List<Integer>> table, int i1, int j1, int i2, int j2) {
+        int count = 0;
+        for (int i = i1; i <= Math.min(i2,table.size()-1); i++)
+            for (int j = j1; j <= Math.min(j2,table.get(0).size()-1); j++)
+                if (table.get(i).get(j) == 1) count++;
+        return count;
+    }
+
+    private static List<Integer> squarePixels (List<Integer[]> list) {
+        List<Integer> result=new ArrayList<>();
+        for(Integer[] ints : list)
+            result.add((ints[2]-ints[0] + 1) * (ints[3]-ints[1] + 1));
+        return result;
+    }
+
+    private static int[] rectangle(List<List<Integer>> table, int i, int j) {
+        int x = i, y = j;
+        boolean incrementX, incrementY;
+        do {
+            incrementX = false;
+            incrementY = false;
+            if (amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i) / 2) {
+                y++;
+                incrementY = true;
+            }
+            if (amountOfOnes(table, i, j, x + 1, y) - amountOfOnes(table, i, j, x, y) > (y - j) / 2) {
+                x++;
+                incrementX = true;
+            }
+        } while (incrementX || incrementY);
+        return new int[]{x, y};
+    }
+
+    private static boolean isIn(int i0, int j0, List<Integer[]> arr) {
+        for (Integer[] f : arr)
+            if (i0 >= f[0] && i0 <= f[2] && j0 >= f[1] && j0 <= f[3]) return true;
+        return false;
+    }
+
+    private static List<Integer[]> find(List<List<Integer>> table) {
+        int[] coords;
+        List<Integer[]> result = new ArrayList<>();
+        for (int i = 0; i < table.size(); i++) {
+            for (int j = 0; j < table.get(0).size(); j++) {
+                if (table.get(i).get(j) == 1 & !(isIn(i, j, result))) {
+                    coords = rectangle(table, i, j);
+                    result.add(new Integer[]{i, j, coords[0], coords[1]});
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<Integer> abc (int[] arr) {
+        List<Integer> line = new ArrayList<>();
+        for(int a : arr) {
+            line.add(a);
+        }
+        return line;
+    }
+
+    private static List<List<Integer>> arrayToList (int[][] arr) {
+        List<List<Integer>> table = new ArrayList<>();
+        for(int[] f : arr)
+            table.add(abc(f));
+        return table;
+    }
+
     private static void f() throws FileNotFoundException {
         List<List<String>> rawTable = extractRawTable(FILENAME);
         List<List<String>> table = extractTable(rawTable);
         //printTable(table);
         int[][] arr = findIf(table, num -> num > T_MIN);
         printTable(arr);
-    }
-
-    private static void find(List<List<Integer>> table) {
-        for(int i = 0; i<table.size(); i++){
-            for(int j = 0; j<table.get(0).size(); j++){
-
-            }
+        List<Integer[]> res = find(arrayToList(arr));
+        System.out.println(Arrays.deepToString(res.toArray()));
+        System.out.println(Arrays.toString(squarePixels(res).toArray()));
+        String filename = "/home/ruslan/geo" + "/тест.csv";
+        Image image = null;
+        try {
+            image = ImageIO.read(new File(filename));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        //new Graphics().drawImage(image, x, y, null);
     }
 
     public static void main(String[] args) {
@@ -121,32 +195,34 @@ class Main {
 //            e.printStackTrace();
 //        }
 
-//        try {
-//            f();
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }
-
-        List<List<Integer>> table = new ArrayList<>();
         try {
-            File file = new File("/home/ruslan/geo" + "/file2.txt");
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line;
-            table = new ArrayList<>();
-            int i = 0;
-            do {
-                line = reader.readLine();
-                for(int j = 0; j<line.length();j++){
-                    table.add(new ArrayList<>());
-                    table.get(i).add(line.toCharArray()[j] - '0');
-                }
-                i++;
-            } while (!line.equals(""));
-        } catch (IOException e) {
+            f();
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        int y = 0;
-        List<List<Integer>> l = table;
-        find(table);
+
+//        List<List<Integer>> table = new ArrayList<>();
+//        int i = 0;
+//        try {
+//            File file = new File("/home/ruslan/geo" + "/file2.txt");
+//            BufferedReader reader = new BufferedReader(new FileReader(file));
+//            String line;
+//            table = new ArrayList<>();
+//            i = 0;
+//            do {
+//                line = reader.readLine();
+//                table.add(new ArrayList<>());
+//                for (int j = 0; j < line.length(); j++) {
+//                    table.get(i).add(line.toCharArray()[j] - '0');
+//                }
+//                i++;
+//            } while (!line.equals(""));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        int y = 0;
+//        table.remove(i-1);
+//        List<List<Integer>> l = table;
+//        System.out.println(Arrays.deepToString(find(table).toArray()));
     }
 }
