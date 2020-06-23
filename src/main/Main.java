@@ -4,14 +4,19 @@ import javenue.csv.Csv;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.io.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.awt.Color.BLACK;
 
 /*
 
@@ -20,12 +25,16 @@ http://www.javenue.info/post/78 - чтение и запись CSV файлов 
  */
 
 class Main {
-    private static final String FILENAME = "/home/ruslan/geo" + "/file.txt";
+    private static final String DIR = "/home/ruslan/geo";
+    private static final String FILENAME = DIR + "/file.txt";
+    private static final String PICTURENAME = DIR + "/picture.jpg";
+    private static final String NEW_PICTURENAME = DIR + "/picture2.jpg";
     private static final double T_MIN = 30;
     private static final double T_MAX = 100;
     private static final int HEIGHT = 250;
     private static final int RES_X = 640;
     private static final int RES_Y = 512;
+    private static final int MIN_SQUARE_PIXELS = 25;
 
     private static void printTable(List<List<String>> table) {
         for (List<String> line : table) {
@@ -97,16 +106,16 @@ class Main {
 
     private static int amountOfOnes(List<List<Integer>> table, int i1, int j1, int i2, int j2) {
         int count = 0;
-        for (int i = i1; i <= Math.min(i2,table.size()-1); i++)
-            for (int j = j1; j <= Math.min(j2,table.get(0).size()-1); j++)
+        for (int i = i1; i <= Math.min(i2, table.size() - 1); i++)
+            for (int j = j1; j <= Math.min(j2, table.get(0).size() - 1); j++)
                 if (table.get(i).get(j) == 1) count++;
         return count;
     }
 
-    private static List<Integer> squarePixels (List<Integer[]> list) {
-        List<Integer> result=new ArrayList<>();
-        for(Integer[] ints : list)
-            result.add((ints[2]-ints[0] + 1) * (ints[3]-ints[1] + 1));
+    private static List<Integer> squarePixels(List<Integer[]> ranges) {
+        List<Integer> result = new ArrayList<>();
+        for (Integer[] range : ranges)
+            result.add(squarePixels(range));
         return result;
     }
 
@@ -134,33 +143,73 @@ class Main {
         return false;
     }
 
-    private static List<Integer[]> find(List<List<Integer>> table) {
+    private static List<Integer[]> findRanges(List<List<Integer>> table) {
         int[] coords;
-        List<Integer[]> result = new ArrayList<>();
+        List<Integer[]> ranges = new ArrayList<>();
         for (int i = 0; i < table.size(); i++) {
             for (int j = 0; j < table.get(0).size(); j++) {
-                if (table.get(i).get(j) == 1 & !(isIn(i, j, result))) {
+                if (table.get(i).get(j) == 1 & !(isIn(i, j, ranges))) {
                     coords = rectangle(table, i, j);
-                    result.add(new Integer[]{i, j, coords[0], coords[1]});
+                    ranges.add(new Integer[]{i, j, coords[0], coords[1]});
                 }
             }
         }
-        return result;
+        return ranges;
     }
 
-    private static List<Integer> abc (int[] arr) {
+    private static List<Integer> abc(int[] arr) {
         List<Integer> line = new ArrayList<>();
-        for(int a : arr) {
+        for (int a : arr) {
             line.add(a);
         }
         return line;
     }
 
-    private static List<List<Integer>> arrayToList (int[][] arr) {
+    private static List<List<Integer>> arrayToList(int[][] arr) {
         List<List<Integer>> table = new ArrayList<>();
-        for(int[] f : arr)
+        for (int[] f : arr)
             table.add(abc(f));
         return table;
+    }
+
+    private static void drawLine(BufferedImage image, Color color, int i1, int j1, int i2, int j2) {
+        int tmpI = i1, tmpJ = j1;
+        i1 = Math.min(i1, i2);
+        i2 = Math.max(tmpI, i2);
+        j1 = Math.min(j1, j2);
+        j2 = Math.max(tmpJ, j2);
+        int[] w = i1 == i2 ? new int[]{0, 1} : new int[]{1, 0};
+        for (int k = i1 * w[0] + j1 * w[1]; k <= i2 * w[0] + j2 * w[1]; k++)
+            image.setRGB(k * w[1] + j1 * w[0], k * w[0] + i1 * w[1], color.getRGB());
+    }
+
+    private static void drawRectangle(BufferedImage image, Color color, int i1, int j1, int i2, int j2) {
+        drawLine(image, color, i1, j1, i2, j1);
+        drawLine(image, color, i2, j1, i2, j2);
+        drawLine(image, color, i2, j2, i1, j2);
+        drawLine(image, color, i1, j2, i1, j1);
+    }
+
+    private static void drawRanges(List<Integer[]> ranges, String pictureName, String newPictureName) {
+        try {
+            BufferedImage image = ImageIO.read(new File(pictureName));
+            for (Integer[] range : ranges)
+                drawRectangle(image, BLACK, range[0], range[1], range[2], range[3]);
+            ImageIO.write(image, "jpg", new File(newPictureName));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static int squarePixels(Integer[] range) {
+        return (range[2] - range[0] + 1) * (range[3] - range[1] + 1);
+    }
+
+    private static List<Integer[]> selectRanges(List<Integer[]> rawRanges, Predicate<Integer[]> predicate) {
+        List<Integer[]> ranges = new ArrayList<>();
+        for (Integer[] range : rawRanges)
+            if (predicate.test(range)) ranges.add(range);
+        return ranges;
     }
 
     private static void f() throws FileNotFoundException {
@@ -169,17 +218,13 @@ class Main {
         //printTable(table);
         int[][] arr = findIf(table, num -> num > T_MIN);
         printTable(arr);
-        List<Integer[]> res = find(arrayToList(arr));
-        System.out.println(Arrays.deepToString(res.toArray()));
-        System.out.println(Arrays.toString(squarePixels(res).toArray()));
-        String filename = "/home/ruslan/geo" + "/тест.csv";
-        Image image = null;
-        try {
-            image = ImageIO.read(new File(filename));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        //new Graphics().drawImage(image, x, y, null);
+        List<Integer[]> rawRanges = findRanges(arrayToList(arr));
+        System.out.println(Arrays.deepToString(rawRanges.toArray()) + "\n" + rawRanges.size());
+        System.out.println(Arrays.toString(squarePixels(rawRanges).toArray()));
+        drawRanges(rawRanges, PICTURENAME, NEW_PICTURENAME);
+        List<Integer[]> ranges = selectRanges(rawRanges, range -> squarePixels(range) >= MIN_SQUARE_PIXELS);
+        System.out.println(Arrays.deepToString(ranges.toArray()) + "\n" + ranges.size());
+        drawRanges(ranges, PICTURENAME, NEW_PICTURENAME);
     }
 
     public static void main(String[] args) {
