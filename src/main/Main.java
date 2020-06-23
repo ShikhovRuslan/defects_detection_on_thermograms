@@ -11,6 +11,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -119,41 +120,95 @@ class Main {
         return result;
     }
 
-    private static int[] rectangle(List<List<Integer>> table, int i, int j) {
+    private static int[] makeRange(List<List<Integer>> table, int i, int j) {
         int x = i, y = j;
         boolean incrementX, incrementY;
         do {
             incrementX = false;
             incrementY = false;
-            if (amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i) / 2) {
-                y++;
-                incrementY = true;
-            }
             if (amountOfOnes(table, i, j, x + 1, y) - amountOfOnes(table, i, j, x, y) > (y - j) / 2) {
                 x++;
                 incrementX = true;
+            }
+            if (amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i) / 2) {
+                y++;
+                incrementY = true;
             }
         } while (incrementX || incrementY);
         return new int[]{x, y};
     }
 
-    private static boolean isIn(int i0, int j0, List<Integer[]> arr) {
-        for (Integer[] f : arr)
-            if (i0 >= f[0] && i0 <= f[2] && j0 >= f[1] && j0 <= f[3]) return true;
+    private static boolean isIn(int i0, int j0, List<Integer[]> ranges) {
+        for (Integer[] range : ranges)
+            if (i0 >= range[0] && i0 <= range[2] && j0 >= range[1] && j0 <= range[3]) return true;
         return false;
     }
 
     private static List<Integer[]> findRanges(List<List<Integer>> table) {
-        int[] coords;
+        int[] point;
         List<Integer[]> ranges = new ArrayList<>();
         for (int i = 0; i < table.size(); i++) {
-            for (int j = 0; j < table.get(0).size(); j++) {
+            for (int j = 0; j < table.get(0).size(); j++)
                 if (table.get(i).get(j) == 1 & !(isIn(i, j, ranges))) {
-                    coords = rectangle(table, i, j);
-                    ranges.add(new Integer[]{i, j, coords[0], coords[1]});
+                    point = makeRange(table, i, j);
+                    ranges.add(new Integer[]{i, j, point[0], point[1]});
                 }
+        }
+        return ranges;
+    }
+
+    private static Integer[] uniteRanges(Integer[] r1, Integer[] r2) {
+        Integer[] result = new Integer[r1.length + r2.length];
+        System.arraycopy(r1, 0, result, 0, r1.length);
+        System.arraycopy(r2, 0, result, r1.length, r2.length);
+        return result;
+    }
+
+    private static Integer[] areRangesNear(Integer[] r1, Integer[] r2) {
+        int x1, x2, y1, y2;
+        Integer[] coords = new Integer[r1.length + r2.length + 8];
+        f:
+        if (r1[0] != null && r2[0] != null) {
+            if (Math.abs(r1[1] - r2[3]) < 3) {
+                x1 = Math.max(r1[0], r2[0]);
+                x2 = Math.min(r1[2], r2[2]);
+                coords = uniteRanges(new Integer[]{x1, r1[1], x1, r2[3], x2, r1[1], x2, r2[3]}, uniteRanges(r1, r2));
+                break f;
+            }
+            if (Math.abs(r1[3] - r2[1]) < 3) {
+                x1 = Math.max(r1[0], r2[0]);
+                x2 = Math.min(r1[2], r2[2]);
+                Integer[] arr1 = {x1, r1[3], x1, r2[1], x2, r1[3], x2, r2[1]};
+                Integer[] arr2 = uniteRanges(r1, r2);
+                coords = uniteRanges(arr1, arr2);
+                break f;
+            }
+            if (Math.abs(r1[2] - r2[0]) < 3) {
+                y1 = Math.max(r1[1], r2[1]);
+                y2 = Math.min(r1[3], r2[3]);
+                Integer[] arr1 = {y1, r1[2], y1, r2[0], y2, r1[2], y2, r2[0]};
+                Integer[] arr2 = uniteRanges(r1, r2);
+                coords = uniteRanges(arr1, arr2);
+                break f;
+            }
+            if (Math.abs(r1[0] - r2[2]) < 3) {
+                y1 = Math.max(r1[1], r2[1]);
+                y2 = Math.min(r1[3], r2[3]);
+                coords = uniteRanges(new Integer[]{y1, r1[0], y1, r2[2], y2, r1[0], y2, r2[2]}, uniteRanges(r1, r2));
+                break f;
             }
         }
+        return coords;
+    }
+
+    private static List<Integer[]> toPoligons(List<Integer[]> ranges) {
+        for (int k = 0; k < ranges.size(); k++)
+            for (int s = k + 1; s < ranges.size(); s++)
+                if (!Arrays.equals(areRangesNear(ranges.get(k), ranges.get(s)), new Integer[ranges.get(k).length + ranges.get(s).length + 8])) {
+                    ranges.set(k, areRangesNear(ranges.get(k), ranges.get(s)));
+                    ranges.set(s, new Integer[4]);
+                    break;
+                }
         return ranges;
     }
 
@@ -201,6 +256,25 @@ class Main {
         }
     }
 
+    private static void drawRangesSoph(List<Integer[]> ranges, String pictureName, String newPictureName) {
+        try {
+            BufferedImage image = ImageIO.read(new File(pictureName));
+            for (Integer[] range : ranges) {
+                if (range.length == 4)
+                    drawRectangle(image, BLACK, range[0], range[1], range[2], range[3]);
+                else {
+                    drawRectangle(image, BLACK, range[8], range[9], range[10], range[11]);
+                    drawRectangle(image, BLACK, range[12], range[13], range[14], range[15]);
+                    drawLine(image, BLACK, range[0], range[1], range[2], range[3]);
+                    drawLine(image, BLACK, range[4], range[5], range[6], range[7]);
+                }
+            }
+            ImageIO.write(image, "jpg", new File(newPictureName));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static int squarePixels(Integer[] range) {
         return (range[2] - range[0] + 1) * (range[3] - range[1] + 1);
     }
@@ -209,6 +283,16 @@ class Main {
         List<Integer[]> ranges = new ArrayList<>();
         for (Integer[] range : rawRanges)
             if (predicate.test(range)) ranges.add(range);
+        return ranges;
+    }
+
+    private static List<Integer[]> deleteNulls(List<Integer[]> ranges) {
+        Integer[] range;
+        for (Iterator<Integer[]> iter = ranges.iterator(); iter.hasNext(); ) {
+            range = iter.next();
+            if (range[0] == null)
+                iter.remove();
+        }
         return ranges;
     }
 
@@ -224,7 +308,12 @@ class Main {
         drawRanges(rawRanges, PICTURENAME, NEW_PICTURENAME);
         List<Integer[]> ranges = selectRanges(rawRanges, range -> squarePixels(range) >= MIN_SQUARE_PIXELS);
         System.out.println(Arrays.deepToString(ranges.toArray()) + "\n" + ranges.size());
+
         drawRanges(ranges, PICTURENAME, NEW_PICTURENAME);
+//        List<Integer[]> newRangers = toPoligons(ranges);
+//        List<Integer[]> newRangers2 = deleteNulls(newRangers);
+//        System.out.println(Arrays.deepToString(newRangers2.toArray()) + "\n" + newRangers2.size());
+//        drawRangesSoph(newRangers2, PICTURENAME, NEW_PICTURENAME);
     }
 
     public static void main(String[] args) {
