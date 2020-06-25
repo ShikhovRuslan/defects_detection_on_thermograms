@@ -1,6 +1,8 @@
 package main;
 
 import javenue.csv.Csv;
+import polygons.Point;
+import polygons.Polygon;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -18,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.awt.Color.BLACK;
+import static polygons.Polygon.drawPolygons;
 
 /*
 
@@ -66,7 +69,7 @@ class Main {
                     found = matcher.find();
                     if (found) count++;
                     if (count == 1) fromIndex = i;
-                    if (!found && (i == fromIndex + 1 || i == fromIndex + 2)) break;
+                    if (!found && (i == fromIndex + 1 || i == fromIndex + 2)) break; // !
                     if (count >= 3) {
                         rightLine = true;
                         break;
@@ -227,7 +230,7 @@ class Main {
         return table;
     }
 
-    private static void drawLine(BufferedImage image, Color color, int i1, int j1, int i2, int j2) {
+    public static void drawLine(BufferedImage image, Color color, int i1, int j1, int i2, int j2) {
         int tmpI = i1, tmpJ = j1;
         i1 = Math.min(i1, i2);
         i2 = Math.max(tmpI, i2);
@@ -296,24 +299,59 @@ class Main {
         return ranges;
     }
 
-    private static void f() throws FileNotFoundException {
+    private static Polygon convertRange(Integer[] range) {
+        List<Point> vertices = new ArrayList<>();
+        vertices.add(new Point(range[0], range[1]));
+        vertices.add(new Point(range[0], range[3]));
+        vertices.add(new Point(range[2], range[3]));
+        vertices.add(new Point(range[2], range[1]));
+        return new Polygon(vertices);
+    }
+
+    private static List<Polygon> convertRanges(List<Integer[]> ranges) {
+        List<Polygon> polygons = new ArrayList<>();
+        for (Integer[] range : ranges)
+            polygons.add(convertRange(range));
+        return polygons;
+    }
+
+    private static void f() throws IOException {
         List<List<String>> rawTable = extractRawTable(FILENAME);
         List<List<String>> table = extractTable(rawTable);
         //printTable(table);
         int[][] arr = findIf(table, num -> num > T_MIN);
-        printTable(arr);
+        //printTable(arr);
         List<Integer[]> rawRanges = findRanges(arrayToList(arr));
-        System.out.println(Arrays.deepToString(rawRanges.toArray()) + "\n" + rawRanges.size());
-        System.out.println(Arrays.toString(squarePixels(rawRanges).toArray()));
+        //System.out.println(Arrays.deepToString(rawRanges.toArray()) + "\n" + rawRanges.size());
+        //System.out.println(Arrays.toString(squarePixels(rawRanges).toArray()));
         drawRanges(rawRanges, PICTURENAME, NEW_PICTURENAME);
         List<Integer[]> ranges = selectRanges(rawRanges, range -> squarePixels(range) >= MIN_SQUARE_PIXELS);
         System.out.println(Arrays.deepToString(ranges.toArray()) + "\n" + ranges.size());
 
         drawRanges(ranges, PICTURENAME, NEW_PICTURENAME);
+
 //        List<Integer[]> newRangers = toPoligons(ranges);
 //        List<Integer[]> newRangers2 = deleteNulls(newRangers);
 //        System.out.println(Arrays.deepToString(newRangers2.toArray()) + "\n" + newRangers2.size());
 //        drawRangesSoph(newRangers2, PICTURENAME, NEW_PICTURENAME);
+
+        List<Polygon> polygons = convertRanges(ranges);
+        drawPolygons(polygons, BLACK, PICTURENAME, NEW_PICTURENAME);
+        drawPolygons(Polygon.toPoligons(polygons), BLACK, PICTURENAME, NEW_PICTURENAME);
+
+//        BufferedImage image = ImageIO.read(new File(PICTURENAME));
+//        List<Point> points = new ArrayList<>();
+//        points.add(new Point(100,100));
+//        points.add(new Point(100,500));
+//        points.add(new Point(200,500));
+//        points.add(new Point(200,100));
+//        new Polygon(points).draw(image, BLACK);
+//        //new Line(new Point(100, 100), new Point(400, 100)).draw(image, BLACK);
+//        ImageIO.write(image, "jpg", new File(NEW_PICTURENAME));
+
+
+
+        int u = 0;
     }
 
     public static void main(String[] args) {
@@ -331,7 +369,7 @@ class Main {
 
         try {
             f();
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
