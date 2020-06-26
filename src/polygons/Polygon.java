@@ -152,14 +152,19 @@ public class Polygon {
         else
             sidesA = deleteWithShift(sidesA, side0Index);
         Line[] sidesBNew = new Line[sidesB.length + 1];
+        sidesB[side1Index] = newSideB2;
         if (newSideB != null) {
-            System.arraycopy(sidesB, 0, sidesBNew, 0, sidesB.length);
-            sidesBNew[side1Index] = newSideB2;
-            sidesBNew[sidesB.length] = newSideB;
-        } else {
-            sidesB[side1Index] = newSideB2;
+            if(!isPointNotLine(newSideB)) {
+                System.arraycopy(sidesB, 0, sidesBNew, 0, sidesB.length);
+                sidesBNew[sidesB.length] = newSideB;
+                return new Line[][]{sidesA, sidesBNew, new Line[]{new Line(otherBorderA, otherBorderB)}};
+            }
         }
-        return new Line[][]{sidesA, newSideB != null ? sidesBNew : sidesB, new Line[]{new Line(otherBorderA, otherBorderB)}};
+        return new Line[][]{sidesA, sidesB, new Line[]{new Line(otherBorderA, otherBorderB)}};
+    }
+
+    public static boolean isPointNotLine(Line line) {
+        return line.getA().equals(line.getB());
     }
 
     public static boolean isIn(List<Integer> list, int num) {
@@ -168,35 +173,33 @@ public class Polygon {
         return false;
     }
 
-    public static Line[] order (Line[] sides) throws NullPointerException{
+    public static Line[] order(Line[] sides) throws NullPointerException {
         Line[] orderedSides = new Line[sides.length];
         List<Integer> processed = new ArrayList<>();
         orderedSides[0] = sides[0];
 
-            for (int i = 1; i < sides.length; i++) { //5 4 проблема
-                if (!isIn(processed, i)) {
-                    for (int k = 1; k < sides.length; k++) {
-                        if (!isIn(processed, k)) {
-                            if (orderedSides[i - 1].getB().equals(sides[k].getA())) {
-                                orderedSides[i] = sides[k];
-                                processed.add(k);
-                                break;
-                            }
-                            if (orderedSides[i - 1].getB().equals(sides[k].getB())) {
-                                orderedSides[i] = new Line(sides[k].getB(), sides[k].getA());
-                                processed.add(k);
-                                break;
-                            }
-                        }
+        for (int i = 1; i < sides.length; i++) { //5 4 проблема
+            for (int k = 1; k < sides.length; k++) {
+                if (!isIn(processed, k)) {
+                    if (orderedSides[i - 1].getB().equals(sides[k].getA())) {
+                        orderedSides[i] = sides[k];
+                        processed.add(k);
+                        break;
+                    }
+                    if (orderedSides[i - 1].getB().equals(sides[k].getB())) {
+                        orderedSides[i] = new Line(sides[k].getB(), sides[k].getA());
+                        processed.add(k);
+                        break;
                     }
                 }
             }
+        }
 
         return orderedSides;
     }
 
     public static Polygon unitePolygonalChains(Line[] chain1, Line[] chain2, Line linkingLine, Line otherBorder)
-    throws NullPointerException{
+            throws NullPointerException {
         Line[] newSides = new Line[chain1.length + chain2.length + 2];
         System.arraycopy(chain1, 0, newSides, 0, chain1.length);
         System.arraycopy(chain2, 0, newSides, chain1.length, chain2.length);
@@ -215,7 +218,7 @@ public class Polygon {
         return new Polygon(newPoints);
     }
 
-    public static Polygon unitePolygons(Polygon gonA, Polygon gonB) throws NullPointerException{
+    public static Polygon unitePolygons(Polygon gonA, Polygon gonB) throws NullPointerException {
         Line[] lines = gonA.linkingLine(gonB, 3);
         Line linkingLine = lines[0];
         Line side1 = lines[1];
@@ -253,12 +256,15 @@ public class Polygon {
 
             for (int i = 0; i < polygons.size(); i++) {
                 ii = i;
-                if(ii == 3){
+                if (ii == 11) {
                     System.out.println();
                 }
                 if (!isIn(processedPolygons, i)) {
                     for (int j = i + 1; j < polygons.size(); j++) {
                         jj = j;
+                        if (ii == 11 && jj == 19) {
+                            System.out.println();
+                        }
                         if (polygons.get(i).isCloseTo(polygons.get(j), 3) && !isIn(processedPolygons, j)) {
                             newPolygons.add(unitePolygons(polygons.get(i), polygons.get(j)));
                             processedPolygons.add(j);
@@ -269,6 +275,7 @@ public class Polygon {
             }
         } catch (NullPointerException e) {
             System.out.println(ii + "   " + jj);
+            e.printStackTrace();
         }
         return newPolygons;
     }

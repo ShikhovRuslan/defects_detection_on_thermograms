@@ -123,17 +123,19 @@ class Main {
         return result;
     }
 
-    private static int[] makeRange(List<List<Integer>> table, int i, int j) {
+    private static int[] makeRange(List<List<Integer>> table, int i, int j, List<Integer[]> ranges) {
         int x = i, y = j;
         boolean incrementX, incrementY;
         do {
             incrementX = false;
             incrementY = false;
-            if (amountOfOnes(table, i, j, x + 1, y) - amountOfOnes(table, i, j, x, y) > (y - j) / 2) {
+            if (amountOfOnes(table, i, j, x + 1, y) - amountOfOnes(table, i, j, x, y) > (y - j) / 2 &&
+                    !isPointInRanges(x + 1, y, ranges)) {
                 x++;
                 incrementX = true;
             }
-            if (amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i) / 2) {
+            if (amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i) / 2 &&
+                    !isPointInRanges(x, y + 1, ranges) && !isVerticalLineInRange(i, x, y + 1, ranges)) {
                 y++;
                 incrementY = true;
             }
@@ -141,20 +143,36 @@ class Main {
         return new int[]{x, y};
     }
 
-    private static boolean isIn(int i0, int j0, List<Integer[]> ranges) {
+    private static boolean isPointInRanges(int i0, int j0, List<Integer[]> ranges) {
         for (Integer[] range : ranges)
             if (i0 >= range[0] && i0 <= range[2] && j0 >= range[1] && j0 <= range[3]) return true;
         return false;
     }
 
+    private static boolean isVerticalLineInRange(int i0, int i1, int j, List<Integer[]> ranges) {
+        for (int k = Math.min(i0, i1); k <= Math.max(i0, i1); k++)
+            if (isPointInRanges(k, j, ranges)) return true;
+        return false;
+    }
+
+    private static boolean isLineNotRange(Integer[] range) {
+        return range[0].equals(range[2]) || range[1].equals(range[3]);
+    }
+
     private static List<Integer[]> findRanges(List<List<Integer>> table) {
         int[] point;
         List<Integer[]> ranges = new ArrayList<>();
+        Integer[] newRange;
         for (int i = 0; i < table.size(); i++) {
             for (int j = 0; j < table.get(0).size(); j++)
-                if (table.get(i).get(j) == 1 & !(isIn(i, j, ranges))) {
-                    point = makeRange(table, i, j);
-                    ranges.add(new Integer[]{i, j, point[0], point[1]});
+                if (table.get(i).get(j) == 1 & !(isPointInRanges(i, j, ranges))) {
+                    if (i == 80 && j == 338) {
+                        System.out.println();
+                    }
+                    point = makeRange(table, i, j, ranges);
+                    newRange = new Integer[]{i, j, point[0], point[1]};
+                    if (!isLineNotRange(newRange))
+                        ranges.add(newRange);
                 }
         }
         return ranges;
@@ -348,7 +366,6 @@ class Main {
 //        new Polygon(points).draw(image, BLACK);
 //        //new Line(new Point(100, 100), new Point(400, 100)).draw(image, BLACK);
 //        ImageIO.write(image, "jpg", new File(NEW_PICTURENAME));
-
 
 
         int u = 0;
