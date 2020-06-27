@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import static java.awt.Color.BLACK;
 import static polygons.Polygon.drawPolygons;
+import static polygons.Polygon.removeRedundantVertices;
 
 /*
 
@@ -32,7 +33,8 @@ class Main {
     private static final String DIR = "/home/ruslan/geo";
     private static final String FILENAME = DIR + "/file.txt";
     private static final String PICTURENAME = DIR + "/picture.jpg";
-    private static final String NEW_PICTURENAME = DIR + "/picture2.jpg";
+    private static final String NEW_PICTURENAME_1 = DIR + "/picture2_1.jpg";
+    private static final String NEW_PICTURENAME_2 = DIR + "/picture2_2.jpg";
     private static final double T_MIN = 30;
     private static final double T_MAX = 100;
     private static final int HEIGHT = 250;
@@ -342,20 +344,66 @@ class Main {
         List<Integer[]> rawRanges = findRanges(arrayToList(arr));
         //System.out.println(Arrays.deepToString(rawRanges.toArray()) + "\n" + rawRanges.size());
         //System.out.println(Arrays.toString(squarePixels(rawRanges).toArray()));
-        drawRanges(rawRanges, PICTURENAME, NEW_PICTURENAME);
+        //drawRanges(rawRanges, PICTURENAME, NEW_PICTURENAME);
         List<Integer[]> ranges = selectRanges(rawRanges, range -> squarePixels(range) >= MIN_SQUARE_PIXELS);
         System.out.println(Arrays.deepToString(ranges.toArray()) + "\n" + ranges.size());
 
-        drawRanges(ranges, PICTURENAME, NEW_PICTURENAME);
+       // drawRanges(ranges, PICTURENAME, NEW_PICTURENAME);
 
 //        List<Integer[]> newRangers = toPoligons(ranges);
 //        List<Integer[]> newRangers2 = deleteNulls(newRangers);
 //        System.out.println(Arrays.deepToString(newRangers2.toArray()) + "\n" + newRangers2.size());
 //        drawRangesSoph(newRangers2, PICTURENAME, NEW_PICTURENAME);
 
+
+//        List<Point> points = new ArrayList<>();
+//        points.add(new Point(0,0));
+//        points.add(new Point(0,10));
+//        points.add(new Point(5,10));
+//        points.add(new Point(5,0));
+//        points.add(new Point(0,0));
+//        Polygon pol = new Polygon(points);
+//        List<Polygon> li = new ArrayList<>();
+//        li.add(pol);
+//        for(Polygon p : li)
+//            p.deleteLoops();
+//        System.out.println(Arrays.toString(li.toArray()));
+//        System.out.println(pol.deleteLoops());
+//        int ii = 0;
+
+
+
         List<Polygon> polygons = convertRanges(ranges);
-        drawPolygons(polygons, BLACK, PICTURENAME, NEW_PICTURENAME);
-        drawPolygons(Polygon.toPoligons(polygons), BLACK, PICTURENAME, NEW_PICTURENAME);
+        drawPolygons(polygons, BLACK, PICTURENAME, NEW_PICTURENAME_1);
+
+
+        List<Polygon> newPolygons1 = Polygon.toPolygons(polygons, 5);
+        newPolygons1 = removeRedundantVertices(newPolygons1);
+        System.out.println(newPolygons1.size());
+        drawPolygons(newPolygons1, BLACK, PICTURENAME, NEW_PICTURENAME_2);
+
+        List<Polygon> newPolygons2 = Polygon.toPolygons(newPolygons1, 5);
+        newPolygons2 = removeRedundantVertices(newPolygons2);
+        System.out.println(newPolygons2.size());
+        drawPolygons(newPolygons2, BLACK, PICTURENAME, NEW_PICTURENAME_2);
+
+        List<Polygon> newPolygons3 = Polygon.toPolygons(newPolygons2, 5);
+        newPolygons3 = removeRedundantVertices(newPolygons3);
+        System.out.println(newPolygons3.size());
+        drawPolygons(newPolygons3, BLACK, PICTURENAME, NEW_PICTURENAME_2);
+
+        List<Polygon> newPolygons4 = Polygon.toPolygons(newPolygons3, 5);
+        newPolygons4 = removeRedundantVertices(newPolygons4);
+        System.out.println(newPolygons4.size());
+        drawPolygons(newPolygons4, BLACK, PICTURENAME, NEW_PICTURENAME_2);
+
+
+//        for (Polygon gon : newPolygons3) {
+//            BufferedImage image = ImageIO.read(new File(PICTURENAME));
+//            gon.draw(image, BLACK);
+//            ImageIO.write(image, "jpg", new File(NEW_PICTURENAME_2));
+//        }
+
 
 //        BufferedImage image = ImageIO.read(new File(PICTURENAME));
 //        List<Point> points = new ArrayList<>();

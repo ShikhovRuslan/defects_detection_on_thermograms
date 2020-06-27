@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -17,22 +18,54 @@ public class Polygon {
         this.vertices = vertices;
     }
 
-    public Line[] getSides() {
+    private Line[] getSides() {
         Line[] sides = new Line[vertices.size()];
         for (int i = 0; i < vertices.size(); i++)
             sides[i] = new Line(vertices.get(i), vertices.get(i < vertices.size() - 1 ? i + 1 : 0));
         return sides;
     }
 
-    public boolean isCloseTo(Polygon polygon, int distance) {
+    private boolean[] isCloseTo(Polygon polygon, int distance) {
         for (Point vertex : vertices)
             for (Line side : polygon.getSides())
                 if (vertex.projectableTo(side) && vertex.distance(side) <= distance)
-                    return true;
-        return false;
+                    return new boolean[]{true, false};
+        for (Point vertex : polygon.vertices)
+            for (Line side : getSides())
+                if (vertex.projectableTo(side) && vertex.distance(side) <= distance)
+                    return new boolean[]{true, true};
+        return new boolean[]{false, false};
     }
 
-    public static int findMin(List<Integer> list) {
+    public static List<Polygon> removeRedundantVertices(List<Polygon> polygons) {
+        List<Polygon> newPolygons = new ArrayList<>();
+        for (Polygon polygon : polygons) newPolygons.add(polygon.removeRedundantVertices());
+        return newPolygons;
+    }
+
+    private Polygon removeRedundantVertices() {
+        List<Point> newPoints = new ArrayList<>();
+        int index;
+        boolean vertexIsAdded = false;
+        for (Point vertex : vertices) {
+            if (!vertexIsAdded) {
+                index = vertices.indexOf(vertex);
+                if (getSides()[index == 0 ? getSides().length - 1 : index - 1].getA().getX() == getSides()[index].getB().getX() ||
+                        getSides()[index == 0 ? getSides().length - 1 : index - 1].getA().getY() == getSides()[index].getB().getY()) {
+                    if (index < vertices.size() - 1)
+                        newPoints.add(getSides()[index].getB());
+                    vertexIsAdded = true;
+                    continue;
+                } else {
+                    newPoints.add(vertex);
+                }
+            }
+            vertexIsAdded = false;
+        }
+        return new Polygon(newPoints);
+    }
+
+    private static int findMin(List<Integer> list) {
         int index = 0;
         int min = list.get(index);
         for (int i = 0; i < list.size(); i++) {
@@ -44,9 +77,9 @@ public class Polygon {
         return index;
     }
 
-    public Line[] linkingLine(Polygon polygon, int distance) {
-        Point vertex0 = null;
-        Line side1 = null;
+    private Line[] linkingLine(Polygon polygon, int distance) {
+        Point vertex0;
+        Line side1;
         List<Integer> lInt = new ArrayList<>();
         List<Point> lP = new ArrayList<>();
         List<Line> lL = new ArrayList<>();
@@ -62,8 +95,7 @@ public class Polygon {
         return new Line[]{new Line(vertex0, vertex0.project(side1)), side1};
     }
 
-    public int getSideToShorten(Point vertex0, boolean isLinkingLineHorizontal) {
-        Line side0 = null;
+    private int getSideToShorten(Point vertex0, boolean isLinkingLineHorizontal) {
         for (int i = 0; i < getSides().length; i++)
             if (vertex0 == getSides()[i].getA() || vertex0 == getSides()[i].getB())
                 if (isLinkingLineHorizontal && getSides()[i].isVertical() ||
@@ -72,7 +104,7 @@ public class Polygon {
         return 0;
     }
 
-    public int getSideWithPoint(Point point) {
+    private int getSideWithPoint(Point point) {
         Line[] sides = getSides();
         for (int i = 0; i < sides.length; i++)
             if (sides[i].contains(point))
@@ -80,15 +112,15 @@ public class Polygon {
         return -1;
     }
 
-    public static Line[] deleteWithShift(Line[] array, int index) {
+    private static Line[] deleteWithShift(Line[] array, int index) {
         Line[] result = new Line[array.length - 1];
         System.arraycopy(array, 0, result, 0, index);
         System.arraycopy(array, index + 1, result, index, array.length - index - 1);
         return result;
     }
 
-    public static Line[][] getPolygonalChains(Polygon gonA, Polygon gonB,
-                                              int side0Index, Point vertex0, Line linkingLine, Point vertex1, int side1Index) {
+    private static Line[][] getPolygonalChains(Polygon gonA, Polygon gonB,
+                                               int side0Index, Point vertex0, Line linkingLine, Point vertex1, int side1Index) {
         Line[] sidesA = gonA.getSides();
         Line[] sidesB = gonB.getSides();
         Line sideAToShorten = sidesA[side0Index];
@@ -154,7 +186,7 @@ public class Polygon {
         Line[] sidesBNew = new Line[sidesB.length + 1];
         sidesB[side1Index] = newSideB2;
         if (newSideB != null) {
-            if(!isPointNotLine(newSideB)) {
+            if (!isPointNotLine(newSideB)) {
                 System.arraycopy(sidesB, 0, sidesBNew, 0, sidesB.length);
                 sidesBNew[sidesB.length] = newSideB;
                 return new Line[][]{sidesA, sidesBNew, new Line[]{new Line(otherBorderA, otherBorderB)}};
@@ -163,22 +195,22 @@ public class Polygon {
         return new Line[][]{sidesA, sidesB, new Line[]{new Line(otherBorderA, otherBorderB)}};
     }
 
-    public static boolean isPointNotLine(Line line) {
+    private static boolean isPointNotLine(Line line) {
         return line.getA().equals(line.getB());
     }
 
-    public static boolean isIn(List<Integer> list, int num) {
+    private static boolean isIn(List<Integer> list, int num) {
         for (Integer val : list)
             if (val == num) return true;
         return false;
     }
 
-    public static Line[] order(Line[] sides) throws NullPointerException {
+    private static Line[] order(Line[] sides) throws NullPointerException {
         Line[] orderedSides = new Line[sides.length];
         List<Integer> processed = new ArrayList<>();
         orderedSides[0] = sides[0];
 
-        for (int i = 1; i < sides.length; i++) { //5 4 проблема
+        for (int i = 1; i < sides.length; i++) {
             for (int k = 1; k < sides.length; k++) {
                 if (!isIn(processed, k)) {
                     if (orderedSides[i - 1].getB().equals(sides[k].getA())) {
@@ -198,7 +230,7 @@ public class Polygon {
         return orderedSides;
     }
 
-    public static Polygon unitePolygonalChains(Line[] chain1, Line[] chain2, Line linkingLine, Line otherBorder)
+    private static Polygon unitePolygonalChains(Line[] chain1, Line[] chain2, Line linkingLine, Line otherBorder)
             throws NullPointerException {
         Line[] newSides = new Line[chain1.length + chain2.length + 2];
         System.arraycopy(chain1, 0, newSides, 0, chain1.length);
@@ -218,10 +250,9 @@ public class Polygon {
         return new Polygon(newPoints);
     }
 
-    public static Polygon unitePolygons(Polygon gonA, Polygon gonB) throws NullPointerException {
-        Line[] lines = gonA.linkingLine(gonB, 3);
+    static Polygon unitePolygons(Polygon gonA, Polygon gonB, int distance) throws NullPointerException {
+        Line[] lines = gonA.linkingLine(gonB, distance);
         Line linkingLine = lines[0];
-        Line side1 = lines[1];
         Point vertex0 = linkingLine.getA();
         Point vertex1 = linkingLine.getB();
         int side0Index = gonA.getSideToShorten(vertex0, linkingLine.isHorizontal());
@@ -231,7 +262,7 @@ public class Polygon {
         return unitePolygonalChains(polygonalChains[0], polygonalChains[1], linkingLine, otherBoard);
     }
 
-    public void draw(BufferedImage image, Color color) {
+    private void draw(BufferedImage image, Color color) {
         for (Line side : getSides())
             side.draw(image, color);
     }
@@ -247,36 +278,55 @@ public class Polygon {
         }
     }
 
-    public static List<Polygon> toPoligons(List<Polygon> polygons) {
+    public static List<Polygon> toPolygons(List<Polygon> polygons, int distance) {
         List<Polygon> newPolygons = new ArrayList<>();
         List<Integer> processedPolygons = new ArrayList<>();
-        int ii = -1;
-        int jj = -1;
         try {
-
             for (int i = 0; i < polygons.size(); i++) {
-                ii = i;
-                if (ii == 11) {
-                    System.out.println();
-                }
                 if (!isIn(processedPolygons, i)) {
-                    for (int j = i + 1; j < polygons.size(); j++) {
-                        jj = j;
-                        if (ii == 11 && jj == 19) {
-                            System.out.println();
-                        }
-                        if (polygons.get(i).isCloseTo(polygons.get(j), 3) && !isIn(processedPolygons, j)) {
-                            newPolygons.add(unitePolygons(polygons.get(i), polygons.get(j)));
+                    int j;
+                    for (j = i + 1; j < polygons.size(); j++) {
+                        if (polygons.get(i).isCloseTo(polygons.get(j), distance)[0] && !isIn(processedPolygons, j)) {
+                            if (!polygons.get(i).isCloseTo(polygons.get(j), distance)[1])
+                                newPolygons.add(unitePolygons(polygons.get(i), polygons.get(j), distance));
+                            else
+                                newPolygons.add(unitePolygons(polygons.get(j), polygons.get(i), distance));
                             processedPolygons.add(j);
                             break;
                         }
                     }
+                    if (j == polygons.size() && !isIn(processedPolygons, j)) {
+                        newPolygons.add(polygons.get(i));
+                    }
                 }
             }
         } catch (NullPointerException e) {
-            System.out.println(ii + "   " + jj);
+            System.out.println("NullPointerException in Polygon.toPolygons().");
             e.printStackTrace();
         }
+        removeLoops(newPolygons);
         return newPolygons;
+    }
+
+    private static void removeLoops(List<Polygon> polygons) {
+        for (Polygon polygon : polygons)
+            polygon.removeLoops();
+    }
+
+    private void removeLoops() {
+        Iterator iter = vertices.iterator();
+        Point curr;
+        Point prev = vertices.get(vertices.size() - 1);
+        while (iter.hasNext()) {
+            curr = (Point) iter.next();
+            if (curr.equals(prev))
+                iter.remove();
+            prev = curr;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(vertices.toArray());
     }
 }

@@ -1,8 +1,8 @@
 package polygons;
 
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
+
 
 public class Line {
     private Point a;
@@ -13,46 +13,46 @@ public class Line {
         this.b = b;
     }
 
-    public Point getA() {
+    Point getA() {
         return a;
     }
 
-    public Point getB() {
+    Point getB() {
         return b;
     }
 
-    public boolean isHorizontal() {
+    boolean isHorizontal() {
         return a.getX() == b.getX();
     }
 
-    public boolean isVertical() {
+    boolean isVertical() {
         return a.getY() == b.getY();
     }
 
-    public Point getOtherEnd(Point point) {
+    Point getOtherEnd(Point point) {
         if (a == point) return b;
         if (b == point) return a;
         return new Point(0, 0);
     }
 
-    public Point upperEnd() {
+    Point upperEnd() {
         return a.getX() < b.getX() ? a : b;
     }
 
-    public Point lowerEnd() {
+    Point lowerEnd() {
         return a.getX() > b.getX() ? a : b;
     }
 
-    public Point rightEnd() {
+    Point rightEnd() {
         return a.getY() > b.getY() ? a : b;
     }
 
-    public Point leftEnd() {
+    Point leftEnd() {
         return a.getY() < b.getY() ? a : b;
     }
 
     // Вершины игнорируются.
-    public boolean contains(Point point) {
+    boolean contains(Point point) {
         if (isHorizontal())
             return point.getX() == a.getX() && point.projectableTo(this);
         if (isVertical())
@@ -60,12 +60,12 @@ public class Line {
         return false;
     }
 
-    public void draw(BufferedImage image, Color color) {
+    void draw(BufferedImage image, Color color) {
         if (isHorizontal())
-            for (int k = Math.min(a.getY(),b.getY()); k <= Math.max(a.getY(),b.getY()); k++)
+            for (int k = Math.min(a.getY(), b.getY()); k <= Math.max(a.getY(), b.getY()); k++)
                 image.setRGB(k, a.getX(), color.getRGB());
         if (isVertical())
-            for (int k = Math.min(a.getX(),b.getX()); k <= Math.max(a.getX(),b.getX()); k++)
+            for (int k = Math.min(a.getX(), b.getX()); k <= Math.max(a.getX(), b.getX()); k++)
                 image.setRGB(a.getY(), k, color.getRGB());
     }
 

@@ -10,16 +10,16 @@ public class Point {
         this.y = y;
     }
 
-    public int getX() {
+    int getX() {
         return x;
     }
 
-    public int getY() {
+    int getY() {
         return y;
     }
 
     // Выдаёт осмысленный результат, только если projectableTo(line).
-    public int distance(Line line) {
+    int distance(Line line) {
         if (projectableTo(line)) {
             if (line.isHorizontal())
                 return Math.abs(x - line.getA().getX());
@@ -29,15 +29,15 @@ public class Point {
         return 0;
     }
 
-    public boolean projectableTo(Line line) {
+    boolean projectableTo(Line line) {
         if (line.isHorizontal())
             return y > Math.min(line.getA().getY(), line.getB().getY()) && y < Math.max(line.getA().getY(), line.getB().getY());
         if (line.isVertical())
-            return x > Math.min(line.getA().getX(), line.getB().getX()) && y < Math.max(line.getA().getX(), line.getB().getX());
+            return x > Math.min(line.getA().getX(), line.getB().getX()) && x < Math.max(line.getA().getX(), line.getB().getX());
         return false;
     }
 
-    public Point project(Line line) {
+    Point project(Line line) {
         if (line.isHorizontal()) return new Point(line.getA().getX(), y);
         if (line.isVertical()) return new Point(x, line.getA().getY());
         return new Point(0, 0);

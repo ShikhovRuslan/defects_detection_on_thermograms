@@ -51,7 +51,7 @@ class TestMain {
         Polygon gonB2 = new Polygon(pointsB2);
 
         //Polygon unitedGon2 = Polygon.unitePolygons(gonA2, gonB2);
-        Polygon unitedGon22 = Polygon.unitePolygons(gonB2, gonA2);
+        Polygon unitedGon22 = Polygon.unitePolygons(gonB2, gonA2, 3);
 
         int u = 0;
     }
