@@ -378,22 +378,22 @@ class Main {
 
 
         List<Polygon> newPolygons1 = Polygon.toPolygons(polygons, 5);
-        newPolygons1 = removeRedundantVertices(newPolygons1);
+        removeRedundantVertices(newPolygons1);
         System.out.println(newPolygons1.size());
         drawPolygons(newPolygons1, BLACK, PICTURENAME, NEW_PICTURENAME_2);
 
         List<Polygon> newPolygons2 = Polygon.toPolygons(newPolygons1, 5);
-        newPolygons2 = removeRedundantVertices(newPolygons2);
+        removeRedundantVertices(newPolygons2);
         System.out.println(newPolygons2.size());
         drawPolygons(newPolygons2, BLACK, PICTURENAME, NEW_PICTURENAME_2);
 
         List<Polygon> newPolygons3 = Polygon.toPolygons(newPolygons2, 5);
-        newPolygons3 = removeRedundantVertices(newPolygons3);
+        removeRedundantVertices(newPolygons3);
         System.out.println(newPolygons3.size());
         drawPolygons(newPolygons3, BLACK, PICTURENAME, NEW_PICTURENAME_2);
 
         List<Polygon> newPolygons4 = Polygon.toPolygons(newPolygons3, 5);
-        newPolygons4 = removeRedundantVertices(newPolygons4);
+        removeRedundantVertices(newPolygons4);
         System.out.println(newPolygons4.size());
         drawPolygons(newPolygons4, BLACK, PICTURENAME, NEW_PICTURENAME_2);
 

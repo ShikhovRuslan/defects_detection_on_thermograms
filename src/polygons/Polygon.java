@@ -37,74 +37,72 @@ public class Polygon {
         return new boolean[]{false, false};
     }
 
-    public static List<Polygon> removeRedundantVertices(List<Polygon> polygons) {
-        List<Polygon> newPolygons = new ArrayList<>();
-        for (Polygon polygon : polygons) newPolygons.add(polygon.removeRedundantVertices());
-        return newPolygons;
+    public static void removeRedundantVertices(List<Polygon> polygons) {
+        for (Polygon polygon : polygons)
+            polygon.removeRedundantVertices();
     }
 
-    private Polygon removeRedundantVertices() {
-        List<Point> newPoints = new ArrayList<>();
+    private void removeRedundantVertices() {
+        List<Point> newVertices = new ArrayList<>();
         int index;
         boolean vertexIsAdded = false;
         for (Point vertex : vertices) {
             if (!vertexIsAdded) {
                 index = vertices.indexOf(vertex);
-                if (getSides()[index == 0 ? getSides().length - 1 : index - 1].getA().getX() == getSides()[index].getB().getX() ||
-                        getSides()[index == 0 ? getSides().length - 1 : index - 1].getA().getY() == getSides()[index].getB().getY()) {
+                if (getSides()[index > 0 ? index - 1 : getSides().length - 1].getA().getX() == getSides()[index].getB().getX() ||
+                        getSides()[index > 0 ? index - 1 : getSides().length - 1].getA().getY() == getSides()[index].getB().getY()) {
                     if (index < vertices.size() - 1)
-                        newPoints.add(getSides()[index].getB());
+                        newVertices.add(getSides()[index].getB());
                     vertexIsAdded = true;
                     continue;
-                } else {
-                    newPoints.add(vertex);
-                }
+                } else
+                    newVertices.add(vertex);
             }
             vertexIsAdded = false;
         }
-        return new Polygon(newPoints);
+        vertices = newVertices;
     }
 
-    private static int findMin(List<Integer> list) {
+    private static int findIndexOfMin(List<Integer> list) {
         int index = 0;
         int min = list.get(index);
-        for (int i = 0; i < list.size(); i++) {
+        for (int i = 1; i < list.size(); i++)
             if (list.get(i) < min) {
                 index = i;
-                min = list.get(i);
+                min = list.get(index);
             }
-        }
         return index;
     }
 
-    private Line[] linkingLine(Polygon polygon, int distance) {
-        Point vertex0;
-        Line side1;
-        List<Integer> lInt = new ArrayList<>();
-        List<Point> lP = new ArrayList<>();
-        List<Line> lL = new ArrayList<>();
+    private Line[] Perpendicular(Polygon polygon, int distance) {
+        List<Integer> tmpDistances = new ArrayList<>();
+        List<Point> tmpVertices = new ArrayList<>();
+        List<Line> tmpSides = new ArrayList<>();
         for (Point vertex : vertices)
             for (Line side : polygon.getSides())
                 if (vertex.projectableTo(side) && vertex.distance(side) <= distance) {
-                    lInt.add(vertex.distance(side));
-                    lP.add(vertex);
-                    lL.add(side);
+                    tmpDistances.add(vertex.distance(side));
+                    tmpVertices.add(vertex);
+                    tmpSides.add(side);
                 }
-        vertex0 = lP.get(findMin(lInt));
-        side1 = lL.get(findMin(lInt));
+        int index = findIndexOfMin(tmpDistances);
+        Point vertex0 = tmpVertices.get(index);
+        Line side1 = tmpSides.get(index);
         return new Line[]{new Line(vertex0, vertex0.project(side1)), side1};
     }
 
-    private int getSideToShorten(Point vertex0, boolean isLinkingLineHorizontal) {
-        for (int i = 0; i < getSides().length; i++)
-            if (vertex0 == getSides()[i].getA() || vertex0 == getSides()[i].getB())
-                if (isLinkingLineHorizontal && getSides()[i].isVertical() ||
-                        !isLinkingLineHorizontal && getSides()[i].isHorizontal())
-                    return i;
-        return 0;
+    private int indexOfSideToShorten(Point vertex0, boolean isPerpendicularHorizontal) {
+        Line[] sides = getSides();
+        for (int i = 0; i < sides.length; i++)
+            if ((vertex0 == sides[i].getA() || vertex0 == sides[i].getB()) &&
+                    (isPerpendicularHorizontal && sides[i].isVertical() ||
+                            !isPerpendicularHorizontal && sides[i].isHorizontal()))
+                return i;
+        return -1;
     }
 
-    private int getSideWithPoint(Point point) {
+    // Вершины игнорируются.
+    private int indexOfSideWithPoint(Point point) {
         Line[] sides = getSides();
         for (int i = 0; i < sides.length; i++)
             if (sides[i].contains(point))
@@ -119,115 +117,111 @@ public class Polygon {
         return result;
     }
 
-    private static Line[][] getPolygonalChains(Polygon gonA, Polygon gonB,
-                                               int side0Index, Point vertex0, Line linkingLine, Point vertex1, int side1Index) {
-        Line[] sidesA = gonA.getSides();
-        Line[] sidesB = gonB.getSides();
-        Line sideAToShorten = sidesA[side0Index];
-        Line sideBToShorten = sidesB[side1Index];
-        Line newSideA = null;
-        Line newSideB = null;
-        Line newSideB2;
-        Point pA = sideAToShorten.getOtherEnd(vertex0);
-        Point otherBorderA, otherBorderB;
-        if (linkingLine.isHorizontal()) {
+    private static Line[][] getPolygonalChains(Polygon polygon1, Polygon polygon2, int side0Index, Point vertex0,
+                                               Line perpendicular, Point vertex1, int side1Index) {
+        Line[] sides1 = polygon1.getSides();
+        Line[] sides2 = polygon2.getSides();
+        Line side1ToShorten = sides1[side0Index];
+        Line side2ToShorten = sides2[side1Index];
+        Line newSide1 = null;
+        Line newSide2 = null;
+        Line newSide22;
+        Point pA = side1ToShorten.getOtherEnd(vertex0);
+        Point otherBorder1, otherBorder2;
+        if (perpendicular.isHorizontal()) {
             if (pA.getX() < vertex0.getX()) {
-                if (pA.getX() < sideBToShorten.upperEnd().getX()) {
-                    newSideA = new Line(pA, new Point(sideBToShorten.upperEnd().getX(), vertex0.getY()));
-                    otherBorderB = sideBToShorten.upperEnd();
-                    otherBorderA = otherBorderB.project(sideAToShorten);
+                if (pA.getX() < side2ToShorten.upperEnd().getX()) {
+                    newSide1 = new Line(pA, new Point(side2ToShorten.upperEnd().getX(), vertex0.getY()));
+                    otherBorder2 = side2ToShorten.upperEnd();
+                    otherBorder1 = otherBorder2.project(side1ToShorten);
                 } else {
-                    newSideB = new Line(sideBToShorten.upperEnd(), new Point(pA.getX(), vertex1.getY()));
-                    otherBorderA = pA;
-                    otherBorderB = otherBorderA.project(sideBToShorten);
+                    newSide2 = new Line(side2ToShorten.upperEnd(), new Point(pA.getX(), vertex1.getY()));
+                    otherBorder1 = pA;
+                    otherBorder2 = otherBorder1.project(side2ToShorten);
                 }
-                newSideB2 = new Line(vertex1, sideBToShorten.lowerEnd());
+                newSide22 = new Line(vertex1, side2ToShorten.lowerEnd());
             } else {
-                if (pA.getX() > sideBToShorten.lowerEnd().getX()) {
-                    newSideA = new Line(pA, new Point(sideBToShorten.lowerEnd().getX(), vertex0.getY()));
-                    otherBorderB = sideBToShorten.lowerEnd();
-                    otherBorderA = otherBorderB.project(sideAToShorten);
+                if (pA.getX() > side2ToShorten.lowerEnd().getX()) {
+                    newSide1 = new Line(pA, new Point(side2ToShorten.lowerEnd().getX(), vertex0.getY()));
+                    otherBorder2 = side2ToShorten.lowerEnd();
+                    otherBorder1 = otherBorder2.project(side1ToShorten);
                 } else {
-                    newSideB = new Line(sideBToShorten.lowerEnd(), new Point(pA.getX(), vertex1.getY()));
-                    otherBorderA = pA;
-                    otherBorderB = otherBorderA.project(sideBToShorten);
+                    newSide2 = new Line(side2ToShorten.lowerEnd(), new Point(pA.getX(), vertex1.getY()));
+                    otherBorder1 = pA;
+                    otherBorder2 = otherBorder1.project(side2ToShorten);
                 }
-                newSideB2 = new Line(vertex1, sideBToShorten.upperEnd());
+                newSide22 = new Line(vertex1, side2ToShorten.upperEnd());
             }
         } else {
             if (pA.getY() < vertex0.getY()) {
-                if (pA.getY() < sideBToShorten.leftEnd().getY()) {
-                    newSideA = new Line(pA, new Point(vertex0.getX(), sideBToShorten.leftEnd().getY()));
-                    otherBorderB = sideBToShorten.leftEnd();
-                    otherBorderA = otherBorderB.project(sideAToShorten);
+                if (pA.getY() < side2ToShorten.leftEnd().getY()) {
+                    newSide1 = new Line(pA, new Point(vertex0.getX(), side2ToShorten.leftEnd().getY()));
+                    otherBorder2 = side2ToShorten.leftEnd();
+                    otherBorder1 = otherBorder2.project(side1ToShorten);
                 } else {
-                    newSideB = new Line(sideBToShorten.leftEnd(), new Point(vertex1.getX(), pA.getY()));
-                    otherBorderA = pA;
-                    otherBorderB = otherBorderA.project(sideBToShorten);
+                    newSide2 = new Line(side2ToShorten.leftEnd(), new Point(vertex1.getX(), pA.getY()));
+                    otherBorder1 = pA;
+                    otherBorder2 = otherBorder1.project(side2ToShorten);
                 }
-                newSideB2 = new Line(vertex1, sideBToShorten.rightEnd());
+                newSide22 = new Line(vertex1, side2ToShorten.rightEnd());
             } else {
-                if (pA.getY() > sideBToShorten.rightEnd().getY()) {
-                    newSideA = new Line(pA, new Point(vertex0.getX(), sideBToShorten.rightEnd().getY()));
-                    otherBorderB = sideBToShorten.rightEnd();
-                    otherBorderA = otherBorderB.project(sideAToShorten);
+                if (pA.getY() > side2ToShorten.rightEnd().getY()) {
+                    newSide1 = new Line(pA, new Point(vertex0.getX(), side2ToShorten.rightEnd().getY()));
+                    otherBorder2 = side2ToShorten.rightEnd();
+                    otherBorder1 = otherBorder2.project(side1ToShorten);
                 } else {
-                    newSideB = new Line(sideBToShorten.rightEnd(), new Point(vertex1.getX(), pA.getY()));
-                    otherBorderA = pA;
-                    otherBorderB = otherBorderA.project(sideBToShorten);
+                    newSide2 = new Line(side2ToShorten.rightEnd(), new Point(vertex1.getX(), pA.getY()));
+                    otherBorder1 = pA;
+                    otherBorder2 = otherBorder1.project(side2ToShorten);
                 }
-                newSideB2 = new Line(vertex1, sideBToShorten.leftEnd());
+                newSide22 = new Line(vertex1, side2ToShorten.leftEnd());
             }
         }
-        if (newSideA != null)
-            sidesA[side0Index] = newSideA;
+        if (newSide1 != null)
+            sides1[side0Index] = newSide1;
         else
-            sidesA = deleteWithShift(sidesA, side0Index);
-        Line[] sidesBNew = new Line[sidesB.length + 1];
-        sidesB[side1Index] = newSideB2;
-        if (newSideB != null) {
-            if (!isPointNotLine(newSideB)) {
-                System.arraycopy(sidesB, 0, sidesBNew, 0, sidesB.length);
-                sidesBNew[sidesB.length] = newSideB;
-                return new Line[][]{sidesA, sidesBNew, new Line[]{new Line(otherBorderA, otherBorderB)}};
+            sides1 = deleteWithShift(sides1, side0Index);
+        Line[] sidesBNew = new Line[sides2.length + 1];
+        sides2[side1Index] = newSide22;
+        if (newSide2 != null) {
+            if (!isPointNotLine(newSide2)) {
+                System.arraycopy(sides2, 0, sidesBNew, 0, sides2.length);
+                sidesBNew[sides2.length] = newSide2;
+                return new Line[][]{sides1, sidesBNew, new Line[]{new Line(otherBorder1, otherBorder2)}};
             }
         }
-        return new Line[][]{sidesA, sidesB, new Line[]{new Line(otherBorderA, otherBorderB)}};
+        return new Line[][]{sides1, sides2, new Line[]{new Line(otherBorder1, otherBorder2)}};
     }
 
     private static boolean isPointNotLine(Line line) {
         return line.getA().equals(line.getB());
     }
 
-    private static boolean isIn(List<Integer> list, int num) {
+    private static boolean isIn(List<Integer> list, int val0) {
         for (Integer val : list)
-            if (val == num) return true;
+            if (val == val0) return true;
         return false;
     }
 
     private static Line[] order(Line[] sides) throws NullPointerException {
-        Line[] orderedSides = new Line[sides.length];
+        Line[] newSides = new Line[sides.length];
         List<Integer> processed = new ArrayList<>();
-        orderedSides[0] = sides[0];
-
-        for (int i = 1; i < sides.length; i++) {
-            for (int k = 1; k < sides.length; k++) {
+        newSides[0] = sides[0];
+        for (int i = 1; i < sides.length; i++)
+            for (int k = 1; k < sides.length; k++)
                 if (!isIn(processed, k)) {
-                    if (orderedSides[i - 1].getB().equals(sides[k].getA())) {
-                        orderedSides[i] = sides[k];
+                    if (newSides[i - 1].getB().equals(sides[k].getA())) {
+                        newSides[i] = sides[k];
                         processed.add(k);
                         break;
                     }
-                    if (orderedSides[i - 1].getB().equals(sides[k].getB())) {
-                        orderedSides[i] = new Line(sides[k].getB(), sides[k].getA());
+                    if (newSides[i - 1].getB().equals(sides[k].getB())) {
+                        newSides[i] = new Line(sides[k].getB(), sides[k].getA());
                         processed.add(k);
                         break;
                     }
                 }
-            }
-        }
-
-        return orderedSides;
+        return newSides;
     }
 
     private static Polygon unitePolygonalChains(Line[] chain1, Line[] chain2, Line linkingLine, Line otherBorder)
@@ -251,19 +245,20 @@ public class Polygon {
     }
 
     static Polygon unitePolygons(Polygon gonA, Polygon gonB, int distance) throws NullPointerException {
-        Line[] lines = gonA.linkingLine(gonB, distance);
+        Line[] lines = gonA.Perpendicular(gonB, distance);
         Line linkingLine = lines[0];
         Point vertex0 = linkingLine.getA();
         Point vertex1 = linkingLine.getB();
-        int side0Index = gonA.getSideToShorten(vertex0, linkingLine.isHorizontal());
-        int side1Index = gonB.getSideWithPoint(vertex1);
+        int side0Index = gonA.indexOfSideToShorten(vertex0, linkingLine.isHorizontal());
+        int side1Index = gonB.indexOfSideWithPoint(vertex1);
         Line[][] polygonalChains = getPolygonalChains(gonA, gonB, side0Index, vertex0, linkingLine, vertex1, side1Index);
         Line otherBoard = polygonalChains[2][0];
         return unitePolygonalChains(polygonalChains[0], polygonalChains[1], linkingLine, otherBoard);
     }
 
     private void draw(BufferedImage image, Color color) {
-        for (Line side : getSides())
+        Line[] sides = getSides();
+        for (Line side : sides)
             side.draw(image, color);
     }
 
