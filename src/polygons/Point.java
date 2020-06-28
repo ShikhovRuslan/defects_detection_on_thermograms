@@ -18,7 +18,12 @@ public class Point {
         return y;
     }
 
-    // Выдаёт осмысленный результат, только если projectableTo(line).
+    /**
+     * Возвращает расстояние от текущей точки до линии {@param line}.
+     *
+     * @throws IllegalArgumentException если текущая точка не может быть спроектирована на внутренность линии или линия
+     *                                  не является ни горизонтальной, ни вертикальной
+     */
     int distance(Line line) {
         if (projectableTo(line)) {
             if (line.isHorizontal())
@@ -26,21 +31,32 @@ public class Point {
             if (line.isVertical())
                 return Math.abs(y - line.getA().getY());
         }
-        return 0;
+        throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность линии или " +
+                "линия не является ни горизонтальной, ни вертикальной.");
     }
 
+    /**
+     * Определяет возможность проектирования текущей точки на внутренность линии {@param line}.
+     *
+     * @throws IllegalArgumentException если линия не является ни горизонтальной, ни вертикальной
+     */
     boolean projectableTo(Line line) {
         if (line.isHorizontal())
             return y > Math.min(line.getA().getY(), line.getB().getY()) && y < Math.max(line.getA().getY(), line.getB().getY());
         if (line.isVertical())
             return x > Math.min(line.getA().getX(), line.getB().getX()) && x < Math.max(line.getA().getX(), line.getB().getX());
-        return false;
+        throw new IllegalArgumentException("Линия не является ни горизонтальной, ни вертикальной.");
     }
 
+    /**
+     * Возвращает проекцию текущей точки на внутренность линии {@param line}.
+     *
+     * @throws IllegalArgumentException если линия не является ни горизонтальной, ни вертикальной
+     */
     Point project(Line line) {
         if (line.isHorizontal()) return new Point(line.getA().getX(), y);
         if (line.isVertical()) return new Point(x, line.getA().getY());
-        return new Point(0, 0);
+        throw new IllegalArgumentException("Линия не является ни горизонтальной, ни вертикальной.");
     }
 
     @Override
