@@ -74,7 +74,7 @@ public class Polygon {
         return index;
     }
 
-    private Line[] Perpendicular(Polygon polygon, int distance) {
+    private Line[] perpendicular(Polygon polygon, int distance) {
         List<Integer> tmpDistances = new ArrayList<>();
         List<Point> tmpVertices = new ArrayList<>();
         List<Line> tmpSides = new ArrayList<>();
@@ -101,15 +101,25 @@ public class Polygon {
         return -1;
     }
 
-    // Вершины игнорируются.
+    /**
+     * Определяет номер стороны текущего многоугольника, внутренность которой содержит точку {@param point}.
+     *
+     * @throws IllegalArgumentException если указанная точка не принадлежит внутренности ни одной из сторон
+     *                                  многоугольника
+     */
     private int indexOfSideWithPoint(Point point) {
         Line[] sides = getSides();
         for (int i = 0; i < sides.length; i++)
             if (sides[i].contains(point))
                 return i;
-        return -1;
+        throw new IllegalArgumentException("Указанная точка не принадлежит внутренности ни одной из сторон " +
+                "многоугольника.");
     }
 
+    /**
+     * Возвращает массив, состоящий из массива {@param array} с удалённым элементом с индексом {@param index} и со
+     * сдвинутыми влево элементами.
+     */
     private static Line[] deleteWithShift(Line[] array, int index) {
         Line[] result = new Line[array.length - 1];
         System.arraycopy(array, 0, result, 0, index);
@@ -193,9 +203,13 @@ public class Polygon {
         return new Line[][]{sides1, sides2, new Line[]{new Line(otherBorder1, otherBorder2)}};
     }
 
+    /**
+     * Определяет принадлежность значения {@param val0} списку {@param list}.
+     */
     private static boolean isIn(List<Integer> list, int val0) {
         for (Integer val : list)
-            if (val == val0) return true;
+            if (val == val0)
+                return true;
         return false;
     }
 
@@ -241,7 +255,7 @@ public class Polygon {
     }
 
     static Polygon unitePolygons(Polygon gonA, Polygon gonB, int distance) throws NullPointerException {
-        Line[] lines = gonA.Perpendicular(gonB, distance);
+        Line[] lines = gonA.perpendicular(gonB, distance);
         Line linkingLine = lines[0];
         Point vertex0 = linkingLine.getA();
         Point vertex1 = linkingLine.getB();
@@ -252,12 +266,18 @@ public class Polygon {
         return unitePolygonalChains(polygonalChains[0], polygonalChains[1], linkingLine, otherBoard);
     }
 
+    /**
+     * Рисует текущий многоугольник.
+     */
     private void draw(BufferedImage image, Color color) {
         Line[] sides = getSides();
         for (Line side : sides)
             side.draw(image, color);
     }
 
+    /**
+     * Рисует многоугольники из списка {@param polygons}.
+     */
     public static void drawPolygons(List<Polygon> polygons, Color color, String pictureName, String newPictureName) {
         try {
             BufferedImage image = ImageIO.read(new File(pictureName));
@@ -296,14 +316,23 @@ public class Polygon {
             e.printStackTrace();
         }
         removeLoops(newPolygons);
+        removeRedundantVertices(newPolygons);
         return newPolygons;
     }
 
+    /**
+     * Удаляет петли у многоугольников из списка {@param polygons}.
+     */
     private static void removeLoops(List<Polygon> polygons) {
         for (Polygon polygon : polygons)
             polygon.removeLoops();
     }
 
+    /**
+     * Удаляет петли у текущего многоугольника. Это означает, что если в списке {@param vertices} вершин многоугольника
+     * есть подряд идущие одинаковые вершины, то остаётся только одна вершина (например, список A,B,B,B,C превратится в
+     * A,B,C).
+     */
     private void removeLoops() {
         Iterator iter = vertices.iterator();
         Point curr;
