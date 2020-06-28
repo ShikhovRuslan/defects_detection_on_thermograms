@@ -31,7 +31,7 @@ public class Point {
             if (line.isVertical())
                 return Math.abs(y - line.getA().getY());
         }
-        throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность линии или " +
+        throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность линии, или " +
                 "линия не является ни горизонтальной, ни вертикальной.");
     }
 
@@ -49,14 +49,18 @@ public class Point {
     }
 
     /**
-     * Возвращает проекцию текущей точки на внутренность линии {@param line}.
+     * Возвращает проекцию текущей точки на линию {@param line}.
      *
-     * @throws IllegalArgumentException если линия не является ни горизонтальной, ни вертикальной
+     * @throws IllegalArgumentException если текущую точку нельзя спроектировать на линию или линия не является ни
+     *                                  горизонтальной, ни вертикальной
      */
     Point project(Line line) {
-        if (line.isHorizontal()) return new Point(line.getA().getX(), y);
-        if (line.isVertical()) return new Point(x, line.getA().getY());
-        throw new IllegalArgumentException("Линия не является ни горизонтальной, ни вертикальной.");
+        if (line.isHorizontal() && (projectableTo(line) || y == line.getA().y || y == line.getB().y))
+            return new Point(line.getA().getX(), y);
+        if (line.isVertical() && (projectableTo(line) || x == line.getA().x || x == line.getB().x))
+            return new Point(x, line.getA().getY());
+        throw new IllegalArgumentException("Текущую точку нельзя спроектировать на линию, или линия не является ни " +
+                "горизонтальной, ни вертикальной.");
     }
 
     @Override

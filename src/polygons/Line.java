@@ -30,52 +30,90 @@ public class Line {
     }
 
     /**
-     * Возвращает конец текущей линии, отличный от точки {@param end}, которая предполагается концом этой линии.
+     * Возвращает конец текущей линии, отличный от точки {@param end}.
+     *
+     * @throws IllegalArgumentException если точка {@param end} не является концом текущей линии.
      */
     Point getOtherEnd(Point end) {
         if (a == end) return b;
         if (b == end) return a;
-        return new Point(-1, -1);
+        throw new IllegalArgumentException("Аргумент не является концом текущей линии.");
     }
 
+    /**
+     * Возвращает верхний конец текущей линии.
+     *
+     * @throws IllegalArgumentException если текущая линия горизонтальна
+     */
     Point upperEnd() {
+        if (isHorizontal())
+            throw new IllegalArgumentException("Текущая линия горизонтальна.");
         return a.getX() < b.getX() ? a : b;
     }
 
+    /**
+     * Возвращает нижний конец текущей линии.
+     *
+     * @throws IllegalArgumentException если текущая линия горизонтальна
+     */
     Point lowerEnd() {
+        if (isHorizontal())
+            throw new IllegalArgumentException("Текущая линия горизонтальна.");
         return a.getX() > b.getX() ? a : b;
     }
 
+    /**
+     * Возвращает правый конец текущей линии.
+     *
+     * @throws IllegalArgumentException если текущая линия вертикальна
+     */
     Point rightEnd() {
+        if (isVertical())
+            throw new IllegalArgumentException("Текущая линия вертикальна.");
         return a.getY() > b.getY() ? a : b;
     }
 
+    /**
+     * Возвращает левый конец текущей линии.
+     *
+     * @throws IllegalArgumentException если текущая линия вертикальна
+     */
     Point leftEnd() {
+        if (isVertical())
+            throw new IllegalArgumentException("Текущая линия вертикальна.");
         return a.getY() < b.getY() ? a : b;
     }
 
     /**
-     * Определяет, принадлежит ли точка {@param point} внутренности текущей линии. Линия предполагается горизонтальной
-     * или вертикальной.
+     * Определяет принадлежность точки {@param point} внутренности текущей линии.
+     *
+     * @throws IllegalArgumentException если текущая линия ни горизонтальна, ни вертикальна
      */
     boolean contains(Point point) {
         if (isHorizontal())
             return point.getX() == a.getX() && point.projectableTo(this);
         if (isVertical())
             return point.getY() == a.getY() && point.projectableTo(this);
-        return false;
+        throw new IllegalArgumentException("Текущая линия ни горизонтальна, ни вертикальна.");
     }
 
     /**
-     * Рисует линию. Линия предполагается горизонтальной или вертикальной.
+     * Рисует текущую линию.
+     *
+     * @throws IllegalArgumentException если текущая линия ни горизонтальна, ни вертикальна
      */
     void draw(BufferedImage image, Color color) {
-        if (isHorizontal())
+        if (isHorizontal()) {
             for (int i = Math.min(a.getY(), b.getY()); i <= Math.max(a.getY(), b.getY()); i++)
                 image.setRGB(i, a.getX(), color.getRGB());
-        if (isVertical())
+            return;
+        }
+        if (isVertical()) {
             for (int i = Math.min(a.getX(), b.getX()); i <= Math.max(a.getX(), b.getX()); i++)
                 image.setRGB(a.getY(), i, color.getRGB());
+            return;
+        }
+        throw new IllegalArgumentException("Текущая линия ни горизонтальна, ни вертикальна.");
     }
 
     /**
