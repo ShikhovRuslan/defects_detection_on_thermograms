@@ -184,17 +184,13 @@ public class Polygon {
         Line[] sidesBNew = new Line[sides2.length + 1];
         sides2[side1Index] = newSide22;
         if (newSide2 != null) {
-            if (!isPointNotLine(newSide2)) {
+            if (!newSide2.isPointNotLine()) {
                 System.arraycopy(sides2, 0, sidesBNew, 0, sides2.length);
                 sidesBNew[sides2.length] = newSide2;
                 return new Line[][]{sides1, sidesBNew, new Line[]{new Line(otherBorder1, otherBorder2)}};
             }
         }
         return new Line[][]{sides1, sides2, new Line[]{new Line(otherBorder1, otherBorder2)}};
-    }
-
-    private static boolean isPointNotLine(Line line) {
-        return line.getA().equals(line.getB());
     }
 
     private static boolean isIn(List<Integer> list, int val0) {

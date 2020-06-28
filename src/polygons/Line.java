@@ -29,10 +29,13 @@ public class Line {
         return a.getY() == b.getY();
     }
 
-    Point getOtherEnd(Point point) {
-        if (a == point) return b;
-        if (b == point) return a;
-        return new Point(0, 0);
+    /**
+     * Возвращает конец текущей линии, отличный от точки {@param end}, которая предполагается концом этой линии.
+     */
+    Point getOtherEnd(Point end) {
+        if (a == end) return b;
+        if (b == end) return a;
+        return new Point(-1, -1);
     }
 
     Point upperEnd() {
@@ -51,7 +54,10 @@ public class Line {
         return a.getY() < b.getY() ? a : b;
     }
 
-    // Вершины игнорируются.
+    /**
+     * Определяет, принадлежит ли точка {@param point} внутренности текущей линии. Линия предполагается горизонтальной
+     * или вертикальной.
+     */
     boolean contains(Point point) {
         if (isHorizontal())
             return point.getX() == a.getX() && point.projectableTo(this);
@@ -60,13 +66,23 @@ public class Line {
         return false;
     }
 
+    /**
+     * Рисует линию. Линия предполагается горизонтальной или вертикальной.
+     */
     void draw(BufferedImage image, Color color) {
         if (isHorizontal())
-            for (int k = Math.min(a.getY(), b.getY()); k <= Math.max(a.getY(), b.getY()); k++)
-                image.setRGB(k, a.getX(), color.getRGB());
+            for (int i = Math.min(a.getY(), b.getY()); i <= Math.max(a.getY(), b.getY()); i++)
+                image.setRGB(i, a.getX(), color.getRGB());
         if (isVertical())
-            for (int k = Math.min(a.getX(), b.getX()); k <= Math.max(a.getX(), b.getX()); k++)
-                image.setRGB(a.getY(), k, color.getRGB());
+            for (int i = Math.min(a.getX(), b.getX()); i <= Math.max(a.getX(), b.getX()); i++)
+                image.setRGB(a.getY(), i, color.getRGB());
+    }
+
+    /**
+     * Определяет, является ли текущая линия точкой.
+     */
+    boolean isPointNotLine() {
+        return a.equals(b);
     }
 
     @Override
