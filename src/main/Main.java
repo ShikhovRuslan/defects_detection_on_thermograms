@@ -21,7 +21,6 @@ import java.util.regex.Pattern;
 
 import static java.awt.Color.BLACK;
 import static polygons.Polygon.drawPolygons;
-import static polygons.Polygon.removeRedundantVertices;
 
 /*
 
@@ -381,19 +380,19 @@ class Main {
         drawPolygons(polygons, BLACK, PICTURENAME, NEW_PICTURENAME_1);
 
 
-        List<Polygon> newPolygons1 = Polygon.toPolygons(polygons, 5);
+        List<Polygon> newPolygons1 = Polygon.toBiggerPolygons(polygons, 5);
         System.out.println(newPolygons1.size());
         drawPolygons(newPolygons1, BLACK, PICTURENAME, NEW_PICTURENAME_2);
 
-        List<Polygon> newPolygons2 = Polygon.toPolygons(newPolygons1, 5);
+        List<Polygon> newPolygons2 = Polygon.toBiggerPolygons(newPolygons1, 5);
         System.out.println(newPolygons2.size());
         drawPolygons(newPolygons2, BLACK, PICTURENAME, NEW_PICTURENAME_2);
 
-        List<Polygon> newPolygons3 = Polygon.toPolygons(newPolygons2, 5);
+        List<Polygon> newPolygons3 = Polygon.toBiggerPolygons(newPolygons2, 5);
         System.out.println(newPolygons3.size());
         drawPolygons(newPolygons3, BLACK, PICTURENAME, NEW_PICTURENAME_2);
 
-        List<Polygon> newPolygons4 = Polygon.toPolygons(newPolygons3, 5);
+        List<Polygon> newPolygons4 = Polygon.toBiggerPolygons(newPolygons3, 5);
         System.out.println(newPolygons4.size());
         drawPolygons(newPolygons4, BLACK, PICTURENAME, NEW_PICTURENAME_2);
 

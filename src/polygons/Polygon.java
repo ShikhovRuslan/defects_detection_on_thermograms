@@ -29,9 +29,11 @@ public class Polygon {
     }
 
     /**
-     * Определяет близость текущего многоугольника и многоугольника {@param polygon}. Два многоугольника близки, если
+     * Определяет, находится ли текущий многоугольник на расстоянии, не превышающим {@param distance}, от многоугольника
+     * {@param polygon}.
+     * Один многоугольник находится на расстоянии, не превышающим {@param distance}, от второго многоугольника, если
      * расстояние от какой-либо вершины первого многоугольника до внутренности какой-либо стороны второго многоугольника
-     * не превышает расстояния {@param distance}.
+     * не превышает величины {@param distance}.
      */
     private boolean isCloseTo(Polygon polygon, int distance) {
         Line[] sides = polygon.getSides();
@@ -46,7 +48,7 @@ public class Polygon {
     /**
      * Удаляет петли и лишние вершины у многоугольников из списка {@param polygons}.
      */
-    public static void removeRedundantVertices(List<Polygon> polygons) {
+    private static void removeRedundantVertices(List<Polygon> polygons) {
         for (Polygon polygon : polygons)
             polygon.removeRedundantVertices();
     }
@@ -104,7 +106,7 @@ public class Polygon {
     /**
      * Возвращает перпендикуляр минимальной длины, опущенный из какой-либо вершины текущего многоугольника на
      * внутренность какой-либо стороны многоугольника {@param polygon}, и эту сторону, если длина перпендикуляра не
-     * превышает расстояния {@param distance}.
+     * превышает величины {@param distance}.
      * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, int)} выдаёт {@code true}.
      */
     private Line[] perpendicular(Polygon polygon, int distance) {
@@ -128,6 +130,8 @@ public class Polygon {
     /**
      * Возвращает индекс стороны текущего многоугольника, которая имеет своим концом точку {@param vertex} и имеет
      * противоположную значению {@param isPerpendicularHorizontal} ориентацию, или {@code -1}, в противном случае.
+     * Если точка {@param vertex} не является вершиной текущего многоугольника, то выдаётся значение {@code -1}. Также
+     * это значение может быть выдано, если эта точка является вершиной развёрнутого угла.
      */
     private int indexOfSideToShorten(Point vertex, boolean isPerpendicularHorizontal) {
         Line[] sides = getSides();
@@ -165,80 +169,78 @@ public class Polygon {
         return result;
     }
 
-    private static Line[][] getPolygonalChains(Polygon polygon1, Polygon polygon2, int side0Index, Point vertex0,
+    private static Line[][] getPolygonalChains(Polygon polygon0, Polygon polygon1, int side0Index, Point vertex0,
                                                Line perpendicular, Point vertex1, int side1Index) {
+        Line[] sides0 = polygon0.getSides();
         Line[] sides1 = polygon1.getSides();
-        Line[] sides2 = polygon2.getSides();
-        Line side1ToShorten = sides1[side0Index];
-        Line side2ToShorten = sides2[side1Index];
+        Line side0ToShorten = sides0[side0Index];
+        Line side1ToShorten = sides1[side1Index];
+        Line newSide0 = null;
         Line newSide1 = null;
-        Line newSide2 = null;
-        Line newSide22;
-        Point pA = side1ToShorten.getOtherEnd(vertex0);
-        Point otherBorder1, otherBorder2;
+        Line newSide11;
+        Point pA = side0ToShorten.getOtherEnd(vertex0);
+        Point otherBorder0, otherBorder1;
         if (perpendicular.isHorizontal()) {
             if (pA.getX() < vertex0.getX()) {
-                if (pA.getX() < side2ToShorten.upperEnd().getX()) {
-                    newSide1 = new Line(pA, new Point(side2ToShorten.upperEnd().getX(), vertex0.getY()));
-                    otherBorder2 = side2ToShorten.upperEnd();
-                    otherBorder1 = otherBorder2.project(side1ToShorten);
+                if (pA.getX() < side1ToShorten.upperEnd().getX()) {
+                    newSide0 = new Line(pA, new Point(side1ToShorten.upperEnd().getX(), vertex0.getY()));
+                    otherBorder1 = side1ToShorten.upperEnd();
+                    otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide2 = new Line(side2ToShorten.upperEnd(), new Point(pA.getX(), vertex1.getY()));
-                    otherBorder1 = pA;
-                    otherBorder2 = otherBorder1.project(side2ToShorten);
+                    newSide1 = new Line(side1ToShorten.upperEnd(), new Point(pA.getX(), vertex1.getY()));
+                    otherBorder0 = pA;
+                    otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
-                newSide22 = new Line(vertex1, side2ToShorten.lowerEnd());
+                newSide11 = new Line(vertex1, side1ToShorten.lowerEnd());
             } else {
-                if (pA.getX() > side2ToShorten.lowerEnd().getX()) {
-                    newSide1 = new Line(pA, new Point(side2ToShorten.lowerEnd().getX(), vertex0.getY()));
-                    otherBorder2 = side2ToShorten.lowerEnd();
-                    otherBorder1 = otherBorder2.project(side1ToShorten);
+                if (pA.getX() > side1ToShorten.lowerEnd().getX()) {
+                    newSide0 = new Line(pA, new Point(side1ToShorten.lowerEnd().getX(), vertex0.getY()));
+                    otherBorder1 = side1ToShorten.lowerEnd();
+                    otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide2 = new Line(side2ToShorten.lowerEnd(), new Point(pA.getX(), vertex1.getY()));
-                    otherBorder1 = pA;
-                    otherBorder2 = otherBorder1.project(side2ToShorten);
+                    newSide1 = new Line(side1ToShorten.lowerEnd(), new Point(pA.getX(), vertex1.getY()));
+                    otherBorder0 = pA;
+                    otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
-                newSide22 = new Line(vertex1, side2ToShorten.upperEnd());
+                newSide11 = new Line(vertex1, side1ToShorten.upperEnd());
             }
         } else {
             if (pA.getY() < vertex0.getY()) {
-                if (pA.getY() < side2ToShorten.leftEnd().getY()) {
-                    newSide1 = new Line(pA, new Point(vertex0.getX(), side2ToShorten.leftEnd().getY()));
-                    otherBorder2 = side2ToShorten.leftEnd();
-                    otherBorder1 = otherBorder2.project(side1ToShorten);
+                if (pA.getY() < side1ToShorten.leftEnd().getY()) {
+                    newSide0 = new Line(pA, new Point(vertex0.getX(), side1ToShorten.leftEnd().getY()));
+                    otherBorder1 = side1ToShorten.leftEnd();
+                    otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide2 = new Line(side2ToShorten.leftEnd(), new Point(vertex1.getX(), pA.getY()));
-                    otherBorder1 = pA;
-                    otherBorder2 = otherBorder1.project(side2ToShorten);
+                    newSide1 = new Line(side1ToShorten.leftEnd(), new Point(vertex1.getX(), pA.getY()));
+                    otherBorder0 = pA;
+                    otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
-                newSide22 = new Line(vertex1, side2ToShorten.rightEnd());
+                newSide11 = new Line(vertex1, side1ToShorten.rightEnd());
             } else {
-                if (pA.getY() > side2ToShorten.rightEnd().getY()) {
-                    newSide1 = new Line(pA, new Point(vertex0.getX(), side2ToShorten.rightEnd().getY()));
-                    otherBorder2 = side2ToShorten.rightEnd();
-                    otherBorder1 = otherBorder2.project(side1ToShorten);
+                if (pA.getY() > side1ToShorten.rightEnd().getY()) {
+                    newSide0 = new Line(pA, new Point(vertex0.getX(), side1ToShorten.rightEnd().getY()));
+                    otherBorder1 = side1ToShorten.rightEnd();
+                    otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide2 = new Line(side2ToShorten.rightEnd(), new Point(vertex1.getX(), pA.getY()));
-                    otherBorder1 = pA;
-                    otherBorder2 = otherBorder1.project(side2ToShorten);
+                    newSide1 = new Line(side1ToShorten.rightEnd(), new Point(vertex1.getX(), pA.getY()));
+                    otherBorder0 = pA;
+                    otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
-                newSide22 = new Line(vertex1, side2ToShorten.leftEnd());
+                newSide11 = new Line(vertex1, side1ToShorten.leftEnd());
             }
         }
-        if (newSide1 != null)
-            sides1[side0Index] = newSide1;
+        if (newSide0 != null)
+            sides0[side0Index] = newSide0;
         else
-            sides1 = deleteWithShift(sides1, side0Index);
-        Line[] sidesBNew = new Line[sides2.length + 1];
-        sides2[side1Index] = newSide22;
-        if (newSide2 != null) {
-            if (!newSide2.isPointNotLine()) {
-                System.arraycopy(sides2, 0, sidesBNew, 0, sides2.length);
-                sidesBNew[sides2.length] = newSide2;
-                return new Line[][]{sides1, sidesBNew, new Line[]{new Line(otherBorder1, otherBorder2)}};
-            }
+            sides0 = deleteWithShift(sides0, side0Index);
+        Line[] sides1New = new Line[sides1.length + 1];
+        sides1[side1Index] = newSide11;
+        if (newSide1 != null && !newSide1.isPointNotLine()) {
+            System.arraycopy(sides1, 0, sides1New, 0, sides1.length);
+            sides1New[sides1.length] = newSide1;
+            return new Line[][]{sides0, sides1New, new Line[]{new Line(otherBorder0, otherBorder1)}};
         }
-        return new Line[][]{sides1, sides2, new Line[]{new Line(otherBorder1, otherBorder2)}};
+        return new Line[][]{sides0, sides1, new Line[]{new Line(otherBorder0, otherBorder1)}};
     }
 
     /**
@@ -251,57 +253,66 @@ public class Polygon {
         return false;
     }
 
-    private static Line[] order(Line[] sides) throws NullPointerException {
-        Line[] newSides = new Line[sides.length];
+    /**
+     * Возвращает упорядоченный массив линий из массива {@param lines}.
+     */
+    private static Line[] order(Line[] lines) throws NullPointerException {
+        Line[] newLines = new Line[lines.length];
         List<Integer> processed = new ArrayList<>();
-        newSides[0] = sides[0];
-        for (int i = 1; i < sides.length; i++)
-            for (int k = 1; k < sides.length; k++)
-                if (!isIn(processed, k)) {
-                    if (newSides[i - 1].getB().equals(sides[k].getA())) {
-                        newSides[i] = sides[k];
-                        processed.add(k);
+        newLines[0] = lines[0];
+        for (int i = 1; i < lines.length; i++)
+            for (int j = 1; j < lines.length; j++)
+                if (!isIn(processed, j)) {
+                    if (newLines[i - 1].getB().equals(lines[j].getA())) {
+                        newLines[i] = lines[j];
+                        processed.add(j);
                         break;
                     }
-                    if (newSides[i - 1].getB().equals(sides[k].getB())) {
-                        newSides[i] = new Line(sides[k].getB(), sides[k].getA());
-                        processed.add(k);
+                    if (newLines[i - 1].getB().equals(lines[j].getB())) {
+                        newLines[i] = new Line(lines[j].getB(), lines[j].getA());
+                        processed.add(j);
                         break;
                     }
                 }
-        return newSides;
+        return newLines;
     }
 
-    private static Polygon unitePolygonalChains(Line[] chain1, Line[] chain2, Line linkingLine, Line otherBorder)
-            throws NullPointerException {
-        Line[] newSides = new Line[chain1.length + chain2.length + 2];
-        System.arraycopy(chain1, 0, newSides, 0, chain1.length);
-        System.arraycopy(chain2, 0, newSides, chain1.length, chain2.length);
-        newSides[chain1.length + chain2.length] = linkingLine;
-        newSides[chain1.length + chain2.length + 1] = otherBorder;
-        newSides = order(newSides);
-        List<Point> newPoints = new ArrayList<>();
-        newPoints.add(newSides[0].getA());
-        for (Line side : newSides) {
-            if (!newPoints.contains(side.getA())) {
-                newPoints.add(side.getA());
-            }
-            if (!newPoints.contains(side.getB()))
-                newPoints.add(side.getB());
+    /**
+     * Возвращает многоугольник, построенный на точках, являющихся концами линий из массива {@param lines}.
+     */
+    private static Polygon createPolygon(Line[] lines) throws NullPointerException {
+        Line[] sides = order(lines);
+        List<Point> points = new ArrayList<>();
+        for (Line side : sides) {
+            if (!points.contains(side.getA()))
+                points.add(side.getA());
+            if (!points.contains(side.getB()))
+                points.add(side.getB());
         }
-        return new Polygon(newPoints);
+        return new Polygon(points);
     }
 
-    static Polygon unitePolygons(Polygon gonA, Polygon gonB, int distance) throws NullPointerException {
-        Line[] lines = gonA.perpendicular(gonB, distance);
-        Line linkingLine = lines[0];
-        Point vertex0 = linkingLine.getA();
-        Point vertex1 = linkingLine.getB();
-        int side0Index = gonA.indexOfSideToShorten(vertex0, linkingLine.isHorizontal());
-        int side1Index = gonB.indexOfSideWithPoint(vertex1);
-        Line[][] polygonalChains = getPolygonalChains(gonA, gonB, side0Index, vertex0, linkingLine, vertex1, side1Index);
-        Line otherBoard = polygonalChains[2][0];
-        return unitePolygonalChains(polygonalChains[0], polygonalChains[1], linkingLine, otherBoard);
+    /**
+     * Возвращает многоугольник, являющийся объединением текущего многоугольника и многоугольника {@param polygon},
+     * расстояние между которыми не превышает величины {@param distance}.
+     * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, int)} выдаёт {@code true}.
+     *
+     * @see #isCloseTo(Polygon, int)
+     */
+    Polygon uniteWith(Polygon polygon, int distance) throws NullPointerException {
+        Line[] lines = perpendicular(polygon, distance);
+        Line perpendicular = lines[0];
+        Point vertex0 = perpendicular.getA();
+        Point vertex1 = perpendicular.getB();
+        int side0Index = indexOfSideToShorten(vertex0, perpendicular.isHorizontal());
+        int side1Index = polygon.indexOfSideWithPoint(vertex1);
+        Line[][] polygonalChains = getPolygonalChains(this, polygon, side0Index, vertex0, perpendicular, vertex1, side1Index);
+        Line otherBoarder = polygonalChains[2][0];
+        Line[] allLines = new Line[polygonalChains[0].length + polygonalChains[1].length + 2];
+        System.arraycopy(polygonalChains[0], 0, allLines, 0, polygonalChains[0].length);
+        System.arraycopy(polygonalChains[1], 0, allLines, polygonalChains[0].length, polygonalChains[1].length);
+        System.arraycopy(new Line[]{perpendicular, otherBoarder}, 0, allLines, polygonalChains[0].length + polygonalChains[1].length, 2);
+        return createPolygon(allLines);
     }
 
     /**
@@ -327,37 +338,38 @@ public class Polygon {
         }
     }
 
-    public static List<Polygon> toPolygons(List<Polygon> polygons, int distance) {
+    /**
+     * Возвращает список многоугольников, полученный путём объединения лежащих на расстоянии, не превышающим
+     * {@param distance}, многоугольников из списка {@param polygons}.
+     */
+    public static List<Polygon> toBiggerPolygons(List<Polygon> polygons, int distance) {
         List<Polygon> newPolygons = new ArrayList<>();
-        List<Integer> processedPolygons = new ArrayList<>();
+        List<Integer> processed = new ArrayList<>();
         try {
-            for (int i = 0; i < polygons.size(); i++) {
-                if (!isIn(processedPolygons, i)) {
+            for (int i = 0; i < polygons.size(); i++)
+                if (!isIn(processed, i)) {
                     int j;
-                    for (j = i + 1; j < polygons.size(); j++) {
-                        if (!isIn(processedPolygons, j)) {
+                    for (j = i + 1; j < polygons.size(); j++)
+                        if (!isIn(processed, j)) {
                             if (polygons.get(i).isCloseTo(polygons.get(j), distance)) {
-                                newPolygons.add(unitePolygons(polygons.get(i), polygons.get(j), distance));
-                                processedPolygons.add(j);
+                                newPolygons.add(polygons.get(i).uniteWith(polygons.get(j), distance));
+                                processed.add(j);
                                 break;
                             }
                             if (polygons.get(j).isCloseTo(polygons.get(i), distance)) {
-                                newPolygons.add(unitePolygons(polygons.get(j), polygons.get(i), distance));
-                                processedPolygons.add(j);
+                                newPolygons.add(polygons.get(j).uniteWith(polygons.get(i), distance));
+                                processed.add(j);
                                 break;
                             }
                         }
-                    }
-                    if (j == polygons.size() && !isIn(processedPolygons, j)) {
+                    // Если не смогли найти пару i-му многоугольнику, то просто его добавляем.
+                    if (j == polygons.size())
                         newPolygons.add(polygons.get(i));
-                    }
                 }
-            }
         } catch (NullPointerException e) {
-            System.out.println("NullPointerException in Polygon.toPolygons().");
+            System.out.println("NullPointerException in Polygon.toBiggerPolygons().");
             e.printStackTrace();
         }
-        removeLoops(newPolygons);
         removeRedundantVertices(newPolygons);
         return newPolygons;
     }
