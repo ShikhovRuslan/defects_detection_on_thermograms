@@ -169,6 +169,21 @@ public class Polygon {
         return result;
     }
 
+    /**
+     * Возвращает подкорректированные массивы сторон многоугольников {@param polygon0}, {@param polygon1} и линию,
+     * соединяющую эти многоугольники, отличной от перпендикуляра.
+     *
+     * @param polygon0      многоугольник
+     * @param polygon1      многоугольник
+     * @param side0Index    индекс стороны многоугольника {@param polygon0}, которая имеет своим концом точку
+     *                      {@param vertex0} и имеет ориентацию, противоположную ориентации {@param perpendicular}
+     * @param vertex0       вершина многоугольника {@param polygon0}
+     * @param perpendicular перпендикуляр, опущенный из вершины {@param vertex0} на внутренность стороны многоугольника
+     *                      {@param polygon1}
+     * @param vertex1       проекция точки {@param vertex0} на внутренность
+     * @param side1Index    индекс стороны многоугольника {@param polygon1}, внутренность которой содержит проекцию точки
+     *                      {@param vertex0}
+     */
     private static Line[][] getPolygonalChains(Polygon polygon0, Polygon polygon1, int side0Index, Point vertex0,
                                                Line perpendicular, Point vertex1, int side1Index) {
         Line[] sides0 = polygon0.getSides();
@@ -178,68 +193,72 @@ public class Polygon {
         Line newSide0 = null;
         Line newSide1 = null;
         Line newSide11;
-        Point pA = side0ToShorten.getOtherEnd(vertex0);
+        Point end0 = side0ToShorten.getOtherEnd(vertex0);
         Point otherBorder0, otherBorder1;
-        if (perpendicular.isHorizontal()) {
-            if (pA.getX() < vertex0.getX()) {
-                if (pA.getX() < side1ToShorten.upperEnd().getX()) {
-                    newSide0 = new Line(pA, new Point(side1ToShorten.upperEnd().getX(), vertex0.getY()));
+        if (perpendicular.isHorizontal())
+            if (end0.getX() < vertex0.getX()) {
+                if (end0.getX() < side1ToShorten.upperEnd().getX()) {
+                    newSide0 = new Line(end0, new Point(side1ToShorten.upperEnd().getX(), vertex0.getY()));
                     otherBorder1 = side1ToShorten.upperEnd();
                     otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide1 = new Line(side1ToShorten.upperEnd(), new Point(pA.getX(), vertex1.getY()));
-                    otherBorder0 = pA;
+                    newSide1 = new Line(side1ToShorten.upperEnd(), new Point(end0.getX(), vertex1.getY()));
+                    otherBorder0 = end0;
                     otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
                 newSide11 = new Line(vertex1, side1ToShorten.lowerEnd());
             } else {
-                if (pA.getX() > side1ToShorten.lowerEnd().getX()) {
-                    newSide0 = new Line(pA, new Point(side1ToShorten.lowerEnd().getX(), vertex0.getY()));
+                if (end0.getX() > side1ToShorten.lowerEnd().getX()) {
+                    newSide0 = new Line(end0, new Point(side1ToShorten.lowerEnd().getX(), vertex0.getY()));
                     otherBorder1 = side1ToShorten.lowerEnd();
                     otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide1 = new Line(side1ToShorten.lowerEnd(), new Point(pA.getX(), vertex1.getY()));
-                    otherBorder0 = pA;
+                    newSide1 = new Line(side1ToShorten.lowerEnd(), new Point(end0.getX(), vertex1.getY()));
+                    otherBorder0 = end0;
                     otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
                 newSide11 = new Line(vertex1, side1ToShorten.upperEnd());
             }
-        } else {
-            if (pA.getY() < vertex0.getY()) {
-                if (pA.getY() < side1ToShorten.leftEnd().getY()) {
-                    newSide0 = new Line(pA, new Point(vertex0.getX(), side1ToShorten.leftEnd().getY()));
-                    otherBorder1 = side1ToShorten.leftEnd();
-                    otherBorder0 = otherBorder1.project(side0ToShorten);
-                } else {
-                    newSide1 = new Line(side1ToShorten.leftEnd(), new Point(vertex1.getX(), pA.getY()));
-                    otherBorder0 = pA;
-                    otherBorder1 = otherBorder0.project(side1ToShorten);
-                }
-                newSide11 = new Line(vertex1, side1ToShorten.rightEnd());
+        else if (end0.getY() < vertex0.getY()) {
+            if (end0.getY() < side1ToShorten.leftEnd().getY()) {
+                newSide0 = new Line(end0, new Point(vertex0.getX(), side1ToShorten.leftEnd().getY()));
+                otherBorder1 = side1ToShorten.leftEnd();
+                otherBorder0 = otherBorder1.project(side0ToShorten);
             } else {
-                if (pA.getY() > side1ToShorten.rightEnd().getY()) {
-                    newSide0 = new Line(pA, new Point(vertex0.getX(), side1ToShorten.rightEnd().getY()));
-                    otherBorder1 = side1ToShorten.rightEnd();
-                    otherBorder0 = otherBorder1.project(side0ToShorten);
-                } else {
-                    newSide1 = new Line(side1ToShorten.rightEnd(), new Point(vertex1.getX(), pA.getY()));
-                    otherBorder0 = pA;
-                    otherBorder1 = otherBorder0.project(side1ToShorten);
-                }
-                newSide11 = new Line(vertex1, side1ToShorten.leftEnd());
+                newSide1 = new Line(side1ToShorten.leftEnd(), new Point(vertex1.getX(), end0.getY()));
+                otherBorder0 = end0;
+                otherBorder1 = otherBorder0.project(side1ToShorten);
             }
+            newSide11 = new Line(vertex1, side1ToShorten.rightEnd());
+        } else {
+            if (end0.getY() > side1ToShorten.rightEnd().getY()) {
+                newSide0 = new Line(end0, new Point(vertex0.getX(), side1ToShorten.rightEnd().getY()));
+                otherBorder1 = side1ToShorten.rightEnd();
+                otherBorder0 = otherBorder1.project(side0ToShorten);
+            } else {
+                newSide1 = new Line(side1ToShorten.rightEnd(), new Point(vertex1.getX(), end0.getY()));
+                otherBorder0 = end0;
+                otherBorder1 = otherBorder0.project(side1ToShorten);
+            }
+            newSide11 = new Line(vertex1, side1ToShorten.leftEnd());
         }
+
+        // newSide0 не является точкой
         if (newSide0 != null)
             sides0[side0Index] = newSide0;
         else
             sides0 = deleteWithShift(sides0, side0Index);
-        Line[] sides1New = new Line[sides1.length + 1];
+
+        // newSide11 всегда !=null и не является точкой
         sides1[side1Index] = newSide11;
+
         if (newSide1 != null && !newSide1.isPointNotLine()) {
-            System.arraycopy(sides1, 0, sides1New, 0, sides1.length);
-            sides1New[sides1.length] = newSide1;
-            return new Line[][]{sides0, sides1New, new Line[]{new Line(otherBorder0, otherBorder1)}};
+            Line[] tmp = new Line[sides1.length + 1];
+            System.arraycopy(sides1, 0, tmp, 0, sides1.length);
+            tmp[sides1.length] = newSide1;
+            sides1 = tmp;
         }
+
         return new Line[][]{sides0, sides1, new Line[]{new Line(otherBorder0, otherBorder1)}};
     }
 
