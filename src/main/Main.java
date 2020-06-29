@@ -356,20 +356,24 @@ class Main {
 //        drawRangesSoph(newRangers2, PICTURENAME, NEW_PICTURENAME);
 
 
-//        List<Point> points = new ArrayList<>();
-//        points.add(new Point(0,0));
-//        points.add(new Point(0,10));
-//        points.add(new Point(5,10));
-//        points.add(new Point(5,0));
-//        points.add(new Point(0,0));
-//        Polygon pol = new Polygon(points);
-//        List<Polygon> li = new ArrayList<>();
-//        li.add(pol);
-//        for(Polygon p : li)
-//            p.deleteLoops();
-//        System.out.println(Arrays.toString(li.toArray()));
-//        System.out.println(pol.deleteLoops());
-//        int ii = 0;
+        List<Point> points = new ArrayList<>();
+        //points.add(new Point(3,0));
+        points.add(new Point(3,3));
+        points.add(new Point(3,4));
+        points.add(new Point(3,5));
+        points.add(new Point(3,6));
+        points.add(new Point(3,10));
+        points.add(new Point(3,10));
+        points.add(new Point(3,10));
+        points.add(new Point(50,10));
+        points.add(new Point(50,0));
+        points.add(new Point(3,0));
+        points.add(new Point(3,0));
+
+        Polygon pol = new Polygon(points);
+        pol.removeLoops();
+        System.out.println(pol);
+        int ii = 0;
 
 
 

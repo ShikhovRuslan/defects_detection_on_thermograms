@@ -18,6 +18,9 @@ public class Polygon {
         this.vertices = vertices;
     }
 
+    /**
+     * Возвращает список сторон текущего многоугольника, соединяя последовательно его вершины.
+     */
     private Line[] getSides() {
         Line[] sides = new Line[vertices.size()];
         for (int i = 0; i < vertices.size(); i++)
@@ -25,44 +28,68 @@ public class Polygon {
         return sides;
     }
 
-    private boolean[] isCloseTo(Polygon polygon, int distance) {
+    /**
+     * Определяет близость текущего многоугольника и многоугольника {@param polygon}. Два многоугольника близки, если
+     * расстояние от какой-либо вершины первого многоугольника до внутренности какой-либо стороны второго многоугольника
+     * не превышает расстояния {@param distance}.
+     */
+    private boolean isCloseTo(Polygon polygon, int distance) {
+        Line[] sides = polygon.getSides();
         for (Point vertex : vertices)
-            for (Line side : polygon.getSides())
+            for (Line side : sides)
+                // Специально используется сокращённый оператор AND.
                 if (vertex.projectableTo(side) && vertex.distance(side) <= distance)
-                    return new boolean[]{true, false};
-        for (Point vertex : polygon.vertices)
-            for (Line side : getSides())
-                if (vertex.projectableTo(side) && vertex.distance(side) <= distance)
-                    return new boolean[]{true, true};
-        return new boolean[]{false, false};
+                    return true;
+        return false;
     }
 
+    /**
+     * Удаляет петли и лишние вершины у многоугольников из списка {@param polygons}.
+     */
     public static void removeRedundantVertices(List<Polygon> polygons) {
         for (Polygon polygon : polygons)
             polygon.removeRedundantVertices();
     }
 
-    private void removeRedundantVertices() {
-        List<Point> newVertices = new ArrayList<>();
-        int index;
-        boolean vertexIsAdded = false;
-        for (Point vertex : vertices) {
-            if (!vertexIsAdded) {
-                index = vertices.indexOf(vertex);
-                if (getSides()[index > 0 ? index - 1 : getSides().length - 1].getA().getX() == getSides()[index].getB().getX() ||
-                        getSides()[index > 0 ? index - 1 : getSides().length - 1].getA().getY() == getSides()[index].getB().getY()) {
-                    if (index < vertices.size() - 1)
-                        newVertices.add(getSides()[index].getB());
-                    vertexIsAdded = true;
-                    continue;
-                } else
-                    newVertices.add(vertex);
-            }
-            vertexIsAdded = false;
-        }
-        vertices = newVertices;
+    /**
+     * Возвращает сторону текущего многоугольника, которая входит в данную точку {@param vertex}.
+     *
+     * @throws IllegalArgumentException если эта точка не является вершиной многоугольника
+     */
+    private Line incomingSide(Point vertex) {
+        Line[] sides = getSides();
+        for (Line side : sides)
+            if (side.getB().equals(vertex))
+                return side;
+        throw new IllegalArgumentException("Точка не является вершиной многоугольника.");
     }
 
+    /**
+     * Возвращает сторону текущего многоугольника, которая исходит из данной точки {@param vertex}. Если
+     *
+     * @throws IllegalArgumentException если эта точка не является вершиной многоугольника
+     */
+    private Line outgoingSide(Point vertex) {
+        Line[] sides = getSides();
+        for (Line side : sides)
+            if (side.getA().equals(vertex))
+                return side;
+        throw new IllegalArgumentException("Точка не является вершиной многоугольника.");
+    }
+
+    /**
+     * Удаляет петли текущего многоугольника, а также его вершины, которые являются лишними (т. е. такие вершины,
+     * которые являются вершинами развёрнутого угла).
+     */
+    private void removeRedundantVertices() {
+        removeLoops(); // чтобы удаление лишних вершин было корректным
+        vertices.removeIf(vertex -> incomingSide(vertex).getA().getX() == outgoingSide(vertex).getB().getX() ||
+                incomingSide(vertex).getA().getY() == outgoingSide(vertex).getB().getY());
+    }
+
+    /**
+     * Возвращает индекс первого вхождения минимального числа в списке {@param list}.
+     */
     private static int findIndexOfMin(List<Integer> list) {
         int index = 0;
         int min = list.get(index);
@@ -74,12 +101,19 @@ public class Polygon {
         return index;
     }
 
+    /**
+     * Возвращает перпендикуляр минимальной длины, опущенный из какой-либо вершины текущего многоугольника на
+     * внутренность какой-либо стороны многоугольника {@param polygon}, и эту сторону, если длина перпендикуляра не
+     * превышает расстояния {@param distance}.
+     * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, int)} выдаёт {@code true}.
+     */
     private Line[] perpendicular(Polygon polygon, int distance) {
         List<Integer> tmpDistances = new ArrayList<>();
         List<Point> tmpVertices = new ArrayList<>();
         List<Line> tmpSides = new ArrayList<>();
+        Line[] sides = polygon.getSides();
         for (Point vertex : vertices)
-            for (Line side : polygon.getSides())
+            for (Line side : sides)
                 if (vertex.projectableTo(side) && vertex.distance(side) <= distance) {
                     tmpDistances.add(vertex.distance(side));
                     tmpVertices.add(vertex);
@@ -91,10 +125,14 @@ public class Polygon {
         return new Line[]{new Line(vertex0, vertex0.project(side1)), side1};
     }
 
-    private int indexOfSideToShorten(Point vertex0, boolean isPerpendicularHorizontal) {
+    /**
+     * Возвращает индекс стороны текущего многоугольника, которая имеет своим концом точку {@param vertex} и имеет
+     * противоположную значению {@param isPerpendicularHorizontal} ориентацию, или {@code -1}, в противном случае.
+     */
+    private int indexOfSideToShorten(Point vertex, boolean isPerpendicularHorizontal) {
         Line[] sides = getSides();
         for (int i = 0; i < sides.length; i++)
-            if ((vertex0 == sides[i].getA() || vertex0 == sides[i].getB()) &&
+            if ((vertex.equals(sides[i].getA()) || vertex.equals(sides[i].getB())) &&
                     (isPerpendicularHorizontal && sides[i].isVertical() ||
                             !isPerpendicularHorizontal && sides[i].isHorizontal()))
                 return i;
@@ -297,13 +335,17 @@ public class Polygon {
                 if (!isIn(processedPolygons, i)) {
                     int j;
                     for (j = i + 1; j < polygons.size(); j++) {
-                        if (polygons.get(i).isCloseTo(polygons.get(j), distance)[0] && !isIn(processedPolygons, j)) {
-                            if (!polygons.get(i).isCloseTo(polygons.get(j), distance)[1])
+                        if (!isIn(processedPolygons, j)) {
+                            if (polygons.get(i).isCloseTo(polygons.get(j), distance)) {
                                 newPolygons.add(unitePolygons(polygons.get(i), polygons.get(j), distance));
-                            else
+                                processedPolygons.add(j);
+                                break;
+                            }
+                            if (polygons.get(j).isCloseTo(polygons.get(i), distance)) {
                                 newPolygons.add(unitePolygons(polygons.get(j), polygons.get(i), distance));
-                            processedPolygons.add(j);
-                            break;
+                                processedPolygons.add(j);
+                                break;
+                            }
                         }
                     }
                     if (j == polygons.size() && !isIn(processedPolygons, j)) {
@@ -333,7 +375,7 @@ public class Polygon {
      * есть подряд идущие одинаковые вершины, то остаётся только одна вершина (например, список A,B,B,B,C превратится в
      * A,B,C).
      */
-    private void removeLoops() {
+    public void removeLoops() {
         Iterator iter = vertices.iterator();
         Point curr;
         Point prev = vertices.get(vertices.size() - 1);
