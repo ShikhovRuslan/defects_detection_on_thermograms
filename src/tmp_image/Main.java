@@ -1,7 +1,6 @@
-package image_demo;
+package tmp_image;
 
 import javax.imageio.ImageIO;
-import java.applet.Applet;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;

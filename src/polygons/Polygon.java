@@ -219,6 +219,22 @@ public class Polygon {
         }
     }
 
+    private static Polygon convertRange(Integer[] range) {
+        List<Point> vertices = new ArrayList<>();
+        vertices.add(new Point(range[0], range[1]));
+        vertices.add(new Point(range[0], range[3]));
+        vertices.add(new Point(range[2], range[3]));
+        vertices.add(new Point(range[2], range[1]));
+        return new Polygon(vertices);
+    }
+
+    public static List<Polygon> convertRanges(List<Integer[]> ranges) {
+        List<Polygon> polygons = new ArrayList<>();
+        for (Integer[] range : ranges)
+            polygons.add(convertRange(range));
+        return polygons;
+    }
+
     /**
      * Возвращает упорядоченный массив линий из массива {@param lines}.
      */
