@@ -171,21 +171,21 @@ public class Polygon {
 
     /**
      * Возвращает подкорректированные массивы сторон многоугольников {@param polygon0}, {@param polygon1} и линию,
-     * соединяющую эти многоугольники, отличной от перпендикуляра.
+     * соединяющую эти многоугольники, отличную от перпендикуляра.
      *
      * @param polygon0      многоугольник
      * @param polygon1      многоугольник
-     * @param side0Index    индекс стороны многоугольника {@param polygon0}, которая имеет своим концом точку
-     *                      {@param vertex0} и имеет ориентацию, противоположную ориентации {@param perpendicular}
      * @param vertex0       вершина многоугольника {@param polygon0}
      * @param perpendicular перпендикуляр, опущенный из вершины {@param vertex0} на внутренность стороны многоугольника
      *                      {@param polygon1}
-     * @param vertex1       проекция точки {@param vertex0} на внутренность
-     * @param side1Index    индекс стороны многоугольника {@param polygon1}, внутренность которой содержит проекцию точки
-     *                      {@param vertex0}
+     * @param end1          конец {@param perpendicular}, принадлежащий многоугольнику {@param polygon1}
+     * @param side0Index    индекс стороны многоугольника {@param polygon0}, которая имеет своим концом вершину
+     *                      {@param vertex0} и имеет ориентацию, противоположную ориентации {@param perpendicular}
+     * @param side1Index    индекс стороны многоугольника {@param polygon1}, внутренность которой содержит точку
+     *                      {@param end1}
      */
-    private static Line[][] getPolygonalChains(Polygon polygon0, Polygon polygon1, int side0Index, Point vertex0,
-                                               Line perpendicular, Point vertex1, int side1Index) {
+    private static Line[][] getPolygonalChains(Polygon polygon0, Polygon polygon1, Point vertex0, Line perpendicular,
+                                               Point end1, int side0Index, int side1Index) {
         Line[] sides0 = polygon0.getSides();
         Line[] sides1 = polygon1.getSides();
         Line side0ToShorten = sides0[side0Index];
@@ -202,22 +202,22 @@ public class Polygon {
                     otherBorder1 = side1ToShorten.upperEnd();
                     otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide1 = new Line(side1ToShorten.upperEnd(), new Point(end0.getX(), vertex1.getY()));
+                    newSide1 = new Line(side1ToShorten.upperEnd(), new Point(end0.getX(), end1.getY()));
                     otherBorder0 = end0;
                     otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
-                newSide11 = new Line(vertex1, side1ToShorten.lowerEnd());
+                newSide11 = new Line(end1, side1ToShorten.lowerEnd());
             } else {
                 if (end0.getX() > side1ToShorten.lowerEnd().getX()) {
                     newSide0 = new Line(end0, new Point(side1ToShorten.lowerEnd().getX(), vertex0.getY()));
                     otherBorder1 = side1ToShorten.lowerEnd();
                     otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide1 = new Line(side1ToShorten.lowerEnd(), new Point(end0.getX(), vertex1.getY()));
+                    newSide1 = new Line(side1ToShorten.lowerEnd(), new Point(end0.getX(), end1.getY()));
                     otherBorder0 = end0;
                     otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
-                newSide11 = new Line(vertex1, side1ToShorten.upperEnd());
+                newSide11 = new Line(end1, side1ToShorten.upperEnd());
             }
         else if (end0.getY() < vertex0.getY()) {
             if (end0.getY() < side1ToShorten.leftEnd().getY()) {
@@ -225,22 +225,22 @@ public class Polygon {
                 otherBorder1 = side1ToShorten.leftEnd();
                 otherBorder0 = otherBorder1.project(side0ToShorten);
             } else {
-                newSide1 = new Line(side1ToShorten.leftEnd(), new Point(vertex1.getX(), end0.getY()));
+                newSide1 = new Line(side1ToShorten.leftEnd(), new Point(end1.getX(), end0.getY()));
                 otherBorder0 = end0;
                 otherBorder1 = otherBorder0.project(side1ToShorten);
             }
-            newSide11 = new Line(vertex1, side1ToShorten.rightEnd());
+            newSide11 = new Line(end1, side1ToShorten.rightEnd());
         } else {
             if (end0.getY() > side1ToShorten.rightEnd().getY()) {
                 newSide0 = new Line(end0, new Point(vertex0.getX(), side1ToShorten.rightEnd().getY()));
                 otherBorder1 = side1ToShorten.rightEnd();
                 otherBorder0 = otherBorder1.project(side0ToShorten);
             } else {
-                newSide1 = new Line(side1ToShorten.rightEnd(), new Point(vertex1.getX(), end0.getY()));
+                newSide1 = new Line(side1ToShorten.rightEnd(), new Point(end1.getX(), end0.getY()));
                 otherBorder0 = end0;
                 otherBorder1 = otherBorder0.project(side1ToShorten);
             }
-            newSide11 = new Line(vertex1, side1ToShorten.leftEnd());
+            newSide11 = new Line(end1, side1ToShorten.leftEnd());
         }
 
         // newSide0 не является точкой
@@ -322,10 +322,10 @@ public class Polygon {
         Line[] lines = perpendicular(polygon, distance);
         Line perpendicular = lines[0];
         Point vertex0 = perpendicular.getA();
-        Point vertex1 = perpendicular.getB();
+        Point end1 = perpendicular.getB();
         int side0Index = indexOfSideToShorten(vertex0, perpendicular.isHorizontal());
-        int side1Index = polygon.indexOfSideWithPoint(vertex1);
-        Line[][] polygonalChains = getPolygonalChains(this, polygon, side0Index, vertex0, perpendicular, vertex1, side1Index);
+        int side1Index = polygon.indexOfSideWithPoint(end1);
+        Line[][] polygonalChains = getPolygonalChains(this, polygon, vertex0, perpendicular, end1, side0Index, side1Index);
         Line otherBoarder = polygonalChains[2][0];
         Line[] allLines = new Line[polygonalChains[0].length + polygonalChains[1].length + 2];
         System.arraycopy(polygonalChains[0], 0, allLines, 0, polygonalChains[0].length);
