@@ -1,11 +1,93 @@
 package main;
 
+import javenue.csv.Csv;
+
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class Range {
+    static final String DIR = "/home/ruslan/geo";
+    static final String FILENAME = DIR + "/file.txt";
+
+    /**
+     * Возвращает представление файла с названием {@param filename} в виде таблицы.
+     */
+    static List<List<String>> extractRawTable(String filename) throws FileNotFoundException {
+        Csv.Reader reader = new Csv.Reader(new FileReader(FILENAME)).delimiter(';').ignoreComments(true);
+        List<List<String>> rawTable = new ArrayList<>();
+        List<String> line;
+        do {
+            line = reader.readLine();
+            rawTable.add(line);
+        } while (line != null);
+        return rawTable;
+    }
+
+    /**
+     * Возвращает подтаблицу таблицы {@param rawTable}, содержащую числа.
+     */
+    static List<List<String>> extractTable(List<List<String>> rawTable) {
+        Pattern pattern = Pattern.compile("-?\\d{1,2},\\d{1,3}");
+        Matcher matcher;
+        List<List<String>> table = new ArrayList<>();
+        int fromIndex = 0;
+        int count = 0;
+        boolean rightLine = false;
+        boolean found;
+        for (List<String> line : rawTable)
+            if (line != null) {
+                for (int i = 0; i < line.size(); i++) {
+                    matcher = pattern.matcher(line.get(i));
+                    found = matcher.find();
+                    if (found)
+                        count++;
+                    if (count == 1)
+                        fromIndex = i;
+                    if (!found && (i == fromIndex + 1 || i == fromIndex + 2))
+                        break; // !
+                    if (count >= 3) {
+                        rightLine = true;
+                        break;
+                    }
+                }
+                for (String s : line.subList(fromIndex, line.size()))
+                    if (s.equals("")) {
+                        rightLine = false;
+                        break;
+                    }
+                if (rightLine)
+                    table.add(line.subList(fromIndex, line.size()));
+                count = 0;
+                rightLine = false;
+            }
+        return table;
+    }
+
+    /**
+     * Печатает таблицу {@param table}.
+     */
+    static void printTable(List<List<String>> table) {
+        for (List<String> line : table)
+            System.out.println(line);
+    }
+
+    /**
+     * Печатает таблицу {@param table}.
+     */
+    static void printTable(int[][] table) {
+        for (int[] line : table) {
+            for (int num : line)
+                System.out.print(num);
+            System.out.println();
+        }
+    }
+
     /**
      * Определяет, является ли указанный прямоугольник {@param range} горизонтальной или вертикальной линией.
      */
@@ -31,12 +113,12 @@ public class Range {
      * же месте в таблице целых чисел пишется значение {@code 1}, иначе остаётся значение по умолчанию {@code 0}.
      */
     static int[][] findIf(List<List<String>> table, Predicate<Double> predicate) {
-        int[][] array = new int[table.size()][table.get(0).size()];
+        int[][] newTable = new int[table.size()][table.get(0).size()];
         for (int i = 0; i < table.size(); i++)
             for (int j = 0; j < table.get(0).size(); j++)
                 if (predicate.test(new Double(table.get(i).get(j).replace(',', '.'))))
-                    array[i][j] = 1;
-        return array;
+                    newTable[i][j] = 1;
+        return newTable;
     }
 
     /**

@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,77 +22,15 @@ http://www.javenue.info/post/78 - чтение и запись CSV файлов 
  */
 
 class Main {
-    private static final String DIR = "/home/ruslan/geo";
-    private static final String FILENAME = DIR + "/file.txt";
-    private static final String PICTURENAME = DIR + "/picture.jpg";
-    private static final String NEW_PICTURENAME_1 = DIR + "/picture2_1.jpg";
-    private static final String NEW_PICTURENAME_2 = DIR + "/picture2_2.jpg";
+    private static final String PICTURENAME = Range.DIR + "/picture.jpg";
+    private static final String NEW_PICTURENAME_1 = Range.DIR + "/picture2_1.jpg";
+    private static final String NEW_PICTURENAME_2 = Range.DIR + "/picture2_2.jpg";
     private static final double T_MIN = 30;
     private static final double T_MAX = 100;
     private static final int HEIGHT = 250;
     private static final int RES_X = 640;
     private static final int RES_Y = 512;
     private static final int MIN_SQUARE_PIXELS = 25;
-
-    private static void printTable(List<List<String>> table) {
-        for (List<String> line : table) {
-            System.out.println(line);
-        }
-    }
-
-    private static void printTable(int[][] arr) {
-        for (int[] ints : arr) {
-            for (int num : ints)
-                System.out.print(num);
-            System.out.println();
-        }
-    }
-
-    private static List<List<String>> extractTable(List<List<String>> rawTable) {
-        Pattern pattern = Pattern.compile("-?\\d{1,2},\\d{1,3}");
-        Matcher matcher;
-        List<List<String>> table = new ArrayList<>();
-        int fromIndex = 0;
-        int count = 0;
-        boolean rightLine = false;
-        boolean found;
-        for (List<String> line : rawTable) {
-            if (line != null) {
-                for (int i = 0; i < line.size(); i++) {
-                    matcher = pattern.matcher(line.get(i));
-                    found = matcher.find();
-                    if (found) count++;
-                    if (count == 1) fromIndex = i;
-                    if (!found && (i == fromIndex + 1 || i == fromIndex + 2)) break; // !
-                    if (count >= 3) {
-                        rightLine = true;
-                        break;
-                    }
-                }
-                for (String s : line.subList(fromIndex, line.size()))
-                    if (s.equals("")) {
-                        rightLine = false;
-                        break;
-                    }
-                if (rightLine) table.add(line.subList(fromIndex, line.size()));
-                count = 0;
-                rightLine = false;
-            }
-        }
-        return table;
-    }
-
-    private static List<List<String>> extractRawTable(String filename) throws FileNotFoundException {
-        Csv.Reader reader = new Csv.Reader(new FileReader(FILENAME))
-                .delimiter(';').ignoreComments(true);
-        List<List<String>> rawTable = new ArrayList<>();
-        List<String> line;
-        do {
-            line = reader.readLine();
-            rawTable.add(line);
-        } while (line != null);
-        return rawTable;
-    }
 
     private static List<Integer> abc(int[] arr) {
         List<Integer> line = new ArrayList<>();
@@ -111,8 +48,8 @@ class Main {
     }
 
     private static void f() throws IOException {
-        List<List<String>> rawTable = extractRawTable(FILENAME);
-        List<List<String>> table = extractTable(rawTable);
+        List<List<String>> rawTable = Range.extractRawTable(Range.FILENAME);
+        List<List<String>> table = Range.extractTable(rawTable);
         int[][] arr = Range.findIf(table, num -> num > T_MIN);
         List<Integer[]> ranges = Range.findRanges(arrayToList(arr));
         ranges.removeIf(range -> Range.squarePixels(range) < MIN_SQUARE_PIXELS);
