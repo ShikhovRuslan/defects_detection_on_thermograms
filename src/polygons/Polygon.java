@@ -67,7 +67,7 @@ public class Polygon {
     }
 
     /**
-     * Возвращает сторону текущего многоугольника, которая исходит из данной точки {@param vertex}. Если
+     * Возвращает сторону текущего многоугольника, которая исходит из данной точки {@param vertex}.
      *
      * @throws IllegalArgumentException если эта точка не является вершиной многоугольника
      */
@@ -170,6 +170,97 @@ public class Polygon {
     }
 
     /**
+     * Определяет принадлежность значения {@param val0} списку {@param list}.
+     */
+    private static boolean isIn(List<Integer> list, int val0) {
+        for (Integer val : list)
+            if (val == val0)
+                return true;
+        return false;
+    }
+
+    /**
+     * Рисует текущий многоугольник.
+     */
+    private void draw(BufferedImage image, Color color) {
+        Line[] sides = getSides();
+        for (Line side : sides)
+            side.draw(image, color);
+    }
+
+    /**
+     * Рисует многоугольники из списка {@param polygons}.
+     */
+    public static void drawPolygons(List<Polygon> polygons, Color color, String pictureName, String newPictureName) {
+        try {
+            BufferedImage image = ImageIO.read(new File(pictureName));
+            for (Polygon polygon : polygons)
+                polygon.draw(image, color);
+            ImageIO.write(image, "jpg", new File(newPictureName));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Удаляет петли у текущего многоугольника. Это означает, что если в списке {@param vertices} вершин многоугольника
+     * есть подряд идущие одинаковые вершины, то остаётся только одна вершина (например, список A,B,B,B,C превратится в
+     * A,B,C).
+     */
+    public void removeLoops() {
+        Iterator iter = vertices.iterator();
+        Point curr;
+        Point prev = vertices.get(vertices.size() - 1);
+        while (iter.hasNext()) {
+            curr = (Point) iter.next();
+            if (curr.equals(prev))
+                iter.remove();
+            prev = curr;
+        }
+    }
+
+    /**
+     * Возвращает упорядоченный массив линий из массива {@param lines}.
+     */
+    private static Line[] order(Line[] lines) throws NullPointerException {
+        Line[] newLines = new Line[lines.length];
+        List<Integer> processed = new ArrayList<>();
+        newLines[0] = lines[0];
+        for (int i = 1; i < lines.length; i++)
+            for (int j = 1; j < lines.length; j++)
+                if (!isIn(processed, j)) {
+                    if (newLines[i - 1].getB().equals(lines[j].getA())) {
+                        newLines[i] = lines[j];
+                        processed.add(j);
+                        break;
+                    }
+                    if (newLines[i - 1].getB().equals(lines[j].getB())) {
+                        newLines[i] = new Line(lines[j].getB(), lines[j].getA());
+                        processed.add(j);
+                        break;
+                    }
+                }
+        return newLines;
+    }
+
+    /**
+     * Возвращает многоугольник, построенный на точках, являющихся концами линий из массива {@param lines}.
+     */
+    private static Polygon createPolygon(Line[] lines) throws NullPointerException {
+        Line[] sides = order(lines);
+        List<Point> points = new ArrayList<>();
+        for (Line side : sides) {
+            if (!points.contains(side.getA()))
+                points.add(side.getA());
+            if (!points.contains(side.getB()))
+                points.add(side.getB());
+        }
+        Polygon polygon = new Polygon(points);
+        polygon.removeRedundantVertices();
+        return polygon;
+    }
+
+    /**
      * Возвращает подкорректированные массивы сторон многоугольников {@param polygon0}, {@param polygon1} и линию,
      * соединяющую эти многоугольники, отличную от перпендикуляра.
      *
@@ -263,55 +354,6 @@ public class Polygon {
     }
 
     /**
-     * Определяет принадлежность значения {@param val0} списку {@param list}.
-     */
-    private static boolean isIn(List<Integer> list, int val0) {
-        for (Integer val : list)
-            if (val == val0)
-                return true;
-        return false;
-    }
-
-    /**
-     * Возвращает упорядоченный массив линий из массива {@param lines}.
-     */
-    private static Line[] order(Line[] lines) throws NullPointerException {
-        Line[] newLines = new Line[lines.length];
-        List<Integer> processed = new ArrayList<>();
-        newLines[0] = lines[0];
-        for (int i = 1; i < lines.length; i++)
-            for (int j = 1; j < lines.length; j++)
-                if (!isIn(processed, j)) {
-                    if (newLines[i - 1].getB().equals(lines[j].getA())) {
-                        newLines[i] = lines[j];
-                        processed.add(j);
-                        break;
-                    }
-                    if (newLines[i - 1].getB().equals(lines[j].getB())) {
-                        newLines[i] = new Line(lines[j].getB(), lines[j].getA());
-                        processed.add(j);
-                        break;
-                    }
-                }
-        return newLines;
-    }
-
-    /**
-     * Возвращает многоугольник, построенный на точках, являющихся концами линий из массива {@param lines}.
-     */
-    private static Polygon createPolygon(Line[] lines) throws NullPointerException {
-        Line[] sides = order(lines);
-        List<Point> points = new ArrayList<>();
-        for (Line side : sides) {
-            if (!points.contains(side.getA()))
-                points.add(side.getA());
-            if (!points.contains(side.getB()))
-                points.add(side.getB());
-        }
-        return new Polygon(points);
-    }
-
-    /**
      * Возвращает многоугольник, являющийся объединением текущего многоугольника и многоугольника {@param polygon},
      * расстояние между которыми не превышает величины {@param distance}.
      * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, int)} выдаёт {@code true}.
@@ -332,29 +374,6 @@ public class Polygon {
         System.arraycopy(polygonalChains[1], 0, allLines, polygonalChains[0].length, polygonalChains[1].length);
         System.arraycopy(new Line[]{perpendicular, otherBoarder}, 0, allLines, polygonalChains[0].length + polygonalChains[1].length, 2);
         return createPolygon(allLines);
-    }
-
-    /**
-     * Рисует текущий многоугольник.
-     */
-    private void draw(BufferedImage image, Color color) {
-        Line[] sides = getSides();
-        for (Line side : sides)
-            side.draw(image, color);
-    }
-
-    /**
-     * Рисует многоугольники из списка {@param polygons}.
-     */
-    public static void drawPolygons(List<Polygon> polygons, Color color, String pictureName, String newPictureName) {
-        try {
-            BufferedImage image = ImageIO.read(new File(pictureName));
-            for (Polygon polygon : polygons)
-                polygon.draw(image, color);
-            ImageIO.write(image, "jpg", new File(newPictureName));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -389,33 +408,7 @@ public class Polygon {
             System.out.println("NullPointerException in Polygon.toBiggerPolygons().");
             e.printStackTrace();
         }
-        removeRedundantVertices(newPolygons);
         return newPolygons;
-    }
-
-    /**
-     * Удаляет петли у многоугольников из списка {@param polygons}.
-     */
-    private static void removeLoops(List<Polygon> polygons) {
-        for (Polygon polygon : polygons)
-            polygon.removeLoops();
-    }
-
-    /**
-     * Удаляет петли у текущего многоугольника. Это означает, что если в списке {@param vertices} вершин многоугольника
-     * есть подряд идущие одинаковые вершины, то остаётся только одна вершина (например, список A,B,B,B,C превратится в
-     * A,B,C).
-     */
-    public void removeLoops() {
-        Iterator iter = vertices.iterator();
-        Point curr;
-        Point prev = vertices.get(vertices.size() - 1);
-        while (iter.hasNext()) {
-            curr = (Point) iter.next();
-            if (curr.equals(prev))
-                iter.remove();
-            prev = curr;
-        }
     }
 
     @Override
