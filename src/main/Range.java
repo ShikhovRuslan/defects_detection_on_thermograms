@@ -50,7 +50,7 @@ public class Range {
                     if (count == 1)
                         fromIndex = i;
                     if (!found && (i == fromIndex + 1 || i == fromIndex + 2))
-                        break; // !
+                        break;
                     if (count >= 3) {
                         rightLine = true;
                         break;
