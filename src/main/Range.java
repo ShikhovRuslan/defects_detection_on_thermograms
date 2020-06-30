@@ -2,6 +2,7 @@ package main;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 
 public class Range {
@@ -21,6 +22,28 @@ public class Range {
             if (i0 >= range[0] && i0 <= range[2] && j0 >= range[1] && j0 <= range[3])
                 return true;
         return false;
+    }
+
+    /**
+     * Возвращает таблицу целых чисел, построенную на основании таблицы {@param table} (которая содержит строковые
+     * представления чисел) и предиката {@param predicate}.
+     * Если элемент таблицы {@param table} удовлетворяет критерию, задаваемому предикатом {@param predicate}, то на этом
+     * же месте в таблице целых чисел пишется значение {@code 1}, иначе остаётся значение по умолчанию {@code 0}.
+     */
+    static int[][] findIf(List<List<String>> table, Predicate<Double> predicate) {
+        int[][] array = new int[table.size()][table.get(0).size()];
+        for (int i = 0; i < table.size(); i++)
+            for (int j = 0; j < table.get(0).size(); j++)
+                if (predicate.test(new Double(table.get(i).get(j).replace(',', '.'))))
+                    array[i][j] = 1;
+        return array;
+    }
+
+    /**
+     * Возвращает число точек в прямоугольнике {@param range}.
+     */
+    static int squarePixels(Integer[] range) {
+        return (range[2] - range[0] + 1) * (range[3] - range[1] + 1);
     }
 
     /**

@@ -95,14 +95,6 @@ class Main {
         return rawTable;
     }
 
-    private static int[][] findIf(List<List<String>> table, Predicate<Double> predicate) {
-        int[][] arr = new int[table.size()][table.get(0).size()];
-        for (int i = 0; i < table.size(); i++)
-            for (int j = 0; j < table.get(i).size(); j++)
-                if (predicate.test(new Double(table.get(i).get(j).replace(',', '.')))) arr[i][j] = 1;
-        return arr;
-    }
-
     private static List<Integer> abc(int[] arr) {
         List<Integer> line = new ArrayList<>();
         for (int a : arr) {
@@ -118,16 +110,12 @@ class Main {
         return table;
     }
 
-    private static int squarePixels(Integer[] range) {
-        return (range[2] - range[0] + 1) * (range[3] - range[1] + 1);
-    }
-
     private static void f() throws IOException {
         List<List<String>> rawTable = extractRawTable(FILENAME);
         List<List<String>> table = extractTable(rawTable);
-        int[][] arr = findIf(table, num -> num > T_MIN);
+        int[][] arr = Range.findIf(table, num -> num > T_MIN);
         List<Integer[]> ranges = Range.findRanges(arrayToList(arr));
-        ranges.removeIf(range -> squarePixels(range) < MIN_SQUARE_PIXELS);
+        ranges.removeIf(range -> Range.squarePixels(range) < MIN_SQUARE_PIXELS);
 
         System.out.println(Arrays.deepToString(ranges.toArray()) + "\n" + ranges.size() + "\n");
 
