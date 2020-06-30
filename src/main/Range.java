@@ -14,6 +14,15 @@ import java.util.regex.Pattern;
 public class Range {
     static final String DIR = "/home/ruslan/geo";
     static final String FILENAME = DIR + "/file.txt";
+    static final String PICTURENAME = DIR + "/picture.jpg";
+    static final String NEW_PICTURENAME_1 = DIR + "/picture2_1.jpg";
+    static final String NEW_PICTURENAME_2 = DIR + "/picture2_2.jpg";
+    static final double T_MIN = 30;
+    static final double T_MAX = 100;
+    static final int HEIGHT = 250;
+    static final int RES_X = 640;
+    static final int RES_Y = 512;
+    static final int MIN_SQUARE_PIXELS = 25;
 
     /**
      * Возвращает представление файла с названием {@param filename} в виде таблицы.
@@ -143,11 +152,11 @@ public class Range {
      * Возвращает число единиц в прямоугольнике из таблицы {@param table}, ограниченном верхней левой точкой
      * ({@param i1}, {@param j1}) и нижней правой точкой ({@param i2}, {@param j2}).
      */
-    private static int amountOfOnes(List<List<Integer>> table, int i1, int j1, int i2, int j2) {
+    private static int amountOfOnes(int[][] table, int i1, int j1, int i2, int j2) {
         int count = 0;
         for (int i = i1; i <= i2; i++)
             for (int j = j1; j <= j2; j++)
-                if (table.get(i).get(j) == 1)
+                if (table[i][j] == 1)
                     count++;
         return count;
     }
@@ -156,7 +165,7 @@ public class Range {
      * Возвращает прямоугольник, чья верхняя левая вершина примерно совпадает с точкой ({@param i}, {@param j}), на
      * основании таблицы {@param table} и списка уже построенных прямоугольников {@param ranges}.
      */
-    private static Integer[] makeRange(List<List<Integer>> table, int i, int j, List<Integer[]> ranges) {
+    private static Integer[] makeRange(int[][] table, int i, int j, List<Integer[]> ranges) {
         int x = i, y = j;
         boolean incrementX, incrementY;
         do {
@@ -178,12 +187,12 @@ public class Range {
     /**
      * Возвращает список прямоугольников, созданных на основании таблицы {@param table}.
      */
-    static List<Integer[]> findRanges(List<List<Integer>> table) {
+    static List<Integer[]> findRanges(int[][] table) {
         List<Integer[]> ranges = new ArrayList<>();
         Integer[] range;
-        for (int i = 0; i < table.size(); i++)
-            for (int j = 0; j < table.get(0).size(); j++)
-                if (table.get(i).get(j) == 1 && !(Range.pointIsInRanges(i, j, ranges))) {
+        for (int i = 0; i < table.length; i++)
+            for (int j = 0; j < table[0].length; j++)
+                if (table[i][j] == 1 && !(Range.pointIsInRanges(i, j, ranges))) {
                     range = makeRange(table, i, j, ranges);
                     if (!Range.isLine(range))
                         ranges.add(range);
