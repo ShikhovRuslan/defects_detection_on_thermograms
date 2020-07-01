@@ -171,16 +171,22 @@ public class Range {
         do {
             incrementX = false;
             incrementY = false;
-            if (amountOfOnes(table, i, j, x + 1, y) - amountOfOnes(table, i, j, x, y) > (y - j) / 2) {
+            if (x + 1 < table.length &&
+                    amountOfOnes(table, i, j, x + 1, y) - amountOfOnes(table, i, j, x, y) > (y - j + 1) / 2) {
                 x++;
                 incrementX = true;
             }
-            if (amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i) / 2 &&
+            if (y + 1 < table[0].length &&
+                    amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i + 1) / 2 &&
                     !Range.verticalLineIntersectsRanges(i, x, y + 1, ranges)) {
                 y++;
                 incrementY = true;
             }
         } while (incrementX || incrementY);
+        if (amountOfOnes(table, i, j, i, y) < (y - j + 1) / 2 && i + 1 < table.length)
+            i++;
+        if (amountOfOnes(table, i, j, x, j) < (x - i + 1) / 2 && j + 1 < table[0].length)
+            j++;
         return new Integer[]{i, j, x, y};
     }
 

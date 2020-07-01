@@ -207,7 +207,7 @@ public class Polygon {
      * есть подряд идущие одинаковые вершины, то остаётся только одна вершина (например, список A,B,B,B,C превратится в
      * A,B,C).
      */
-    public void removeLoops() {
+    private void removeLoops() {
         Iterator iter = vertices.iterator();
         Point curr;
         Point prev = vertices.get(vertices.size() - 1);
@@ -219,6 +219,9 @@ public class Polygon {
         }
     }
 
+    /**
+     * Возвращает многоугольник, построенный на основе прямоугольника {@param range}.
+     */
     private static Polygon convertRange(Integer[] range) {
         List<Point> vertices = new ArrayList<>();
         vertices.add(new Point(range[0], range[1]));
@@ -228,6 +231,9 @@ public class Polygon {
         return new Polygon(vertices);
     }
 
+    /**
+     * Возвращает список многоугольников, построенных на основе прямоугольников из списка {@param ranges}.
+     */
     public static List<Polygon> convertRanges(List<Integer[]> ranges) {
         List<Polygon> polygons = new ArrayList<>();
         for (Integer[] range : ranges)
@@ -425,6 +431,27 @@ public class Polygon {
             e.printStackTrace();
         }
         return newPolygons;
+    }
+
+    /**
+     * Укрупняет итеративно список многоугольников {@param polygons} до тех пор, пока укрупнения возможны.
+     *
+     * @return список укрупнённых многоугольников
+     */
+    public static List<Polygon> enlargeIteratively(List<Polygon> polygons, int distance) {
+        List<Polygon> newPolygons = null;
+        List<Polygon> prevPolygons;
+        int count = -1; // число итераций, приводящих к укрупнению
+        List<Integer> sizes = new ArrayList<>(); // размеры первоначального и всех последующих списков многоугольников
+        do {
+            prevPolygons = count >= 0 ? newPolygons : polygons;
+            newPolygons = Polygon.toBiggerPolygons(prevPolygons, distance);
+            count++;
+            sizes.add(prevPolygons.size());
+        } while (newPolygons.size() < prevPolygons.size());
+        System.out.println(count);
+        System.out.println(Arrays.toString(sizes.toArray()));
+        return prevPolygons;
     }
 
     @Override
