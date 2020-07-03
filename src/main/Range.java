@@ -12,23 +12,23 @@ import java.util.regex.Pattern;
 
 
 public class Range {
-    static final String DIR = "/home/ruslan/geo";
-    static final String FILENAME = DIR + "/file.txt";
-    static final String PICTURENAME = DIR + "/picture.jpg";
-    static final String NEW_PICTURENAME_1 = DIR + "/picture2_1.jpg";
-    static final String NEW_PICTURENAME_2 = DIR + "/picture2_2.jpg";
+    //static final String DIR = "/home/ruslan/geo";
+    //static final String FILENAME = DIR + "/file.txt";
+    //static final String PICTURENAME = DIR + "/picture.jpg";
+    //static final String NEW_PICTURENAME_1 = DIR + "/picture2_1.jpg";
+    //static final String NEW_PICTURENAME_2 = DIR + "/picture2_2.jpg";
     static final double T_MIN = 30;
     static final double T_MAX = 100;
     static final int HEIGHT = 250;
-    static final int RES_X = 640;
-    static final int RES_Y = 512;
+    public static final int RES_X = 512;
+    public static final int RES_Y = 640;
     static final int MIN_SQUARE_PIXELS = 25;
 
     /**
      * Возвращает представление файла с названием {@param filename} в виде таблицы.
      */
     static List<List<String>> extractRawTable(String filename) throws FileNotFoundException {
-        Csv.Reader reader = new Csv.Reader(new FileReader(FILENAME)).delimiter(';').ignoreComments(true);
+        Csv.Reader reader = new Csv.Reader(new FileReader(filename)).delimiter(';').ignoreComments(true);
         List<List<String>> rawTable = new ArrayList<>();
         List<String> line;
         do {
@@ -133,7 +133,7 @@ public class Range {
     /**
      * Возвращает число точек в прямоугольнике {@param range}.
      */
-    static int squarePixels(Integer[] range) {
+    public static int squarePixels(Integer[] range) {
         return (range[2] - range[0] + 1) * (range[3] - range[1] + 1);
     }
 

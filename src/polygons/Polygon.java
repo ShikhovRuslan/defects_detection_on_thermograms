@@ -1,5 +1,7 @@
 package polygons;
 
+import main.Range;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -13,9 +15,15 @@ import java.util.List;
 
 public class Polygon {
     private List<Point> vertices;
+    private int squarePixels;
 
     public Polygon(List<Point> vertices) {
         this.vertices = vertices;
+    }
+
+    public Polygon(List<Point> vertices, int squarePixels) {
+        this.vertices = vertices;
+        this.squarePixels = squarePixels;
     }
 
     /**
@@ -43,14 +51,6 @@ public class Polygon {
                 if (vertex.projectableTo(side) && vertex.distance(side) <= distance)
                     return true;
         return false;
-    }
-
-    /**
-     * Удаляет петли и лишние вершины у многоугольников из списка {@param polygons}.
-     */
-    private static void removeRedundantVertices(List<Polygon> polygons) {
-        for (Polygon polygon : polygons)
-            polygon.removeRedundantVertices();
     }
 
     /**
@@ -228,7 +228,20 @@ public class Polygon {
         vertices.add(new Point(range[0], range[3]));
         vertices.add(new Point(range[2], range[3]));
         vertices.add(new Point(range[2], range[1]));
-        return new Polygon(vertices);
+        return new Polygon(vertices, Range.squarePixels(range));
+    }
+
+    public static void showSquaresPixels(List<Polygon> polygons) {
+        List<Integer> squaresPixels = new ArrayList<>();
+        for (Polygon polygon : polygons)
+            squaresPixels.add(polygon.squarePixels);
+        int totalSquarePixels = 0;
+        for (Integer num : squaresPixels)
+            totalSquarePixels += num;
+        System.out.printf("%d pi^2  -  %s%n", totalSquarePixels, "суммарная площадь дефектов");
+        System.out.printf("%.2f %%  -  %s%n", (totalSquarePixels + 0.) / (Range.RES_X * Range.RES_Y) * 100,
+                "доля суммарной площади дефектов от общей площади");
+        System.out.printf("%s%n%s", "Площади дефектов (в кв. пикселях):", Arrays.toString(squaresPixels.toArray()));
     }
 
     /**
@@ -240,6 +253,26 @@ public class Polygon {
             polygons.add(convertRange(range));
         return polygons;
     }
+
+//    private boolean isInPolygon(int i0, int j0) {
+//
+//    }
+//
+//    private static boolean isInPolygons(int i0, int j0, List<Polygon> polygons) {
+//        for (Polygon polygon : polygons)
+//            if (polygon.isInPolygon(i0, j0))
+//                return true;
+//        return false;
+//    }
+//
+//    public static int squarePixels(List<Polygon> polygons, int xMax, int yMax) {
+//        int count = 0;
+//        for (int i = 0; i < xMax; i++)
+//            for (int j = 0; j < yMax; j++)
+//                if (isInPolygons(i, j, polygons))
+//                    count++;
+//        return count;
+//    }
 
     /**
      * Возвращает упорядоченный массив линий из массива {@param lines}.
@@ -268,7 +301,7 @@ public class Polygon {
     /**
      * Возвращает многоугольник, построенный на точках, являющихся концами линий из массива {@param lines}.
      */
-    private static Polygon createPolygon(Line[] lines) throws NullPointerException {
+    private static Polygon createPolygon(Line[] lines, int squarePixels) throws NullPointerException {
         Line[] sides = order(lines);
         List<Point> points = new ArrayList<>();
         for (Line side : sides) {
@@ -277,7 +310,7 @@ public class Polygon {
             if (!points.contains(side.getB()))
                 points.add(side.getB());
         }
-        Polygon polygon = new Polygon(points);
+        Polygon polygon = new Polygon(points, squarePixels);
         polygon.removeRedundantVertices();
         return polygon;
     }
@@ -375,6 +408,14 @@ public class Polygon {
         return new Line[][]{sides0, sides1, new Line[]{new Line(otherBorder0, otherBorder1)}};
     }
 
+    private static int squarePixels(Point p1, Point p2) {
+        int i1 = Math.min(p1.getX(), p2.getX());
+        int i2 = Math.max(p1.getX(), p2.getX());
+        int j1 = Math.min(p1.getY(), p2.getY());
+        int j2 = Math.max(p1.getY(), p2.getY());
+        return Range.squarePixels(new Integer[]{i1, j1, i2, j2});
+    }
+
     /**
      * Возвращает многоугольник, являющийся объединением текущего многоугольника и многоугольника {@param polygon},
      * расстояние между которыми не превышает величины {@param distance}.
@@ -395,14 +436,15 @@ public class Polygon {
         System.arraycopy(polygonalChains[0], 0, allLines, 0, polygonalChains[0].length);
         System.arraycopy(polygonalChains[1], 0, allLines, polygonalChains[0].length, polygonalChains[1].length);
         System.arraycopy(new Line[]{perpendicular, otherBoarder}, 0, allLines, polygonalChains[0].length + polygonalChains[1].length, 2);
-        return createPolygon(allLines);
+        int squarePixelsOfConnectingRectangle = squarePixels(vertex0, otherBoarder.getB());
+        return createPolygon(allLines, this.squarePixels + polygon.squarePixels + squarePixelsOfConnectingRectangle);
     }
 
     /**
      * Возвращает список многоугольников, полученный путём объединения лежащих на расстоянии, не превышающим
      * {@param distance}, многоугольников из списка {@param polygons}.
      */
-    public static List<Polygon> toBiggerPolygons(List<Polygon> polygons, int distance) {
+    private static List<Polygon> toBiggerPolygons(List<Polygon> polygons, int distance) {
         List<Polygon> newPolygons = new ArrayList<>();
         List<Integer> processed = new ArrayList<>();
         try {
@@ -449,8 +491,8 @@ public class Polygon {
             count++;
             sizes.add(prevPolygons.size());
         } while (newPolygons.size() < prevPolygons.size());
-        System.out.println(count);
-        System.out.println(Arrays.toString(sizes.toArray()));
+        //System.out.println(count);
+        //System.out.println(Arrays.toString(sizes.toArray()));
         return prevPolygons;
     }
 
