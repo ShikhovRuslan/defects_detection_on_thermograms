@@ -1,10 +1,12 @@
 package main;
 
-import com.grum.geocalc.*;
+import com.grum.geocalc.Coordinate;
+import com.grum.geocalc.DMSCoordinate;
+import com.grum.geocalc.EarthCalc;
+import com.grum.geocalc.Point;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Arrays;
 
 /*
 https://github.com/grumlimited/geocalc
@@ -29,11 +31,11 @@ class Pixel {
         this.j = j;
     }
 
-    public int getI() {
+    int getI() {
         return i;
     }
 
-    public int getJ() {
+    int getJ() {
         return j;
     }
 }
@@ -55,42 +57,6 @@ public class NewClass {
      * Фокусное расстояние, м.
      */
     private final static double FOCAL_LENGTH = 25. / 1000;
-    /**
-     * Средний радиус Земли, м.
-     */
-    private final static double EARTH_RADIUS = 6371.01 * 1000;
-
-    private static double imageLength() {
-        return RES_X * PIXEL_SIZE;
-    }
-
-    private static double imageWidth() {
-        return RES_Y * PIXEL_SIZE;
-    }
-
-    private static double areaLength(double height) {
-        return height * imageLength() / FOCAL_LENGTH;
-    }
-
-    private static double areaWidth(double height) {
-        return height * imageWidth() / FOCAL_LENGTH;
-    }
-
-    private static double toAreaLength(double height, int pixel) {
-        return areaLength(height) * pixel / RES_X;
-    }
-
-    private static double toAngle(double length) {
-        return (length / EARTH_RADIUS) * (180 / Math.PI);
-    }
-
-    private static double anglePerPixel(double height, double angle) {
-        return toAngle(areaLength(height) / RES_X);
-    }
-
-    private static double anglePerPixel2(double height, double angle) {
-        return toAngle(areaWidth(height) / RES_Y);
-    }
 
     /**
      * Возвращает величину, обратную к масштабу матрицы, т. е. отношение длины отрезка на местности к длине
@@ -118,22 +84,51 @@ public class NewClass {
     /**
      * Пиксельные координаты углов матрицы, начиная с верхнего левого угла и заканчивая нижним левым.
      */
-    private enum MatrixCorners {
-        MC0(0, RES_Y - 1),
-        MC1(RES_X - 1, RES_Y - 1),
-        MC2(RES_X - 1, 0),
-        MC3(0, 0);
+    private enum Corners {
+        C0(0, RES_Y - 1),
+        C1(RES_X - 1, RES_Y - 1),
+        C2(RES_X - 1, 0),
+        C3(0, 0);
 
         private final int i;
         private final int j;
 
-        MatrixCorners(int i, int j) {
+        Corners(int i, int j) {
             this.i = i;
             this.j = j;
         }
 
         private Pixel toPixel() {
             return new Pixel(i, j);
+        }
+
+        /**
+         * Вычисляет острый угол (в градусах) между отрезком, соединяющим точку {@code p} и текущий угол матрицы, и
+         * прямой, проходящей через точку {@code p} и параллельной оси c'x'.
+         */
+        private double angle(Pixel p) {
+            return (180 / Math.PI) * Math.atan(Math.abs(j - p.getJ()) / Math.abs(i - p.getI() + 0.));
+        }
+
+        /**
+         * Вычисляет земные координаты углов матрицы.
+         *
+         * @param p      Пиксельные координаты пикселя, который является изображением точки {@code point}
+         * @param point  Земные координаты точки земной поверхности
+         * @param yaw    Угол поворота оси c'x' относительно оси OX, отсчитываемый против часовой стрелки (ось OX
+         *               направлена на север)
+         * @param height Высота фотографирования
+         */
+        private static Point[] getCorners(Pixel p, Point point, double yaw, double height) {
+            Point[] corners = new Point[4];
+            double[] angles = {
+                    Corners.C0.angle(p) - yaw - 180,
+                    -Corners.C1.angle(p) - yaw,
+                    Corners.C2.angle(p) - yaw,
+                    -Corners.C3.angle(p) - yaw + 180};
+            for (int i = 0; i < 4; i++)
+                corners[i] = EarthCalc.pointAt(point, angles[i], earthDistance(p, Corners.values()[i].toPixel(), height));
+            return corners;
         }
     }
 
@@ -149,30 +144,14 @@ public class NewClass {
         return Coordinate.fromDMS(degrees, minutes, seconds);
     }
 
-    private static Point[] getCorners(Pixel o, Point coords, double yaw, double height) {
-        Point[] res = new Point[4];
-
-        double[] angles = {
-                -(90 + (180/Math.PI)*Math.atan(o.getI() / (RES_Y - o.getJ() + 0.)) + yaw),
-                -((180/Math.PI)*Math.atan((RES_Y - o.getJ()) / (RES_X - o.getI() + 0.)) + yaw),
-                -(-(180/Math.PI)*Math.atan(o.getJ() / (RES_X - o.getI() + 0.)) + yaw),
-                -(-90 - (180/Math.PI)*Math.atan(o.getI() / (o.getJ() + 0.)) + yaw)};
-        System.out.println("angles:");
-        System.out.println(Arrays.toString(angles));
-
-        for(int i = 0; i<angles.length; i++)
-            res[i] = EarthCalc.pointAt(coords, angles[i], earthDistance(o, MatrixCorners.values()[i].toPixel(), height));
-        return res;
-    }
-
     public static void main(String[] args) {
 
         double s1 = earthDistance(new Pixel(0, 0), new Pixel(RES_X - 1, 0), 152);
         double s2 = earthDistance(new Pixel(0, 0), new Pixel(0, RES_Y - 1), 152);
-        System.out.println(s1 + " " + s2);
+        System.out.println(Corners.C2.angle(new Pixel(484, 490)) + " " + s2);
 
-        Point coords = Point.at(Coordinate.fromDMS(53, 46,45.70), Coordinate.fromDMS(87, 15,44.59));
-        Point[] points = getCorners(new Pixel(484, 490), coords, 39.7, 152.2);
+        Point point1 = Point.at(Coordinate.fromDMS(53, 46, 45.70), Coordinate.fromDMS(87, 15, 44.59));
+        Point[] points = Corners.getCorners(new Pixel(484, 490), point1, 39.7, 152.2);
         for (Point point : points)
             try {
                 System.out.println("lat=" + toDMSCoordinate(point.latitude) + "  lon=" + toDMSCoordinate(point.longitude));
