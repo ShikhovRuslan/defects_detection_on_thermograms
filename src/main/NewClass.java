@@ -8,8 +8,12 @@ import com.grum.geocalc.Point;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import static java.lang.Math.*;
+
 /*
+
 https://github.com/grumlimited/geocalc
+
  */
 
 /**
@@ -38,6 +42,11 @@ class Pixel {
     int getJ() {
         return j;
     }
+
+    @Override
+    public String toString() {
+        return "Pixel{i=" + i + ", j=" + j + "}";
+    }
 }
 
 public class NewClass {
@@ -57,6 +66,10 @@ public class NewClass {
      * Фокусное расстояние, м.
      */
     private final static double FOCAL_LENGTH = 25. / 1000;
+    /**
+     * Средний радиус Земли, м.
+     */
+    private final static double EARTH_RADIUS = 6371.01 * 1000;
 
     /**
      * Возвращает величину, обратную к масштабу матрицы, т. е. отношение длины отрезка на местности к длине
@@ -144,15 +157,139 @@ public class NewClass {
         return Coordinate.fromDMS(degrees, minutes, seconds);
     }
 
+    /*
+    // https://www.igismap.com/formula-to-find-bearing-or-heading-angle-between-two-points-latitude-longitude/
+    private static double bearing(Point point, Point centre) {
+        double X = cos((PI / 180) * point.latitude) * sin((PI / 180) * (point.longitude - centre.longitude));
+        double Y = cos((PI / 180) * centre.latitude) * sin((PI / 180) * point.latitude) - sin((PI / 180) * centre.latitude) * cos((PI / 180) * point.latitude) * cos((PI / 180) * (point.longitude - centre.longitude));
+        return (180 / PI) * (atan2(X, Y) > 0 ? atan2(X, Y) : 2 * PI + atan2(X, Y));
+    }*/
+
+    private static Pixel toPixel(Point point, Point centre, double yaw, double height) {
+        double earthDistance = EarthCalc.harvesineDistance(point, centre);
+        double omega = (PI / 180) * (360 - yaw - EarthCalc.bearing(centre, point));
+        double pixelDistance = earthDistance / reverseScale(height) / PIXEL_SIZE;
+        return new Pixel((int) round(pixelDistance * cos(omega)), (int) round(pixelDistance * sin(omega)));
+    }
+
+    private static class Point2 {
+        double x, y;
+
+        public Point2(double newX, double newY) {
+            x = newX;
+            y = newY;
+        }
+    }
+
+    //https://vscode.ru/prog-lessons/nayti-tochku-peresecheniya-otrezkov.html
+    //метод, проверяющий пересекаются ли 2 отрезка [p1, p2] и [p3, p4]
+    private boolean checkIntersectionOfTwoLineSegments(Point2 p1, Point2 p2, Point2 p3, Point2 p4) {
+        //сначала расставим точки по порядку, т.е. чтобы было p1.x <= p2.x
+        if (p2.x < p1.x) {
+            Point2 tmp = p1;
+            p1 = p2;
+            p2 = tmp;
+        }
+        //и p3.x <= p4.x
+        if (p4.x < p3.x) {
+            Point2 tmp = p3;
+            p3 = p4;
+            p4 = tmp;
+        }
+
+        //проверим существование потенциального интервала для точки пересечения отрезков
+        if (p2.x < p3.x) {
+            return false; //ибо у отрезков нету взаимной абсциссы
+        }
+
+        //если оба отрезка вертикальные
+        if ((p1.x - p2.x == 0) && (p3.x - p4.x == 0)) {
+            //если они лежат на одном X
+            if (p1.x == p3.x)
+                //проверим пересекаются ли они, т.е. есть ли у них общий Y
+                //для этого возьмём отрицание от случая, когда они НЕ пересекаются
+                if (!((Math.max(p1.y, p2.y) < Math.min(p3.y, p4.y)) ||
+                        (Math.min(p1.y, p2.y) > Math.max(p3.y, p4.y))))
+                    return true;
+
+            return false;
+        }
+
+        //найдём коэффициенты уравнений, содержащих отрезки
+        //f1(x) = A1*x + b1 = y
+        //f2(x) = A2*x + b2 = y
+
+        //если первый отрезок вертикальный
+        if (p1.x - p2.x == 0) {
+
+            //найдём Xa, Ya - точки пересечения двух прямых
+            double Xa = p1.x;
+            double A2 = (p3.y - p4.y) / (p3.x - p4.x);
+            double b2 = p3.y - A2 * p3.x;
+            double Ya = A2 * Xa + b2;
+
+            if (p3.x <= Xa && p4.x >= Xa && Math.min(p1.y, p2.y) <= Ya &&
+                    Math.max(p1.y, p2.y) >= Ya) {
+
+                return true;
+            }
+
+            return false;
+        }
+
+        //если второй отрезок вертикальный
+        if (p3.x - p4.x == 0) {
+
+            //найдём Xa, Ya - точки пересечения двух прямых
+            double Xa = p3.x;
+            double A1 = (p1.y - p2.y) / (p1.x - p2.x);
+            double b1 = p1.y - A1 * p1.x;
+            double Ya = A1 * Xa + b1;
+
+            if (p1.x <= Xa && p2.x >= Xa && Math.min(p3.y, p4.y) <= Ya &&
+                    Math.max(p3.y, p4.y) >= Ya) {
+
+                return true;
+            }
+
+            return false;
+        }
+
+        //оба отрезка невертикальные
+        double A1 = (p1.y - p2.y) / (p1.x - p2.x);
+        double A2 = (p3.y - p4.y) / (p3.x - p4.x);
+        double b1 = p1.y - A1 * p1.x;
+        double b2 = p3.y - A2 * p3.x;
+
+        if (A1 == A2) {
+            return false; //отрезки параллельны
+        }
+
+        //Xa - абсцисса точки пересечения двух прямых
+        double Xa = (b2 - b1) / (A1 - A2);
+
+        if ((Xa < Math.max(p1.x, p3.x)) || (Xa > Math.min(p2.x, p4.x))) {
+            return false; //точка Xa находится вне пересечения проекций отрезков на ось X
+        } else {
+            return true;
+        }
+    }
+
     public static void main(String[] args) {
 
         double s1 = earthDistance(new Pixel(0, 0), new Pixel(RES_X - 1, 0), 152);
         double s2 = earthDistance(new Pixel(0, 0), new Pixel(0, RES_Y - 1), 152);
         System.out.println(Corners.C2.angle(new Pixel(484, 490)) + " " + s2);
 
-        Point point1 = Point.at(Coordinate.fromDMS(53, 46, 45.70), Coordinate.fromDMS(87, 15, 44.59));
-        Point[] points = Corners.getCorners(new Pixel(484, 490), point1, 39.7, 152.2);
-        for (Point point : points)
+        Point mE = Point.at(Coordinate.fromDMS(53, 46, 45.70), Coordinate.fromDMS(87, 15, 44.59));
+        double yaw = 39.7;
+        double height = 152.2;
+        Pixel m = new Pixel(484, 490);
+        Point[] corners = Corners.getCorners(m, mE, yaw, height);
+
+        System.out.println(toPixel(corners[2], corners[3], yaw, height));
+
+        for (Point point : corners)
             try {
                 System.out.println("lat=" + toDMSCoordinate(point.latitude) + "  lon=" + toDMSCoordinate(point.longitude));
             } catch (NumberFormatException e) {
