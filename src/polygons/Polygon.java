@@ -37,11 +37,11 @@ public class Polygon {
     }
 
     /**
-     * Определяет, находится ли текущий многоугольник на расстоянии, не превышающим {@param distance}, от многоугольника
-     * {@param polygon}.
-     * Один многоугольник находится на расстоянии, не превышающим {@param distance}, от второго многоугольника, если
+     * Определяет, находится ли текущий многоугольник на расстоянии, не превышающим {@code distance}, от многоугольника
+     * {@code polygon}.
+     * Один многоугольник находится на расстоянии, не превышающим {@code distance}, от второго многоугольника, если
      * расстояние от какой-либо вершины первого многоугольника до внутренности какой-либо стороны второго многоугольника
-     * не превышает величины {@param distance}.
+     * не превышает величины {@code distance}.
      */
     private boolean isCloseTo(Polygon polygon, int distance) {
         Line[] sides = polygon.getSides();
@@ -54,7 +54,7 @@ public class Polygon {
     }
 
     /**
-     * Возвращает сторону текущего многоугольника, которая входит в данную точку {@param vertex}.
+     * Возвращает сторону текущего многоугольника, которая входит в данную точку {@code vertex}.
      *
      * @throws IllegalArgumentException если эта точка не является вершиной многоугольника
      */
@@ -67,7 +67,7 @@ public class Polygon {
     }
 
     /**
-     * Возвращает сторону текущего многоугольника, которая исходит из данной точки {@param vertex}.
+     * Возвращает сторону текущего многоугольника, которая исходит из данной точки {@code vertex}.
      *
      * @throws IllegalArgumentException если эта точка не является вершиной многоугольника
      */
@@ -90,7 +90,7 @@ public class Polygon {
     }
 
     /**
-     * Возвращает индекс первого вхождения минимального числа в списке {@param list}.
+     * Возвращает индекс первого вхождения минимального числа в списке {@code list}.
      */
     private static int findIndexOfMin(List<Integer> list) {
         int index = 0;
@@ -105,8 +105,8 @@ public class Polygon {
 
     /**
      * Возвращает перпендикуляр минимальной длины, опущенный из какой-либо вершины текущего многоугольника на
-     * внутренность какой-либо стороны многоугольника {@param polygon}, и эту сторону, если длина перпендикуляра не
-     * превышает величины {@param distance}.
+     * внутренность какой-либо стороны многоугольника {@code polygon}, и эту сторону, если длина перпендикуляра не
+     * превышает величины {@code distance}.
      * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, int)} выдаёт {@code true}.
      */
     private Line[] perpendicular(Polygon polygon, int distance) {
@@ -128,9 +128,9 @@ public class Polygon {
     }
 
     /**
-     * Возвращает индекс стороны текущего многоугольника, которая имеет своим концом точку {@param vertex} и имеет
-     * противоположную значению {@param isPerpendicularHorizontal} ориентацию, или {@code -1}, в противном случае.
-     * Если точка {@param vertex} не является вершиной текущего многоугольника, то выдаётся значение {@code -1}. Также
+     * Возвращает индекс стороны текущего многоугольника, которая имеет своим концом точку {@code vertex} и имеет
+     * противоположную значению {@code isPerpendicularHorizontal} ориентацию, или {@code -1}, в противном случае.
+     * Если точка {@code vertex} не является вершиной текущего многоугольника, то выдаётся значение {@code -1}. Также
      * это значение может быть выдано, если эта точка является вершиной развёрнутого угла.
      */
     private int indexOfSideToShorten(Point vertex, boolean isPerpendicularHorizontal) {
@@ -144,7 +144,7 @@ public class Polygon {
     }
 
     /**
-     * Определяет номер стороны текущего многоугольника, внутренность которой содержит точку {@param point}.
+     * Определяет номер стороны текущего многоугольника, внутренность которой содержит точку {@code point}.
      *
      * @throws IllegalArgumentException если указанная точка не принадлежит внутренности ни одной из сторон
      *                                  многоугольника
@@ -159,7 +159,7 @@ public class Polygon {
     }
 
     /**
-     * Возвращает массив, состоящий из массива {@param array} с удалённым элементом с индексом {@param index} и со
+     * Возвращает массив, состоящий из массива {@code array} с удалённым элементом с индексом {@code index} и со
      * сдвинутыми влево элементами.
      */
     private static Line[] deleteWithShift(Line[] array, int index) {
@@ -170,7 +170,7 @@ public class Polygon {
     }
 
     /**
-     * Определяет принадлежность значения {@param val0} списку {@param list}.
+     * Определяет принадлежность значения {@code val0} списку {@code list}.
      */
     private static boolean isIn(List<Integer> list, int val0) {
         for (Integer val : list)
@@ -189,7 +189,7 @@ public class Polygon {
     }
 
     /**
-     * Рисует многоугольники из списка {@param polygons}.
+     * Рисует многоугольники из списка {@code polygons}.
      */
     public static void drawPolygons(List<Polygon> polygons, Color color, String pictureName, String newPictureName) {
         try {
@@ -203,7 +203,7 @@ public class Polygon {
     }
 
     /**
-     * Удаляет петли у текущего многоугольника. Это означает, что если в списке {@param vertices} вершин многоугольника
+     * Удаляет петли у текущего многоугольника. Это означает, что если в списке {@code vertices} вершин многоугольника
      * есть подряд идущие одинаковые вершины, то остаётся только одна вершина (например, список A,B,B,B,C превратится в
      * A,B,C).
      */
@@ -220,7 +220,7 @@ public class Polygon {
     }
 
     /**
-     * Возвращает многоугольник, построенный на основе прямоугольника {@param range}.
+     * Возвращает многоугольник, построенный на основе прямоугольника {@code range}.
      */
     private static Polygon convertRange(Integer[] range) {
         List<Point> vertices = new ArrayList<>();
@@ -245,7 +245,7 @@ public class Polygon {
     }
 
     /**
-     * Возвращает список многоугольников, построенных на основе прямоугольников из списка {@param ranges}.
+     * Возвращает список многоугольников, построенных на основе прямоугольников из списка {@code ranges}.
      */
     public static List<Polygon> convertRanges(List<Integer[]> ranges) {
         List<Polygon> polygons = new ArrayList<>();
@@ -275,7 +275,7 @@ public class Polygon {
 //    }
 
     /**
-     * Возвращает упорядоченный массив линий из массива {@param lines}.
+     * Возвращает упорядоченный массив линий из массива {@code lines}.
      */
     private static Line[] order(Line[] lines) throws NullPointerException {
         Line[] newLines = new Line[lines.length];
@@ -299,7 +299,7 @@ public class Polygon {
     }
 
     /**
-     * Возвращает многоугольник, построенный на точках, являющихся концами линий из массива {@param lines}.
+     * Возвращает многоугольник, построенный на точках, являющихся концами линий из массива {@code lines}.
      */
     private static Polygon createPolygon(Line[] lines, int squarePixels) throws NullPointerException {
         Line[] sides = order(lines);
@@ -316,19 +316,19 @@ public class Polygon {
     }
 
     /**
-     * Возвращает подкорректированные массивы сторон многоугольников {@param polygon0}, {@param polygon1} и линию,
+     * Возвращает подкорректированные массивы сторон многоугольников {@code polygon0}, {@code polygon1} и линию,
      * соединяющую эти многоугольники, отличную от перпендикуляра.
      *
      * @param polygon0      многоугольник
      * @param polygon1      многоугольник
-     * @param vertex0       вершина многоугольника {@param polygon0}
-     * @param perpendicular перпендикуляр, опущенный из вершины {@param vertex0} на внутренность стороны многоугольника
-     *                      {@param polygon1}
-     * @param end1          конец {@param perpendicular}, принадлежащий многоугольнику {@param polygon1}
-     * @param side0Index    индекс стороны многоугольника {@param polygon0}, которая имеет своим концом вершину
-     *                      {@param vertex0} и имеет ориентацию, противоположную ориентации {@param perpendicular}
-     * @param side1Index    индекс стороны многоугольника {@param polygon1}, внутренность которой содержит точку
-     *                      {@param end1}
+     * @param vertex0       вершина многоугольника {@code polygon0}
+     * @param perpendicular перпендикуляр, опущенный из вершины {@code vertex0} на внутренность стороны многоугольника
+     *                      {@code polygon1}
+     * @param end1          конец {@code perpendicular}, принадлежащий многоугольнику {@code polygon1}
+     * @param side0Index    индекс стороны многоугольника {@code polygon0}, которая имеет своим концом вершину
+     *                      {@code vertex0} и имеет ориентацию, противоположную ориентации {@code perpendicular}
+     * @param side1Index    индекс стороны многоугольника {@code polygon1}, внутренность которой содержит точку
+     *                      {@code end1}
      */
     private static Line[][] getPolygonalChains(Polygon polygon0, Polygon polygon1, Point vertex0, Line perpendicular,
                                                Point end1, int side0Index, int side1Index) {
@@ -417,8 +417,8 @@ public class Polygon {
     }
 
     /**
-     * Возвращает многоугольник, являющийся объединением текущего многоугольника и многоугольника {@param polygon},
-     * расстояние между которыми не превышает величины {@param distance}.
+     * Возвращает многоугольник, являющийся объединением текущего многоугольника и многоугольника {@code polygon},
+     * расстояние между которыми не превышает величины {@code distance}.
      * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, int)} выдаёт {@code true}.
      *
      * @see #isCloseTo(Polygon, int)
@@ -442,7 +442,7 @@ public class Polygon {
 
     /**
      * Возвращает список многоугольников, полученный путём объединения лежащих на расстоянии, не превышающим
-     * {@param distance}, многоугольников из списка {@param polygons}.
+     * {@code distance}, многоугольников из списка {@code polygons}.
      */
     private static List<Polygon> toBiggerPolygons(List<Polygon> polygons, int distance) {
         List<Polygon> newPolygons = new ArrayList<>();
@@ -476,7 +476,7 @@ public class Polygon {
     }
 
     /**
-     * Укрупняет итеративно список многоугольников {@param polygons} до тех пор, пока укрупнения возможны.
+     * Укрупняет итеративно список многоугольников {@code polygons} до тех пор, пока укрупнения возможны.
      *
      * @return список укрупнённых многоугольников
      */

@@ -30,9 +30,9 @@ public class Line {
     }
 
     /**
-     * Возвращает конец текущей линии, отличный от точки {@param end}.
+     * Возвращает конец текущей линии, отличный от точки {@code end}.
      *
-     * @throws IllegalArgumentException если точка {@param end} не является концом текущей линии.
+     * @throws IllegalArgumentException если точка {@code end} не является концом текущей линии.
      */
     Point getOtherEnd(Point end) {
         if (a == end) return b;
@@ -85,7 +85,7 @@ public class Line {
     }
 
     /**
-     * Определяет принадлежность точки {@param point} внутренности текущей линии.
+     * Определяет принадлежность точки {@code point} внутренности текущей линии.
      *
      * @throws IllegalArgumentException если текущая линия ни горизонтальна, ни вертикальна
      */

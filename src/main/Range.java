@@ -25,7 +25,7 @@ public class Range {
     static final int MIN_SQUARE_PIXELS = 25;
 
     /**
-     * Возвращает представление файла с названием {@param filename} в виде таблицы.
+     * Возвращает представление файла с названием {@code filename} в виде таблицы.
      */
     static List<List<String>> extractRawTable(String filename) throws FileNotFoundException {
         Csv.Reader reader = new Csv.Reader(new FileReader(filename)).delimiter(';').ignoreComments(true);
@@ -39,7 +39,7 @@ public class Range {
     }
 
     /**
-     * Возвращает подтаблицу таблицы {@param rawTable}, содержащую числа.
+     * Возвращает подтаблицу таблицы {@code rawTable}, содержащую числа.
      */
     static List<List<String>> extractTable(List<List<String>> rawTable) {
         Pattern pattern = Pattern.compile("-?\\d{1,2},\\d{1,3}");
@@ -79,7 +79,7 @@ public class Range {
     }
 
     /**
-     * Печатает таблицу {@param table}.
+     * Печатает таблицу {@code table}.
      */
     static void printTable(List<List<String>> table) {
         for (List<String> line : table)
@@ -87,7 +87,7 @@ public class Range {
     }
 
     /**
-     * Печатает таблицу {@param table}.
+     * Печатает таблицу {@code table}.
      */
     static void printTable(int[][] table) {
         for (int[] line : table) {
@@ -98,15 +98,15 @@ public class Range {
     }
 
     /**
-     * Определяет, является ли указанный прямоугольник {@param range} горизонтальной или вертикальной линией.
+     * Определяет, является ли указанный прямоугольник {@code range} горизонтальной или вертикальной линией.
      */
     private static boolean isLine(Integer[] range) {
         return range[0].equals(range[2]) || range[1].equals(range[3]);
     }
 
     /**
-     * Определяет, принадлежит ли точка ({@param i0}, {@param j0}) какому-нибудь прямоугольнику из списка
-     * {@param ranges}.
+     * Определяет, принадлежит ли точка ({@code i0}, {@code j0}) какому-нибудь прямоугольнику из списка
+     * {@code ranges}.
      */
     private static boolean pointIsInRanges(int i0, int j0, List<Integer[]> ranges) {
         for (Integer[] range : ranges)
@@ -116,9 +116,9 @@ public class Range {
     }
 
     /**
-     * Возвращает таблицу целых чисел, построенную на основании таблицы {@param table} (которая содержит строковые
-     * представления чисел) и предиката {@param predicate}.
-     * Если элемент таблицы {@param table} удовлетворяет критерию, задаваемому предикатом {@param predicate}, то на этом
+     * Возвращает таблицу целых чисел, построенную на основании таблицы {@code table} (которая содержит строковые
+     * представления чисел) и предиката {@code predicate}.
+     * Если элемент таблицы {@code table} удовлетворяет критерию, задаваемому предикатом {@code predicate}, то на этом
      * же месте в таблице целых чисел пишется значение {@code 1}, иначе остаётся значение по умолчанию {@code 0}.
      */
     static int[][] findIf(List<List<String>> table, Predicate<Double> predicate) {
@@ -131,15 +131,15 @@ public class Range {
     }
 
     /**
-     * Возвращает число точек в прямоугольнике {@param range}.
+     * Возвращает число точек в прямоугольнике {@code range}.
      */
     public static int squarePixels(Integer[] range) {
         return (range[2] - range[0] + 1) * (range[3] - range[1] + 1);
     }
 
     /**
-     * Определяет, пересекает ли вертикальная линия с концами ({@param i0}, {@param j}) и ({@param i1}, {@param j})
-     * какой-нибудь прямоугольник из списка {@param ranges}.
+     * Определяет, пересекает ли вертикальная линия с концами ({@code i0}, {@code j}) и ({@code i1}, {@code j})
+     * какой-нибудь прямоугольник из списка {@code ranges}.
      */
     private static boolean verticalLineIntersectsRanges(int i0, int i1, int j, List<Integer[]> ranges) {
         for (int k = Math.min(i0, i1); k <= Math.max(i0, i1); k++)
@@ -149,8 +149,8 @@ public class Range {
     }
 
     /**
-     * Возвращает число единиц в прямоугольнике из таблицы {@param table}, ограниченном верхней левой точкой
-     * ({@param i1}, {@param j1}) и нижней правой точкой ({@param i2}, {@param j2}).
+     * Возвращает число единиц в прямоугольнике из таблицы {@code table}, ограниченном верхней левой точкой
+     * ({@code i1}, {@code j1}) и нижней правой точкой ({@code i2}, {@code j2}).
      */
     private static int amountOfOnes(int[][] table, int i1, int j1, int i2, int j2) {
         int count = 0;
@@ -162,8 +162,8 @@ public class Range {
     }
 
     /**
-     * Возвращает прямоугольник, чья верхняя левая вершина примерно совпадает с точкой ({@param i}, {@param j}), на
-     * основании таблицы {@param table} и списка уже построенных прямоугольников {@param ranges}.
+     * Возвращает прямоугольник, чья верхняя левая вершина примерно совпадает с точкой ({@code i}, {@code j}), на
+     * основании таблицы {@code table} и списка уже построенных прямоугольников {@code ranges}.
      */
     private static Integer[] makeRange(int[][] table, int i, int j, List<Integer[]> ranges) {
         int x = i, y = j;
@@ -191,7 +191,7 @@ public class Range {
     }
 
     /**
-     * Возвращает список прямоугольников, созданных на основании таблицы {@param table}.
+     * Возвращает список прямоугольников, созданных на основании таблицы {@code table}.
      */
     static List<Integer[]> findRanges(int[][] table) {
         List<Integer[]> ranges = new ArrayList<>();
