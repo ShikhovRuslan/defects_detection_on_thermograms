@@ -38,6 +38,10 @@ public class NewClass {
      */
     private final static double EARTH_RADIUS = 6371.01 * 1000;
 
+    final static int PRINCIPAL_POINT_X = 310;
+
+    final static int PRINCIPAL_POINT_Y = 182;
+
     /**
      * Возвращает величину, обратную к масштабу матрицы, т. е. отношение длины отрезка на местности к длине
      * соответствующего отрезка на матрице камеры.
