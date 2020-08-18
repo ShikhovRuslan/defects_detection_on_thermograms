@@ -11,6 +11,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
+/**
+ * На снимке выбрана система координат Oij. Центром O является верхняя левая точка. Ось Oi направлена вдоль левой
+ * стороны термограммы, а ось Oj - вдоль верхней.
+ * <p>
+ * Прямоугольник задаётся в виде массива {@code {r0, r1, r2, r3}}, где ({@code r0}, {@code r1}) - верхняя левая вершина,
+ * а ({@code r2}, {@code r3}) - нижняя правая.
+ */
 public class Range {
     //static final String DIR = "/home/ruslan/geo";
     //static final String FILENAME = DIR + "/file.txt";
@@ -20,8 +27,8 @@ public class Range {
     static final double T_MIN = 30;
     static final double T_MAX = 100;
     static final int HEIGHT = 250;
-    public static final int RES_X = 512;
-    public static final int RES_Y = 640;
+    public static final int RES_I = 512;
+    public static final int RES_J = 640;
     static final int MIN_SQUARE_PIXELS = 25;
 
     /**
@@ -105,12 +112,19 @@ public class Range {
     }
 
     /**
+     * Определяет принадлежность точки ({@code i0}, {@code j0}) прямоугольнику {@code range}.
+     */
+    private static boolean pointIsInRange(int i0, int j0, Integer[] range) {
+        return (range[0] <= i0 && i0 <= range[2]) && (range[1] <= j0 && j0 <= range[3]);
+    }
+
+    /**
      * Определяет, принадлежит ли точка ({@code i0}, {@code j0}) какому-нибудь прямоугольнику из списка
      * {@code ranges}.
      */
     private static boolean pointIsInRanges(int i0, int j0, List<Integer[]> ranges) {
         for (Integer[] range : ranges)
-            if (i0 >= range[0] && i0 <= range[2] && j0 >= range[1] && j0 <= range[3])
+            if (pointIsInRange(i0, j0, range))
                 return true;
         return false;
     }
@@ -135,6 +149,19 @@ public class Range {
      */
     public static int squarePixels(Integer[] range) {
         return (range[2] - range[0] + 1) * (range[3] - range[1] + 1);
+    }
+
+    /**
+     * Возвращает площадь (в кв. пикселях) части прямоугольника {@code range}, которая не принадлежит прямоугольнику
+     * {@code overlap}.
+     */
+    public static int squarePixels(Integer[] range, Integer[] overlap) {
+        int square = 0;
+        for (int i = range[0]; i <= range[2]; i++)
+            for (int j = range[1]; j <= range[3]; j++)
+                if (!pointIsInRange(i, j, overlap))
+                    square++;
+        return square;
     }
 
     /**

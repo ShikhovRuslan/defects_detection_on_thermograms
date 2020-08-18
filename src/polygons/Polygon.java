@@ -14,7 +14,7 @@ import java.util.List;
 
 
 public class Polygon {
-    private List<Point> vertices;
+    private final List<Point> vertices;
     private int squarePixels;
 
     public Polygon(List<Point> vertices) {
@@ -239,7 +239,7 @@ public class Polygon {
         for (Integer num : squaresPixels)
             totalSquarePixels += num;
         System.out.printf("%d pi^2  -  %s%n", totalSquarePixels, "суммарная площадь дефектов");
-        System.out.printf("%.2f %%  -  %s%n", (totalSquarePixels + 0.) / (Range.RES_X * Range.RES_Y) * 100,
+        System.out.printf("%.2f %%  -  %s%n", (totalSquarePixels + 0.) / (Range.RES_I * Range.RES_J) * 100,
                 "доля суммарной площади дефектов от общей площади");
         System.out.printf("%s%n%s", "Площади дефектов (в кв. пикселях):", Arrays.toString(squaresPixels.toArray()));
     }
@@ -408,6 +408,10 @@ public class Polygon {
         return new Line[][]{sides0, sides1, new Line[]{new Line(otherBorder0, otherBorder1)}};
     }
 
+    /**
+     * Возвращает площадь (в кв. пикселях) прямоугольника, чьими противоположными вершинами являются точки {@code p1} и
+     * {@code p2}.
+     */
     private static int squarePixels(Point p1, Point p2) {
         int i1 = Math.min(p1.getX(), p2.getX());
         int i2 = Math.max(p1.getX(), p2.getX());
