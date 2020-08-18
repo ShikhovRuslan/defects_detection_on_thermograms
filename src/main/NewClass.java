@@ -2,13 +2,11 @@ package main;
 
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.DMSCoordinate;
-import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-
-import static java.lang.Math.*;
+import java.util.List;
 
 /*
 
@@ -20,15 +18,15 @@ public class NewClass {
     /**
      * Разрешение матрицы по горизонтали.
      */
-    private final static int RES_X = 640;
+    final static int RES_X = 640;
     /**
      * Разрешение матрицы по вертикали.
      */
-    private final static int RES_Y = 512;
+    final static int RES_Y = 512;
     /**
      * Шаг пикселя, м.
      */
-    private final static double PIXEL_SIZE = 17. / 1000_000;
+    final static double PIXEL_SIZE = 17. / 1000_000;
     /**
      * Фокусное расстояние, м.
      */
@@ -38,15 +36,17 @@ public class NewClass {
      */
     private final static double EARTH_RADIUS = 6371.01 * 1000;
 
-    final static int PRINCIPAL_POINT_X = 310;
+    private final static int PRINCIPAL_POINT_X = 310;
 
-    final static int PRINCIPAL_POINT_Y = 182;
+    private final static int PRINCIPAL_POINT_Y = 182;
+
+    final static Pixel PRINCIPAL_POINT = new Pixel(PRINCIPAL_POINT_X, PRINCIPAL_POINT_Y);
 
     /**
      * Возвращает величину, обратную к масштабу матрицы, т. е. отношение длины отрезка на местности к длине
      * соответствующего отрезка на матрице камеры.
      */
-    private static double reverseScale(double height) {
+    static double reverseScale(double height) {
         return height / FOCAL_LENGTH;
     }
 
@@ -61,28 +61,28 @@ public class NewClass {
      * Вычисляет расстояние между точками Земли, чьи проекции на матрице имеют пиксельные координаты {@code a} и
      * {@code b}.
      */
-    private static double earthDistance(Pixel a, Pixel b, double height) {
+    static double earthDistance(Pixel a, Pixel b, double height) {
         return reverseScale(height) * matrixDistance(a, b);
     }
 
     /**
-     * Пиксельные координаты углов матрицы, начиная с верхнего левого угла и заканчивая нижним левым.
+     * Пиксельные координаты углов термограммы, начиная с верхнего левого угла и заканчивая нижним левым.
      */
-    private enum Corners {
+    enum Corners {
         /**
-         * Верхний левый угол матрицы.
+         * Верхний левый угол термограммы.
          */
         C0(0, RES_Y - 1),
         /**
-         * Верхний правый угол матрицы.
+         * Верхний правый угол термограммы.
          */
         C1(RES_X - 1, RES_Y - 1),
         /**
-         * Нижний правый угол матрицы.
+         * Нижний правый угол термограммы.
          */
         C2(RES_X - 1, 0),
         /**
-         * Нижний левый угол матрицы.
+         * Нижний левый угол термограммы.
          */
         C3(0, 0);
 
@@ -94,37 +94,16 @@ public class NewClass {
             this.j = j;
         }
 
-        private Pixel toPixel() {
+        Pixel toPixel() {
             return new Pixel(i, j);
         }
 
         /**
-         * Вычисляет острый угол (в градусах) между отрезком, соединяющим точку {@code p} и текущий угол матрицы, и
+         * Вычисляет острый угол (в градусах) между отрезком, соединяющим точку {@code p} и текущий угол термограммы, и
          * прямой, проходящей через точку {@code p} и параллельной оси c'x'.
          */
-        private double angle(Pixel p) {
+        double angle(Pixel p) {
             return (180 / Math.PI) * Math.atan(Math.abs(j - p.getJ()) / Math.abs(i - p.getI() + 0.));
-        }
-
-        /**
-         * Вычисляет земные координаты углов матрицы.
-         *
-         * @param p      пиксельные координаты пикселя, который является изображением точки {@code point}
-         * @param point  земные координаты точки земной поверхности
-         * @param yaw    угол поворота оси c'x' относительно оси OX, отсчитываемый против часовой стрелки (ось OX
-         *               направлена на север)
-         * @param height высота фотографирования
-         */
-        private static Point[] getCorners(Pixel p, Point point, double yaw, double height) {
-            Point[] corners = new Point[4];
-            double[] angles = {
-                    Corners.C0.angle(p) - yaw - 180,
-                    -Corners.C1.angle(p) - yaw,
-                    Corners.C2.angle(p) - yaw,
-                    -Corners.C3.angle(p) - yaw + 180};
-            for (int i = 0; i < 4; i++)
-                corners[i] = EarthCalc.pointAt(point, angles[i], earthDistance(p, Corners.values()[i].toPixel(), height));
-            return corners;
         }
     }
 
@@ -140,13 +119,6 @@ public class NewClass {
         return Coordinate.fromDMS(degrees, minutes, seconds);
     }
 
-    private static Pixel toPixel(Point point, Point centre, double yaw, double height) {
-        double earthDistance = EarthCalc.harvesineDistance(point, centre);
-        double omega = (PI / 180) * (360 - yaw - EarthCalc.bearing(centre, point));
-        double pixelDistance = earthDistance / reverseScale(height) / PIXEL_SIZE;
-        return new Pixel((int) round(pixelDistance * cos(omega)), (int) round(pixelDistance * sin(omega)));
-    }
-
     public static void main(String[] args) {
 
         System.out.println(Pixel.findIntersection(new Pixel(0, 0), new Pixel(3, 3), new Pixel(3, 3), new Pixel(5, 5)));
@@ -156,19 +128,20 @@ public class NewClass {
         System.out.println(Corners.C2.angle(new Pixel(484, 490)) + " " + s2);
 
         Point mE = Point.at(Coordinate.fromDMS(53, 46, 45.70), Coordinate.fromDMS(87, 15, 44.59));
-        double yaw = 39.7;
-        double height = 152.2;
+
         Pixel m = new Pixel(484, 490);
-        Point[] corners = Corners.getCorners(m, mE, yaw, height);
 
-        System.out.println(toPixel(corners[2], corners[3], yaw, height));
 
-        for (Point point : corners)
-            try {
-                System.out.println("lat=" + toDMSCoordinate(point.latitude) + "  lon=" + toDMSCoordinate(point.longitude));
-            } catch (NumberFormatException e) {
-                System.out.println("NumberFormatException");
-            }
+        double yaw837 = 109.6 - 90;
+        double yaw841 = 110.4 - 90;
+        double height837 = 152.2;
+        double height841 = 152.3;
+        Point groundNadir837 = Point.at(Coordinate.fromDMS(53, 46, 42.72), Coordinate.fromDMS(87, 15, 35.18));
+        Point groundNadir841 = Point.at(Coordinate.fromDMS(53, 46, 42.41), Coordinate.fromDMS(87, 15, 33.89));
 
+        Thermogram thermogram837 = new Thermogram(yaw837, height837, groundNadir837);
+        Thermogram thermogram841 = new Thermogram(yaw841, height841, groundNadir841);
+        List<Pixel> overlap = thermogram841.getOverlap(thermogram837);
+        System.out.println(overlap);
     }
 }
