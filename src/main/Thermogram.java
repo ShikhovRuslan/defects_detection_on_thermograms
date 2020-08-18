@@ -3,8 +3,7 @@ package main;
 import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static java.lang.Math.*;
 
@@ -81,23 +80,48 @@ public class Thermogram {
         return (0 <= pixel.getI() && pixel.getI() < NewClass.RES_X) && (0 <= pixel.getJ() && pixel.getJ() < NewClass.RES_Y);
     }
 
+    /**
+     * Возвращает список пиксельных координат углов термограммы {@code second}, которые принадлежат термограмме
+     * {@code first}, в системе пиксельных координат, связанных с текущей термограммой.
+     */
+    private List<Pixel> cornersFromOther(Thermogram first, Thermogram second) {
+        List<Pixel> vertices = new ArrayList<>();
+        for (Point vertex : second.getCorners())
+            if (first.contains(vertex))
+                vertices.add(toPixel(vertex));
+        return vertices;
+    }
+
+    /**
+     * Упорядочивает пиксели из списка {@code pixels} против часовой стрелки.
+     */
+    private static List<Pixel> order(List<Pixel> pixels) {
+        OptionalDouble newI0Optional = pixels
+                .stream()
+                .mapToDouble(Pixel::getI)
+                .average();
+        OptionalDouble newJ0Optional = pixels
+                .stream()
+                .mapToDouble(Pixel::getJ)
+                .average();
+        double newJ0 = newJ0Optional.orElse(0);
+        double newI0 = newI0Optional.orElse(0);
+        pixels.sort((p1, p2) -> (int) Math.signum(Math.atan2(p1.getJ() - newJ0, p1.getI() - newI0) - Math.atan2(p2.getJ() - newJ0, p2.getI() - newI0)));
+        return pixels;
+    }
+
     List<Pixel> getOverlap(Thermogram previousThermogram) {
         List<Pixel> vertices = new ArrayList<>();
-        for (Point p : previousThermogram.getCorners())
-            if (contains(p))
-                vertices.add(toPixel(p));
-        for (Point p : getCorners())
-            if (previousThermogram.contains(p))
-                vertices.add(toPixel(p));
+        vertices.addAll(cornersFromOther(this, previousThermogram));
+        vertices.addAll(cornersFromOther(previousThermogram, this));
         Pixel intersection;
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++) {
                 intersection = Pixel.findIntersection(NewClass.Corners.values()[i].toPixel(), NewClass.Corners.values()[i + 1 < 4 ? i + 1 : 0].toPixel(),
                         toPixel(previousThermogram.getCorners()[j]), toPixel(previousThermogram.getCorners()[j + 1 < 4 ? j + 1 : 0]));
                 if (intersection.getI() != -1)
                     vertices.add(intersection);
             }
-        }
-        return vertices;
+        return order(vertices);
     }
 }
