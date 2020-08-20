@@ -132,19 +132,6 @@ public class NewClass {
         Pixel m = new Pixel(484, 490);
 
 
-        double yaw837 = 109.6 - 90;
-        double yaw841 = 110.4 - 90;
-        double height837 = 152.2;
-        double height841 = 152.3;
-        Point groundNadir837 = Point.at(Coordinate.fromDMS(53, 46, 42.72), Coordinate.fromDMS(87, 15, 35.18));
-        Point groundNadir841 = Point.at(Coordinate.fromDMS(53, 46, 42.41), Coordinate.fromDMS(87, 15, 33.89));
-
-        Thermogram thermogram837 = new Thermogram(yaw837, height837, groundNadir837);
-        Thermogram thermogram841 = new Thermogram(yaw841, height841, groundNadir841);
-        List<Pixel> overlap = thermogram841.getOverlap(thermogram837);
-        System.out.println(overlap);
-
-
         Pixel[] rectangle = {new Pixel(10, 10), new Pixel(100, 100)};
         Pixel[] polygon = {new Pixel(90, 79), new Pixel(100, 124), new Pixel(100, 50)};
         System.out.println(Pixel.getIntersection(rectangle, polygon));

@@ -1,7 +1,6 @@
 package main;
 
 import javenue.csv.Csv;
-import polygons.Point;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -153,16 +152,10 @@ public class Range {
     }
 
     /**
-     * Возвращает площадь (в кв. пикселях) части прямоугольника {@code range}, которая не принадлежит прямоугольнику
-     * {@code overlap}.
+     * Конвертирует прямоугольник {@code range} из системы координат Oij в систему координат c'x'y'.
      */
-    public static int squarePixels(Integer[] range, Integer[] overlap) {
-        int square = 0;
-        for (int i = range[0]; i <= range[2]; i++)
-            for (int j = range[1]; j <= range[3]; j++)
-                if (!pointIsInRange(i, j, overlap))
-                    square++;
-        return square;
+    public static Pixel[] toRectangle(Integer[] range) {
+        return new Pixel[]{new Pixel(range[1], NewClass.RES_Y - range[2]), new Pixel(range[3], NewClass.RES_Y - range[0])};
     }
 
     /**

@@ -198,7 +198,35 @@ public class Pixel {
         return res;
     }
 
-    public static List<Pixel> getIntersection(Pixel[] rectangle, Pixel[] polygon) {
+    /**
+     * Возвращает площадь треугольника {@code triangle}.
+     */
+    private static double squareTriangle(Pixel[] triangle) {
+        return 0.5 * Math.abs((triangle[2].getI() - triangle[0].getI()) * (triangle[1].getJ() - triangle[0].getJ()) -
+                (triangle[2].getJ() - triangle[0].getJ()) * (triangle[1].getI() - triangle[0].getI()));
+    }
+
+    /**
+     * Возвращает площадь многоугольника или прямоугольника {@code polygon}. (Вид фигуры определяется при помощи флага
+     * {@code isRectangle}.)
+     */
+    private static double squarePolygon(Pixel[] polygon, boolean isRectangle) {
+        if(isRectangle)
+            return (polygon[1].getI() - polygon[0].getI() + 1) *(polygon[1].getJ() - polygon[0].getJ() + 1);
+        double square = 0;
+        for(Pixel[] triangle : toTriangles(polygon))
+            square += squareTriangle(triangle);
+        return square;
+    }
+
+    /**
+     * Возвращает площадь части прямоугольника {@code rectangle}, которая не принадлежит многоугольнику {@code overlap}.
+     */
+    public static double squareRectangleWithoutOverlap(Pixel[] rectangle, Pixel[] overlap) {
+        return squarePolygon(rectangle, true) - squarePolygon(getIntersection(rectangle,overlap), false);
+    }
+
+    public static Pixel[] getIntersection(Pixel[] rectangle, Pixel[] polygon) {
         List<Pixel> vertices = new ArrayList<>();
         vertices.addAll(inPolygon(polygon, rectangle, true));
         vertices.addAll(inPolygon(toPolygon(rectangle), polygon, false));
@@ -210,6 +238,6 @@ public class Pixel {
                 if (intersection.getI() != -1)
                     vertices.add(intersection);
             }
-        return Thermogram.order(vertices);
+        return Thermogram.order(vertices).toArray(new Pixel[vertices.size()]);
     }
 }
