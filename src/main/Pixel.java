@@ -151,7 +151,7 @@ public class Pixel {
     }
 
     /**
-     * Определяет принадлежность текущего пикселя внутренности треугольника {@code triangle}.
+     * Определяет принадлежность текущего пикселя треугольнику {@code triangle}.
      */
     public boolean isInTriangle(Pixel[] triangle) {
         int[] sgn = new int[3];
@@ -164,11 +164,16 @@ public class Pixel {
         return (sgn[0] > 0 && sgn[1] > 0 && sgn[2] > 0) || (sgn[0] < 0 && sgn[1] < 0 && sgn[2] < 0);
     }
 
+    /**
+     * Определяет принадлежность текущего пикселя отрезку {@code line}.
+     */
     public boolean isInLine(Pixel[] line) {
+        if (line[0].getI() == line[1].getI())
+            return i == line[0].getI() && min(line[0].getJ(), line[1].getJ()) <= j && j <= max(line[0].getJ(), line[1].getJ());
+        // Прямая, содержащая отрезок (в случае невертикального отрезка): y = a*x + b.
         double a = (line[0].getJ() - line[1].getJ()) / (line[0].getI() - line[1].getI() + 0.);
         double b = line[0].getJ() - a * line[0].getI();
-        double jCalc = a * i + b;
-        return j == jCalc && line[0].getI() <= i && i <= line[1].getI();
+        return j == a * i + b && min(line[0].getI(), line[1].getI()) <= i && i <= max(line[0].getI(), line[1].getI());
     }
 
     /**

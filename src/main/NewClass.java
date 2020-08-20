@@ -146,7 +146,7 @@ public class NewClass {
 
 
         Pixel[] rectangle = {new Pixel(10, 10), new Pixel(100, 100)};
-        Pixel[] polygon = {new Pixel(90, 79), new Pixel(110, 124), new Pixel(110, 50), new Pixel(96, 47)};
+        Pixel[] polygon = {new Pixel(90, 79), new Pixel(100, 124), new Pixel(100, 50)};
         System.out.println(Pixel.getIntersection(rectangle, polygon));
     }
 
