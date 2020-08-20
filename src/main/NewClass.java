@@ -143,5 +143,11 @@ public class NewClass {
         Thermogram thermogram841 = new Thermogram(yaw841, height841, groundNadir841);
         List<Pixel> overlap = thermogram841.getOverlap(thermogram837);
         System.out.println(overlap);
+
+
+        Pixel[] rectangle = {new Pixel(10, 10), new Pixel(100, 100)};
+        Pixel[] polygon = {new Pixel(90, 79), new Pixel(110, 124), new Pixel(110, 50), new Pixel(96, 47)};
+        System.out.println(Pixel.getIntersection(rectangle, polygon));
     }
+
 }

@@ -1,6 +1,7 @@
 package main;
 
 import javenue.csv.Csv;
+import polygons.Point;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;

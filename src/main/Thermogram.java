@@ -95,7 +95,7 @@ public class Thermogram {
     /**
      * Упорядочивает пиксели из списка {@code pixels} против часовой стрелки.
      */
-    private static List<Pixel> order(List<Pixel> pixels) {
+    static List<Pixel> order(List<Pixel> pixels) {
         OptionalDouble newI0Optional = pixels
                 .stream()
                 .mapToDouble(Pixel::getI)
