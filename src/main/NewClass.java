@@ -6,6 +6,7 @@ import com.grum.geocalc.Point;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
 import java.util.List;
 
 /*
@@ -133,8 +134,11 @@ public class NewClass {
 
 
         Pixel[] rectangle = {new Pixel(10, 10), new Pixel(100, 100)};
-        Pixel[] polygon = {new Pixel(90, 79), new Pixel(100, 124), new Pixel(100, 50)};
-        System.out.println(Pixel.getIntersection(rectangle, polygon));
+        Pixel[] polygon = {new Pixel(1, 1), new Pixel(1, 104), new Pixel(107, 108), new Pixel(101,2)};
+        System.out.println(Arrays.toString(Pixel.getIntersection(rectangle, polygon)));
+
+        System.out.println(Pixel.squareTriangle(new Pixel[]{new Pixel(401,85), new Pixel(403,85),new Pixel(403,102)}));
+        System.out.println(Pixel.squarePolygon(new Pixel[]{new Pixel(401,85),new Pixel(403,102)}, true));
     }
 
 }

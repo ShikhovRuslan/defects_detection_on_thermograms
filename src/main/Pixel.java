@@ -201,7 +201,7 @@ public class Pixel {
     /**
      * Возвращает площадь треугольника {@code triangle}.
      */
-    private static double squareTriangle(Pixel[] triangle) {
+    public static double squareTriangle(Pixel[] triangle) {
         return 0.5 * Math.abs((triangle[2].getI() - triangle[0].getI()) * (triangle[1].getJ() - triangle[0].getJ()) -
                 (triangle[2].getJ() - triangle[0].getJ()) * (triangle[1].getI() - triangle[0].getI()));
     }
@@ -210,9 +210,9 @@ public class Pixel {
      * Возвращает площадь многоугольника или прямоугольника {@code polygon}. (Вид фигуры определяется при помощи флага
      * {@code isRectangle}.)
      */
-    private static double squarePolygon(Pixel[] polygon, boolean isRectangle) {
+    public static double squarePolygon(Pixel[] polygon, boolean isRectangle) {
         if(isRectangle)
-            return (polygon[1].getI() - polygon[0].getI() + 1) *(polygon[1].getJ() - polygon[0].getJ() + 1);
+            return (polygon[1].getI() - polygon[0].getI()) *(polygon[1].getJ() - polygon[0].getJ());
         double square = 0;
         for(Pixel[] triangle : toTriangles(polygon))
             square += squareTriangle(triangle);
@@ -223,7 +223,10 @@ public class Pixel {
      * Возвращает площадь части прямоугольника {@code rectangle}, которая не принадлежит многоугольнику {@code overlap}.
      */
     public static double squareRectangleWithoutOverlap(Pixel[] rectangle, Pixel[] overlap) {
-        return squarePolygon(rectangle, true) - squarePolygon(getIntersection(rectangle,overlap), false);
+        double d1 = squarePolygon(rectangle, true);
+        Pixel[] inter = getIntersection(rectangle,overlap);
+        double d2 = squarePolygon(inter, false);
+        return d1 - d2;
     }
 
     public static Pixel[] getIntersection(Pixel[] rectangle, Pixel[] polygon) {

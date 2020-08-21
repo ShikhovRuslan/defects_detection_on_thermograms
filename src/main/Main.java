@@ -6,6 +6,7 @@ import polygons.Polygon;
 
 import java.awt.*;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -53,7 +54,7 @@ public class Main {
         Thermogram thermogram837 = new Thermogram(yaw837, height837, groundNadir837);
         Thermogram thermogram841 = new Thermogram(yaw841, height841, groundNadir841);
         Pixel[] overlap = thermogram841.getOverlap(thermogram837);
-        System.out.println(overlap);
+        System.out.println(Arrays.toString(overlap));
 
 
         List<Polygon> polygons = Polygon.convertRanges(ranges, overlap);

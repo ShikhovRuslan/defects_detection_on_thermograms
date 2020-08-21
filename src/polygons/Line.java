@@ -5,8 +5,8 @@ import java.awt.image.BufferedImage;
 
 
 public class Line {
-    private Point a;
-    private Point b;
+    private final Point a;
+    private final Point b;
 
     public Line(Point a, Point b) {
         this.a = a;

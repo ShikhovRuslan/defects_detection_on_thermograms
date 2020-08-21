@@ -1,10 +1,6 @@
 package polygons;
 
 
-/**
- * Система Oxy координат, используемая в этом классе, аналогична системе Oij координат из класса {@link main.Range} (i
- * переименовано в x, а j - в y).
- */
 public class Point {
     private final int x;
     private final int y;
