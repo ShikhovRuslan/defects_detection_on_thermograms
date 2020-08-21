@@ -1,7 +1,7 @@
 package polygons;
 
 import main.Pixel;
-import main.Range;
+import main.PolygonPixel;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -14,7 +14,13 @@ import java.util.Iterator;
 import java.util.List;
 
 
+/**
+ * Содержит многоугольник, который задаётся списком упорядоченных вершин.
+ */
 public class Polygon {
+    /**
+     * Список вершин многоугольника.
+     */
     private final List<Point> vertices;
     private double squarePixels;
 
@@ -223,13 +229,13 @@ public class Polygon {
     /**
      * Возвращает многоугольник, построенный на основе прямоугольника {@code range}.
      */
-    private static Polygon convertRange(Integer[] range, Pixel[] overlap) {
+    private static Polygon convertRange(Range range, PolygonPixel overlap) {
         List<Point> vertices = new ArrayList<>();
-        vertices.add(new Point(range[0], range[1]));
-        vertices.add(new Point(range[0], range[3]));
-        vertices.add(new Point(range[2], range[3]));
-        vertices.add(new Point(range[2], range[1]));
-        return new Polygon(vertices, Pixel.squareRectangleWithoutOverlap(Range.toRectangle(range), overlap));
+        vertices.add(new Point(range.getUpperLeft().getX(), range.getUpperLeft().getY()));
+        vertices.add(new Point(range.getUpperLeft().getX(), range.getLowerRight().getY()));
+        vertices.add(new Point(range.getLowerRight().getX(), range.getLowerRight().getY()));
+        vertices.add(new Point(range.getLowerRight().getX(), range.getUpperLeft().getY()));
+        return new Polygon(vertices, Pixel.squareRectangleWithoutOverlap(range.toRectangle(), overlap));
     }
 
     public static void showSquaresPixels(List<Polygon> polygons) {
@@ -248,9 +254,9 @@ public class Polygon {
     /**
      * Возвращает список многоугольников, построенных на основе прямоугольников из списка {@code ranges}.
      */
-    public static List<Polygon> convertRanges(List<Integer[]> ranges, Pixel[] overlap) {
+    public static List<Polygon> convertRanges(List<Range> ranges, PolygonPixel overlap) {
         List<Polygon> polygons = new ArrayList<>();
-        for (Integer[] range : ranges)
+        for (Range range : ranges)
             polygons.add(convertRange(range, overlap));
         return polygons;
     }
@@ -413,12 +419,12 @@ public class Polygon {
      * Возвращает площадь (в кв. пикселях) прямоугольника, чьими противоположными вершинами являются точки {@code p1} и
      * {@code p2}.
      */
-    private static double squarePixels(Point p1, Point p2, Pixel[] overlap) {
+    private static double squarePixels(Point p1, Point p2, PolygonPixel overlap) {
         int i1 = Math.min(p1.getX(), p2.getX());
         int i2 = Math.max(p1.getX(), p2.getX());
         int j1 = Math.min(p1.getY(), p2.getY());
         int j2 = Math.max(p1.getY(), p2.getY());
-        return Pixel.squareRectangleWithoutOverlap(Range.toRectangle(new Integer[]{i1, j1, i2, j2}), overlap);
+        return Pixel.squareRectangleWithoutOverlap(new Range(new Point(i1, j1), new Point(i2, j2)).toRectangle(), overlap);
     }
 
     /**
@@ -428,7 +434,7 @@ public class Polygon {
      *
      * @see #isCloseTo(Polygon, int)
      */
-    Polygon uniteWith(Polygon polygon, int distance, Pixel[] overlap) throws NullPointerException {
+    Polygon uniteWith(Polygon polygon, int distance, PolygonPixel overlap) throws NullPointerException {
         Line[] lines = perpendicular(polygon, distance);
         Line perpendicular = lines[0];
         Point vertex0 = perpendicular.getA();
@@ -449,7 +455,7 @@ public class Polygon {
      * Возвращает список многоугольников, полученный путём объединения лежащих на расстоянии, не превышающим
      * {@code distance}, многоугольников из списка {@code polygons}.
      */
-    private static List<Polygon> toBiggerPolygons(List<Polygon> polygons, int distance, Pixel[] overlap) {
+    private static List<Polygon> toBiggerPolygons(List<Polygon> polygons, int distance, PolygonPixel overlap) {
         List<Polygon> newPolygons = new ArrayList<>();
         List<Integer> processed = new ArrayList<>();
         try {
@@ -485,7 +491,7 @@ public class Polygon {
      *
      * @return список укрупнённых многоугольников
      */
-    public static List<Polygon> enlargeIteratively(List<Polygon> polygons, int distance, Pixel[] overlap) {
+    public static List<Polygon> enlargeIteratively(List<Polygon> polygons, int distance, PolygonPixel overlap) {
         List<Polygon> newPolygons = null;
         List<Polygon> prevPolygons;
         int count = -1; // число итераций, приводящих к укрупнению

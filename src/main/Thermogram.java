@@ -7,13 +7,7 @@ import java.util.*;
 
 import static java.lang.Math.*;
 
-/**
- * С термограммой связана система c'x'y'z' пиксельных координат. Центр c' находится в нижней левой точке термограммы.
- * Ось c'x' направлена вдоль нижней стороны термограммы, ось c'y' - вдоль левой стороны термограммы, а ось c'z' - вверх.
- * <p>
- * С Землёй связана неподвижная система OXYZ координат. Ось OX направлена на север, ось OY - на запад, а ось OZ - вверх.
- * Положение центра O произвольно.
- */
+
 public class Thermogram {
     /**
      * Угол поворота оси c'x' относительно оси OX, отсчитываемый против часовой стрелки.
@@ -110,7 +104,7 @@ public class Thermogram {
         return pixels;
     }
 
-    Pixel[] getOverlap(Thermogram previousThermogram) {
+    PolygonPixel getOverlap(Thermogram previousThermogram) {
         List<Pixel> vertices = new ArrayList<>();
         vertices.addAll(cornersFromOther(this, previousThermogram));
         vertices.addAll(cornersFromOther(previousThermogram, this));
@@ -122,6 +116,6 @@ public class Thermogram {
                 if (intersection.getI() != -1)
                     vertices.add(intersection);
             }
-        return order(vertices).toArray(new Pixel[vertices.size()]);
+        return new PolygonPixel(order(vertices));
     }
 }

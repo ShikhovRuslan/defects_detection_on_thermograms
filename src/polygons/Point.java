@@ -1,6 +1,12 @@
 package polygons;
 
+import java.util.List;
 
+
+/**
+ * Используется для хранения пиксельных координат точек (т. е. координат точек в пиксельной системе координат Oxy,
+ * которая связана с термограммой).
+ */
 public class Point {
     private final int x;
     private final int y;
@@ -61,6 +67,16 @@ public class Point {
             return new Point(x, line.getA().getY());
         throw new IllegalArgumentException("Текущую точку нельзя спроектировать на линию, или линия не является ни " +
                 "горизонтальной, ни вертикальной.");
+    }
+
+    /**
+     * Определяет, принадлежит ли текущая точка какому-нибудь прямоугольнику из списка {@code ranges}.
+     */
+    public boolean isInRanges(List<Range> ranges) {
+        for (Range range : ranges)
+            if (range.containsPoint(this))
+                return true;
+        return false;
     }
 
     @Override

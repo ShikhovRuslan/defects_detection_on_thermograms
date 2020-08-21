@@ -3,6 +3,7 @@ package main;
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.Point;
 import polygons.Polygon;
+import polygons.Range;
 
 import java.awt.*;
 import java.io.FileNotFoundException;
@@ -40,8 +41,8 @@ public class Main {
         List<List<String>> rawTable = Range.extractRawTable(fileName);
         List<List<String>> table = Range.extractTable(rawTable);
         int[][] tableBin = Range.findIf(table, num -> num > Range.T_MIN);
-        List<Integer[]> ranges = Range.findRanges(tableBin);
-        ranges.removeIf(range -> Range.squarePixels(range) < Range.MIN_SQUARE_PIXELS);
+        List<Range> ranges = Range.findRanges(tableBin);
+        ranges.removeIf(range -> range.squarePixels() < Range.MIN_SQUARE_PIXELS);
 
 
         double yaw837 = 109.6 - 90;
@@ -53,8 +54,8 @@ public class Main {
 
         Thermogram thermogram837 = new Thermogram(yaw837, height837, groundNadir837);
         Thermogram thermogram841 = new Thermogram(yaw841, height841, groundNadir841);
-        Pixel[] overlap = thermogram841.getOverlap(thermogram837);
-        System.out.println(Arrays.toString(overlap));
+        PolygonPixel overlap = thermogram841.getOverlap(thermogram837);
+        System.out.println(overlap);
 
 
         List<Polygon> polygons = Polygon.convertRanges(ranges, overlap);

@@ -3,11 +3,11 @@ package main;
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.DMSCoordinate;
 import com.grum.geocalc.Point;
+import polygons.Polygon;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
-import java.util.List;
 
 /*
 
@@ -19,11 +19,11 @@ public class NewClass {
     /**
      * Разрешение матрицы по горизонтали.
      */
-    final static int RES_X = 640;
+    public final static int RES_X = 640;
     /**
      * Разрешение матрицы по вертикали.
      */
-    final static int RES_Y = 512;
+    public final static int RES_Y = 512;
     /**
      * Шаг пикселя, м.
      */
@@ -133,12 +133,12 @@ public class NewClass {
         Pixel m = new Pixel(484, 490);
 
 
-        Pixel[] rectangle = {new Pixel(10, 10), new Pixel(100, 100)};
-        Pixel[] polygon = {new Pixel(1, 1), new Pixel(1, 104), new Pixel(107, 108), new Pixel(101,2)};
-        System.out.println(Arrays.toString(Pixel.getIntersection(rectangle, polygon)));
+        Rectangle rectangle = new Rectangle(new Pixel(10, 10), new Pixel(100, 100));
+        PolygonPixel polygon = new PolygonPixel(Arrays.asList(new Pixel(1, 1), new Pixel(1, 104), new Pixel(107, 108), new Pixel(101,2)));
+        System.out.println(Pixel.getIntersection(rectangle, polygon));
 
-        System.out.println(Pixel.squareTriangle(new Pixel[]{new Pixel(401,85), new Pixel(403,85),new Pixel(403,102)}));
-        System.out.println(Pixel.squarePolygon(new Pixel[]{new Pixel(401,85),new Pixel(403,102)}, true));
+        System.out.println(Pixel.squareTriangle(new PolygonPixel(Arrays.asList(new Pixel(401,85), new Pixel(403,85),new Pixel(403,102)))));
+        System.out.println(Pixel.squarePolygon(new PolygonPixel(Arrays.asList(new Pixel(401,85),new Pixel(403,102)))));
     }
 
 }
