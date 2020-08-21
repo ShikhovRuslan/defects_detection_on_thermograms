@@ -1,8 +1,5 @@
 package main;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
@@ -11,31 +8,13 @@ import static java.lang.Math.min;
  * Используется для хранения пиксельных координат точек (т. е. координат точек в пиксельной системе координат c'x'y'z',
  * которая связана с термограммой).
  */
-public class Pixel {
-    /**
-     * Номер пикселя по оси c'x'.
-     */
-    private final int i;
-    /**
-     * Номер пикселя по оси c'y'.
-     */
-    private final int j;
-
+public class Pixel extends AbstractPoint {
     public Pixel(int i, int j) {
-        this.i = i;
-        this.j = j;
+        super(i, j);
     }
 
     public Pixel(double iD, double jD) {
-        this((int) Math.round(iD), (int) Math.round(jD));
-    }
-
-    int getI() {
-        return i;
-    }
-
-    int getJ() {
-        return j;
+        super(iD, jD);
     }
 
     /**
@@ -137,53 +116,5 @@ public class Pixel {
         double a = (line[0].getJ() - line[1].getJ()) / (line[0].getI() - line[1].getI() + 0.);
         double b = line[0].getJ() - a * line[0].getI();
         return j == a * i + b && min(line[0].getI(), line[1].getI()) <= i && i <= max(line[0].getI(), line[1].getI());
-    }
-
-    /**
-     * Возвращает площадь треугольника {@code triangle}.
-     */
-    public static double squareTriangle(PolygonPixel triangle) {
-        return 0.5 * Math.abs((triangle.getVertices().get(2).getI() - triangle.getVertices().get(0).getI()) * (triangle.getVertices().get(1).getJ() - triangle.getVertices().get(0).getJ()) -
-                (triangle.getVertices().get(2).getJ() - triangle.getVertices().get(0).getJ()) * (triangle.getVertices().get(1).getI() - triangle.getVertices().get(0).getI()));
-    }
-
-    /**
-     * Возвращает площадь многоугольника {@code polygon}.
-     */
-    public static double squarePolygon(PolygonPixel polygon) {
-        double square = 0;
-        for (PolygonPixel triangle : polygon.toTriangles())
-            square += squareTriangle(triangle);
-        return square;
-    }
-
-    /**
-     * Возвращает площадь части прямоугольника {@code rectangle}, которая не принадлежит многоугольнику {@code overlap}.
-     */
-    public static double squareRectangleWithoutOverlap(RectanglePixel rectangle, PolygonPixel overlap) {
-        double d1 = rectangle.square();
-        PolygonPixel inter = getIntersection(rectangle, overlap);
-        double d2 = squarePolygon(inter);
-        return d1 - d2;
-    }
-
-    public static PolygonPixel getIntersection(RectanglePixel rectangle, PolygonPixel polygon) {
-        List<Pixel> vertices = new ArrayList<>();
-        vertices.addAll(rectangle.verticesFrom(polygon));
-        vertices.addAll(polygon.verticesFrom(PolygonPixel.toPolygon(rectangle)));
-        Pixel intersection;
-        for (int i = 0; i < 4; i++)
-            for (int j = 0; j < polygon.getVertices().size(); j++) {
-                intersection = Pixel.findIntersection(PolygonPixel.toPolygon(rectangle).getVertices().get(i), PolygonPixel.toPolygon(rectangle).getVertices().get(i + 1 < 4 ? i + 1 : 0),
-                        polygon.getVertices().get(j), polygon.getVertices().get(j + 1 < polygon.getVertices().size() ? j + 1 : 0));
-                if (intersection.getI() != -1)
-                    vertices.add(intersection);
-            }
-        return new PolygonPixel(Thermogram.order(vertices));
-    }
-
-    @Override
-    public String toString() {
-        return "(" + i + ", " + j + ")";
     }
 }

@@ -46,6 +46,28 @@ public class RectanglePixel {
                 (lowerLeft.getJ() <= pixel.getJ() && pixel.getJ() <= upperRight.getJ());
     }
 
+    public PolygonPixel getIntersection(PolygonPixel polygon) {
+        List<Pixel> vertices = new ArrayList<>();
+        vertices.addAll(verticesFrom(polygon));
+        vertices.addAll(polygon.verticesFrom(PolygonPixel.toPolygon(this)));
+        Pixel intersection;
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < polygon.getVertices().size(); j++) {
+                intersection = Pixel.findIntersection(PolygonPixel.toPolygon(this).getVertices().get(i), PolygonPixel.toPolygon(this).getVertices().get(i + 1 < 4 ? i + 1 : 0),
+                        polygon.getVertices().get(j), polygon.getVertices().get(j + 1 < polygon.getVertices().size() ? j + 1 : 0));
+                if (intersection.getI() != -1)
+                    vertices.add(intersection);
+            }
+        return new PolygonPixel(Thermogram.order(vertices));
+    }
+
+    /**
+     * Возвращает площадь части прямоугольника {@code rectangle}, которая не принадлежит многоугольнику {@code overlap}.
+     */
+    public double squareRectangleWithoutOverlap(PolygonPixel overlap) {
+        return square() - getIntersection(overlap).squarePolygon();
+    }
+
     /**
      * Возвращает список вершин многоугольника {@code polygon}, которые принадлежат текущему прямоугольнику.
      */

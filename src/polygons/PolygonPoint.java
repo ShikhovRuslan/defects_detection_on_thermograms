@@ -92,8 +92,8 @@ public class PolygonPoint {
      */
     private void removeRedundantVertices() {
         removeLoops(); // чтобы удаление лишних вершин было корректным
-        vertices.removeIf(vertex -> incomingSide(vertex).getA().getX() == outgoingSide(vertex).getB().getX() ||
-                incomingSide(vertex).getA().getY() == outgoingSide(vertex).getB().getY());
+        vertices.removeIf(vertex -> incomingSide(vertex).getA().getI() == outgoingSide(vertex).getB().getI() ||
+                incomingSide(vertex).getA().getJ() == outgoingSide(vertex).getB().getJ());
     }
 
     /**
@@ -231,11 +231,11 @@ public class PolygonPoint {
      */
     private static PolygonPoint convertRange(RectanglePoint range, PolygonPixel overlap) {
         List<Point> vertices = new ArrayList<>();
-        vertices.add(new Point(range.getUpperLeft().getX(), range.getUpperLeft().getY()));
-        vertices.add(new Point(range.getUpperLeft().getX(), range.getLowerRight().getY()));
-        vertices.add(new Point(range.getLowerRight().getX(), range.getLowerRight().getY()));
-        vertices.add(new Point(range.getLowerRight().getX(), range.getUpperLeft().getY()));
-        return new PolygonPoint(vertices, Pixel.squareRectangleWithoutOverlap(range.toRectangle(), overlap));
+        vertices.add(new Point(range.getUpperLeft().getI(), range.getUpperLeft().getJ()));
+        vertices.add(new Point(range.getUpperLeft().getI(), range.getLowerRight().getJ()));
+        vertices.add(new Point(range.getLowerRight().getI(), range.getLowerRight().getJ()));
+        vertices.add(new Point(range.getLowerRight().getI(), range.getUpperLeft().getJ()));
+        return new PolygonPoint(vertices, range.toRectangle().squareRectangleWithoutOverlap(overlap));
     }
 
     public static void showSquaresPixels(List<PolygonPoint> polygons) {
@@ -349,47 +349,47 @@ public class PolygonPoint {
         Point end0 = side0ToShorten.getOtherEnd(vertex0);
         Point otherBorder0, otherBorder1;
         if (perpendicular.isHorizontal())
-            if (end0.getX() < vertex0.getX()) {
-                if (end0.getX() < side1ToShorten.upperEnd().getX()) {
-                    newSide0 = new Line(end0, new Point(side1ToShorten.upperEnd().getX(), vertex0.getY()));
+            if (end0.getI() < vertex0.getI()) {
+                if (end0.getI() < side1ToShorten.upperEnd().getI()) {
+                    newSide0 = new Line(end0, new Point(side1ToShorten.upperEnd().getI(), vertex0.getJ()));
                     otherBorder1 = side1ToShorten.upperEnd();
                     otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide1 = new Line(side1ToShorten.upperEnd(), new Point(end0.getX(), end1.getY()));
+                    newSide1 = new Line(side1ToShorten.upperEnd(), new Point(end0.getI(), end1.getJ()));
                     otherBorder0 = end0;
                     otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
                 newSide11 = new Line(end1, side1ToShorten.lowerEnd());
             } else {
-                if (end0.getX() > side1ToShorten.lowerEnd().getX()) {
-                    newSide0 = new Line(end0, new Point(side1ToShorten.lowerEnd().getX(), vertex0.getY()));
+                if (end0.getI() > side1ToShorten.lowerEnd().getI()) {
+                    newSide0 = new Line(end0, new Point(side1ToShorten.lowerEnd().getI(), vertex0.getJ()));
                     otherBorder1 = side1ToShorten.lowerEnd();
                     otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide1 = new Line(side1ToShorten.lowerEnd(), new Point(end0.getX(), end1.getY()));
+                    newSide1 = new Line(side1ToShorten.lowerEnd(), new Point(end0.getI(), end1.getJ()));
                     otherBorder0 = end0;
                     otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
                 newSide11 = new Line(end1, side1ToShorten.upperEnd());
             }
-        else if (end0.getY() < vertex0.getY()) {
-            if (end0.getY() < side1ToShorten.leftEnd().getY()) {
-                newSide0 = new Line(end0, new Point(vertex0.getX(), side1ToShorten.leftEnd().getY()));
+        else if (end0.getJ() < vertex0.getJ()) {
+            if (end0.getJ() < side1ToShorten.leftEnd().getJ()) {
+                newSide0 = new Line(end0, new Point(vertex0.getI(), side1ToShorten.leftEnd().getJ()));
                 otherBorder1 = side1ToShorten.leftEnd();
                 otherBorder0 = otherBorder1.project(side0ToShorten);
             } else {
-                newSide1 = new Line(side1ToShorten.leftEnd(), new Point(end1.getX(), end0.getY()));
+                newSide1 = new Line(side1ToShorten.leftEnd(), new Point(end1.getI(), end0.getJ()));
                 otherBorder0 = end0;
                 otherBorder1 = otherBorder0.project(side1ToShorten);
             }
             newSide11 = new Line(end1, side1ToShorten.rightEnd());
         } else {
-            if (end0.getY() > side1ToShorten.rightEnd().getY()) {
-                newSide0 = new Line(end0, new Point(vertex0.getX(), side1ToShorten.rightEnd().getY()));
+            if (end0.getJ() > side1ToShorten.rightEnd().getJ()) {
+                newSide0 = new Line(end0, new Point(vertex0.getI(), side1ToShorten.rightEnd().getJ()));
                 otherBorder1 = side1ToShorten.rightEnd();
                 otherBorder0 = otherBorder1.project(side0ToShorten);
             } else {
-                newSide1 = new Line(side1ToShorten.rightEnd(), new Point(end1.getX(), end0.getY()));
+                newSide1 = new Line(side1ToShorten.rightEnd(), new Point(end1.getI(), end0.getJ()));
                 otherBorder0 = end0;
                 otherBorder1 = otherBorder0.project(side1ToShorten);
             }
@@ -420,11 +420,11 @@ public class PolygonPoint {
      * {@code p2}.
      */
     private static double squarePixels(Point p1, Point p2, PolygonPixel overlap) {
-        int i1 = Math.min(p1.getX(), p2.getX());
-        int i2 = Math.max(p1.getX(), p2.getX());
-        int j1 = Math.min(p1.getY(), p2.getY());
-        int j2 = Math.max(p1.getY(), p2.getY());
-        return Pixel.squareRectangleWithoutOverlap(new RectanglePoint(new Point(i1, j1), new Point(i2, j2)).toRectangle(), overlap);
+        int i1 = Math.min(p1.getI(), p2.getI());
+        int i2 = Math.max(p1.getI(), p2.getI());
+        int j1 = Math.min(p1.getJ(), p2.getJ());
+        int j2 = Math.max(p1.getJ(), p2.getJ());
+        return new RectanglePoint(new Point(i1, j1), new Point(i2, j2)).toRectangle().squareRectangleWithoutOverlap(overlap);
     }
 
     /**

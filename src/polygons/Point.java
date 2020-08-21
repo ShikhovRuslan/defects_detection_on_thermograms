@@ -1,5 +1,7 @@
 package polygons;
 
+import main.AbstractPoint;
+
 import java.util.List;
 
 
@@ -7,21 +9,9 @@ import java.util.List;
  * Используется для хранения пиксельных координат точек (т. е. координат точек в пиксельной системе координат Oxy,
  * которая связана с термограммой).
  */
-public class Point {
-    private final int x;
-    private final int y;
-
-    public Point(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
-
-    int getX() {
-        return x;
-    }
-
-    int getY() {
-        return y;
+public class Point extends AbstractPoint {
+    public Point(int i, int j) {
+        super(i, j);
     }
 
     /**
@@ -33,9 +23,9 @@ public class Point {
     int distance(Line line) {
         if (projectableTo(line)) {
             if (line.isHorizontal())
-                return Math.abs(x - line.getA().getX());
+                return Math.abs(i - line.getA().getI());
             if (line.isVertical())
-                return Math.abs(y - line.getA().getY());
+                return Math.abs(j - line.getA().getJ());
         }
         throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность линии, или " +
                 "линия не является ни горизонтальной, ни вертикальной.");
@@ -48,9 +38,9 @@ public class Point {
      */
     boolean projectableTo(Line line) {
         if (line.isHorizontal())
-            return y > Math.min(line.getA().getY(), line.getB().getY()) && y < Math.max(line.getA().getY(), line.getB().getY());
+            return j > Math.min(line.getA().getJ(), line.getB().getJ()) && j < Math.max(line.getA().getJ(), line.getB().getJ());
         if (line.isVertical())
-            return x > Math.min(line.getA().getX(), line.getB().getX()) && x < Math.max(line.getA().getX(), line.getB().getX());
+            return i > Math.min(line.getA().getI(), line.getB().getI()) && i < Math.max(line.getA().getI(), line.getB().getI());
         throw new IllegalArgumentException("Линия не является ни горизонтальной, ни вертикальной.");
     }
 
@@ -61,10 +51,10 @@ public class Point {
      *                                  горизонтальной, ни вертикальной
      */
     Point project(Line line) {
-        if (line.isHorizontal() && (projectableTo(line) || y == line.getA().y || y == line.getB().y))
-            return new Point(line.getA().getX(), y);
-        if (line.isVertical() && (projectableTo(line) || x == line.getA().x || x == line.getB().x))
-            return new Point(x, line.getA().getY());
+        if (line.isHorizontal() && (projectableTo(line) || j == line.getA().j || j == line.getB().j))
+            return new Point(line.getA().getI(), j);
+        if (line.isVertical() && (projectableTo(line) || i == line.getA().i || i == line.getB().i))
+            return new Point(i, line.getA().getJ());
         throw new IllegalArgumentException("Текущую точку нельзя спроектировать на линию, или линия не является ни " +
                 "горизонтальной, ни вертикальной.");
     }
@@ -83,11 +73,6 @@ public class Point {
     public boolean equals(Object obj) {
         if (!(obj instanceof Point))
             return false;
-        return x == ((Point) obj).getX() && y == ((Point) obj).getY();
-    }
-
-    @Override
-    public String toString() {
-        return "(" + x + ", " + y + ")";
+        return i == ((Point) obj).getI() && j == ((Point) obj).getJ();
     }
 }

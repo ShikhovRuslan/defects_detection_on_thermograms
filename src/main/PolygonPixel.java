@@ -33,6 +33,24 @@ public class PolygonPixel {
     }
 
     /**
+     * Возвращает площадь текущего треугольника.
+     */
+    public double squareTriangle() {
+        return 0.5 * Math.abs((vertices.get(2).getI() - vertices.get(0).getI()) * (vertices.get(1).getJ() - vertices.get(0).getJ()) -
+                (vertices.get(2).getJ() - vertices.get(0).getJ()) * (vertices.get(1).getI() - vertices.get(0).getI()));
+    }
+
+    /**
+     * Возвращает площадь текущего многоугольника.
+     */
+    public double squarePolygon() {
+        double square = 0;
+        for (PolygonPixel triangle : toTriangles())
+            square += triangle.squareTriangle();
+        return square;
+    }
+
+    /**
      * Возвращает список вершин многоугольника {@code polygon}, которые принадлежат текущему многоугольнику.
      */
     public List<Pixel> verticesFrom(PolygonPixel polygon) {

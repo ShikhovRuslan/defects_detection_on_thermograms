@@ -22,11 +22,11 @@ public class Line {
     }
 
     boolean isHorizontal() {
-        return a.getX() == b.getX();
+        return a.getI() == b.getI();
     }
 
     boolean isVertical() {
-        return a.getY() == b.getY();
+        return a.getJ() == b.getJ();
     }
 
     /**
@@ -48,7 +48,7 @@ public class Line {
     Point upperEnd() {
         if (isHorizontal())
             throw new IllegalArgumentException("Текущая линия горизонтальна.");
-        return a.getX() < b.getX() ? a : b;
+        return a.getI() < b.getI() ? a : b;
     }
 
     /**
@@ -59,7 +59,7 @@ public class Line {
     Point lowerEnd() {
         if (isHorizontal())
             throw new IllegalArgumentException("Текущая линия горизонтальна.");
-        return a.getX() > b.getX() ? a : b;
+        return a.getI() > b.getI() ? a : b;
     }
 
     /**
@@ -70,7 +70,7 @@ public class Line {
     Point rightEnd() {
         if (isVertical())
             throw new IllegalArgumentException("Текущая линия вертикальна.");
-        return a.getY() > b.getY() ? a : b;
+        return a.getJ() > b.getJ() ? a : b;
     }
 
     /**
@@ -81,7 +81,7 @@ public class Line {
     Point leftEnd() {
         if (isVertical())
             throw new IllegalArgumentException("Текущая линия вертикальна.");
-        return a.getY() < b.getY() ? a : b;
+        return a.getJ() < b.getJ() ? a : b;
     }
 
     /**
@@ -91,9 +91,9 @@ public class Line {
      */
     boolean contains(Point point) {
         if (isHorizontal())
-            return point.getX() == a.getX() && point.projectableTo(this);
+            return point.getI() == a.getI() && point.projectableTo(this);
         if (isVertical())
-            return point.getY() == a.getY() && point.projectableTo(this);
+            return point.getJ() == a.getJ() && point.projectableTo(this);
         throw new IllegalArgumentException("Текущая линия ни горизонтальна, ни вертикальна.");
     }
 
@@ -104,13 +104,13 @@ public class Line {
      */
     void draw(BufferedImage image, Color color) {
         if (isHorizontal()) {
-            for (int i = Math.min(a.getY(), b.getY()); i <= Math.max(a.getY(), b.getY()); i++)
-                image.setRGB(i, a.getX(), color.getRGB());
+            for (int i = Math.min(a.getJ(), b.getJ()); i <= Math.max(a.getJ(), b.getJ()); i++)
+                image.setRGB(i, a.getI(), color.getRGB());
             return;
         }
         if (isVertical()) {
-            for (int i = Math.min(a.getX(), b.getX()); i <= Math.max(a.getX(), b.getX()); i++)
-                image.setRGB(a.getY(), i, color.getRGB());
+            for (int i = Math.min(a.getI(), b.getI()); i <= Math.max(a.getI(), b.getI()); i++)
+                image.setRGB(a.getJ(), i, color.getRGB());
             return;
         }
         throw new IllegalArgumentException("Текущая линия ни горизонтальна, ни вертикальна.");

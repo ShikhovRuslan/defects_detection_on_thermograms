@@ -151,29 +151,29 @@ public class RectanglePoint {
      * Определяет, является ли текущий прямоугольник горизонтальной или вертикальной линией.
      */
     private boolean isLine() {
-        return upperLeft.getX() == lowerRight.getX() || upperLeft.getY() == lowerRight.getY();
+        return upperLeft.getI() == lowerRight.getI() || upperLeft.getJ() == lowerRight.getJ();
     }
 
     /**
      * Определяет принадлежность точки {@code point} текущему прямоугольнику.
      */
     public boolean containsPoint(Point point) {
-        return (upperLeft.getX() <= point.getX() && point.getX() <= lowerRight.getX()) &&
-                (upperLeft.getY() <= point.getY() && point.getY() <= lowerRight.getY());
+        return (upperLeft.getI() <= point.getI() && point.getI() <= lowerRight.getI()) &&
+                (upperLeft.getJ() <= point.getJ() && point.getJ() <= lowerRight.getJ());
     }
 
     /**
      * Возвращает число точек в текущем прямоугольнике.
      */
     public int squarePixels() {
-        return (lowerRight.getX() - upperLeft.getX() + 1) * (lowerRight.getY() - upperLeft.getY() + 1);
+        return (lowerRight.getI() - upperLeft.getI() + 1) * (lowerRight.getJ() - upperLeft.getJ() + 1);
     }
 
     /**
      * Конвертирует текущий прямоугольник из системы координат Oij в систему координат c'x'y'.
      */
     public RectanglePixel toRectangle() {
-        return new RectanglePixel(new Pixel(upperLeft.getY(), NewClass.RES_Y - lowerRight.getX()), new Pixel(lowerRight.getY(), NewClass.RES_Y - upperLeft.getX()));
+        return new RectanglePixel(new Pixel(upperLeft.getJ(), NewClass.RES_Y - lowerRight.getI()), new Pixel(lowerRight.getJ(), NewClass.RES_Y - upperLeft.getI()));
     }
 
     /**
@@ -192,8 +192,8 @@ public class RectanglePoint {
      */
     private int amountOfOnes(int[][] table) {
         int count = 0;
-        for (int i = upperLeft.getX(); i <= lowerRight.getX(); i++)
-            for (int j = upperLeft.getY(); j <= lowerRight.getY(); j++)
+        for (int i = upperLeft.getI(); i <= lowerRight.getI(); i++)
+            for (int j = upperLeft.getJ(); j <= lowerRight.getJ(); j++)
                 if (table[i][j] == 1)
                     count++;
         return count;
@@ -204,28 +204,28 @@ public class RectanglePoint {
      * таблицы {@code table} и списка уже построенных прямоугольников {@code ranges}.
      */
     private static RectanglePoint makeRange(int[][] table, Point point, List<RectanglePoint> ranges) {
-        int x = point.getX(), y = point.getY();
+        int x = point.getI(), y = point.getJ();
         boolean incrementX, incrementY;
         do {
             incrementX = false;
             incrementY = false;
             if (x + 1 < table.length &&
-                    new RectanglePoint(point, new Point(x + 1, y)).amountOfOnes(table) - new RectanglePoint(point, new Point(x, y)).amountOfOnes(table) > (y - point.getY() + 1) / 2) {
+                    new RectanglePoint(point, new Point(x + 1, y)).amountOfOnes(table) - new RectanglePoint(point, new Point(x, y)).amountOfOnes(table) > (y - point.getJ() + 1) / 2) {
                 x++;
                 incrementX = true;
             }
             if (y + 1 < table[0].length &&
-                    new RectanglePoint(point, new Point(x, y + 1)).amountOfOnes(table) - new RectanglePoint(point, new Point(x, y)).amountOfOnes(table) > (x - point.getX() + 1) / 2 &&
-                    !RectanglePoint.verticalLineIntersectsRanges(point.getX(), x, y + 1, ranges)) {
+                    new RectanglePoint(point, new Point(x, y + 1)).amountOfOnes(table) - new RectanglePoint(point, new Point(x, y)).amountOfOnes(table) > (x - point.getI() + 1) / 2 &&
+                    !RectanglePoint.verticalLineIntersectsRanges(point.getI(), x, y + 1, ranges)) {
                 y++;
                 incrementY = true;
             }
         } while (incrementX || incrementY);
-        int newI = point.getX();
-        int newJ = point.getY();
-        if (new RectanglePoint(point, new Point(point.getX(), y)).amountOfOnes(table) < (y - point.getY() + 1) / 2 && point.getX() + 1 < table.length)
+        int newI = point.getI();
+        int newJ = point.getJ();
+        if (new RectanglePoint(point, new Point(point.getI(), y)).amountOfOnes(table) < (y - point.getJ() + 1) / 2 && point.getI() + 1 < table.length)
             newI++;
-        if (new RectanglePoint(point, new Point(x, point.getY())).amountOfOnes(table) < (x - point.getX() + 1) / 2 && point.getY() + 1 < table[0].length)
+        if (new RectanglePoint(point, new Point(x, point.getJ())).amountOfOnes(table) < (x - point.getI() + 1) / 2 && point.getJ() + 1 < table[0].length)
             newJ++;
         return new RectanglePoint(new Point(newI, newJ), new Point(x, y));
     }

@@ -134,10 +134,9 @@ public class NewClass {
 
         RectanglePixel rectangle = new RectanglePixel(new Pixel(10, 10), new Pixel(100, 100));
         PolygonPixel polygon = new PolygonPixel(Arrays.asList(new Pixel(1, 1), new Pixel(1, 104), new Pixel(107, 108), new Pixel(101, 2)));
-        System.out.println(Pixel.getIntersection(rectangle, polygon));
+        System.out.println(rectangle.getIntersection(polygon));
 
-        System.out.println(Pixel.squareTriangle(new PolygonPixel(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102)))));
-        System.out.println(Pixel.squarePolygon(new PolygonPixel(Arrays.asList(new Pixel(401, 85), new Pixel(403, 102)))));
+        System.out.println(new PolygonPixel(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))).squareTriangle());
+        System.out.println(new PolygonPixel(Arrays.asList(new Pixel(401, 85), new Pixel(403, 102))).squarePolygon());
     }
-
 }
