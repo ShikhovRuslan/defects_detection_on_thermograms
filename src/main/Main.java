@@ -2,12 +2,11 @@ package main;
 
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.Point;
-import polygons.Polygon;
-import polygons.Range;
+import polygons.PolygonPoint;
+import polygons.RectanglePoint;
 
 import java.awt.*;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -38,11 +37,11 @@ public class Main {
         String newPictureName = pictureName.substring(0, pictureName.lastIndexOf(ch) + 1) + NEW_PICTURENAME;
         System.out.println("\nФайл с выделенными дефектами: " + newPictureName + "\n");
 
-        List<List<String>> rawTable = Range.extractRawTable(fileName);
-        List<List<String>> table = Range.extractTable(rawTable);
-        int[][] tableBin = Range.findIf(table, num -> num > Range.T_MIN);
-        List<Range> ranges = Range.findRanges(tableBin);
-        ranges.removeIf(range -> range.squarePixels() < Range.MIN_SQUARE_PIXELS);
+        List<List<String>> rawTable = RectanglePoint.extractRawTable(fileName);
+        List<List<String>> table = RectanglePoint.extractTable(rawTable);
+        int[][] tableBin = RectanglePoint.findIf(table, num -> num > RectanglePoint.T_MIN);
+        List<RectanglePoint> ranges = RectanglePoint.findRanges(tableBin);
+        ranges.removeIf(range -> range.squarePixels() < RectanglePoint.MIN_SQUARE_PIXELS);
 
 
         double yaw837 = 109.6 - 90;
@@ -58,11 +57,11 @@ public class Main {
         System.out.println(overlap);
 
 
-        List<Polygon> polygons = Polygon.convertRanges(ranges, overlap);
-        List<Polygon> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap);
+        List<PolygonPoint> polygons = PolygonPoint.convertRanges(ranges, overlap);
+        List<PolygonPoint> enlargedPolygons = PolygonPoint.enlargeIteratively(polygons, 5, overlap);
 
-        Polygon.drawPolygons(enlargedPolygons, Color.BLACK, pictureName, newPictureName);
-        Polygon.showSquaresPixels(enlargedPolygons);
+        PolygonPoint.drawPolygons(enlargedPolygons, Color.BLACK, pictureName, newPictureName);
+        PolygonPoint.showSquaresPixels(enlargedPolygons);
     }
 
     public static void main(String[] args) {

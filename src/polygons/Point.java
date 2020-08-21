@@ -72,8 +72,8 @@ public class Point {
     /**
      * Определяет, принадлежит ли текущая точка какому-нибудь прямоугольнику из списка {@code ranges}.
      */
-    public boolean isInRanges(List<Range> ranges) {
-        for (Range range : ranges)
+    public boolean isInRanges(List<RectanglePoint> ranges) {
+        for (RectanglePoint range : ranges)
             if (range.containsPoint(this))
                 return true;
         return false;

@@ -17,18 +17,18 @@ import java.util.List;
 /**
  * Содержит многоугольник, который задаётся списком упорядоченных вершин.
  */
-public class Polygon {
+public class PolygonPoint {
     /**
      * Список вершин многоугольника.
      */
     private final List<Point> vertices;
     private double squarePixels;
 
-    public Polygon(List<Point> vertices) {
+    public PolygonPoint(List<Point> vertices) {
         this.vertices = vertices;
     }
 
-    public Polygon(List<Point> vertices, double squarePixels) {
+    public PolygonPoint(List<Point> vertices, double squarePixels) {
         this.vertices = vertices;
         this.squarePixels = squarePixels;
     }
@@ -50,7 +50,7 @@ public class Polygon {
      * расстояние от какой-либо вершины первого многоугольника до внутренности какой-либо стороны второго многоугольника
      * не превышает величины {@code distance}.
      */
-    private boolean isCloseTo(Polygon polygon, int distance) {
+    private boolean isCloseTo(PolygonPoint polygon, int distance) {
         Line[] sides = polygon.getSides();
         for (Point vertex : vertices)
             for (Line side : sides)
@@ -114,9 +114,9 @@ public class Polygon {
      * Возвращает перпендикуляр минимальной длины, опущенный из какой-либо вершины текущего многоугольника на
      * внутренность какой-либо стороны многоугольника {@code polygon}, и эту сторону, если длина перпендикуляра не
      * превышает величины {@code distance}.
-     * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, int)} выдаёт {@code true}.
+     * Надо вызывать этот метод, только если {@link #isCloseTo(PolygonPoint, int)} выдаёт {@code true}.
      */
-    private Line[] perpendicular(Polygon polygon, int distance) {
+    private Line[] perpendicular(PolygonPoint polygon, int distance) {
         List<Integer> tmpDistances = new ArrayList<>();
         List<Point> tmpVertices = new ArrayList<>();
         List<Line> tmpSides = new ArrayList<>();
@@ -198,10 +198,10 @@ public class Polygon {
     /**
      * Рисует многоугольники из списка {@code polygons}.
      */
-    public static void drawPolygons(List<Polygon> polygons, Color color, String pictureName, String newPictureName) {
+    public static void drawPolygons(List<PolygonPoint> polygons, Color color, String pictureName, String newPictureName) {
         try {
             BufferedImage image = ImageIO.read(new File(pictureName));
-            for (Polygon polygon : polygons)
+            for (PolygonPoint polygon : polygons)
                 polygon.draw(image, color);
             ImageIO.write(image, "jpg", new File(newPictureName));
         } catch (IOException e) {
@@ -229,24 +229,24 @@ public class Polygon {
     /**
      * Возвращает многоугольник, построенный на основе прямоугольника {@code range}.
      */
-    private static Polygon convertRange(Range range, PolygonPixel overlap) {
+    private static PolygonPoint convertRange(RectanglePoint range, PolygonPixel overlap) {
         List<Point> vertices = new ArrayList<>();
         vertices.add(new Point(range.getUpperLeft().getX(), range.getUpperLeft().getY()));
         vertices.add(new Point(range.getUpperLeft().getX(), range.getLowerRight().getY()));
         vertices.add(new Point(range.getLowerRight().getX(), range.getLowerRight().getY()));
         vertices.add(new Point(range.getLowerRight().getX(), range.getUpperLeft().getY()));
-        return new Polygon(vertices, Pixel.squareRectangleWithoutOverlap(range.toRectangle(), overlap));
+        return new PolygonPoint(vertices, Pixel.squareRectangleWithoutOverlap(range.toRectangle(), overlap));
     }
 
-    public static void showSquaresPixels(List<Polygon> polygons) {
+    public static void showSquaresPixels(List<PolygonPoint> polygons) {
         List<Double> squaresPixels = new ArrayList<>();
-        for (Polygon polygon : polygons)
+        for (PolygonPoint polygon : polygons)
             squaresPixels.add(polygon.squarePixels);
         int totalSquarePixels = 0;
         for (Double num : squaresPixels)
             totalSquarePixels += num;
         System.out.printf("%d pi^2  -  %s%n", totalSquarePixels, "суммарная площадь дефектов");
-        System.out.printf("%.2f %%  -  %s%n", (totalSquarePixels + 0.) / (Range.RES_I * Range.RES_J) * 100,
+        System.out.printf("%.2f %%  -  %s%n", (totalSquarePixels + 0.) / (RectanglePoint.RES_I * RectanglePoint.RES_J) * 100,
                 "доля суммарной площади дефектов от общей площади");
         System.out.printf("%s%n%s", "Площади дефектов (в кв. пикселях):", Arrays.toString(squaresPixels.toArray()));
     }
@@ -254,9 +254,9 @@ public class Polygon {
     /**
      * Возвращает список многоугольников, построенных на основе прямоугольников из списка {@code ranges}.
      */
-    public static List<Polygon> convertRanges(List<Range> ranges, PolygonPixel overlap) {
-        List<Polygon> polygons = new ArrayList<>();
-        for (Range range : ranges)
+    public static List<PolygonPoint> convertRanges(List<RectanglePoint> ranges, PolygonPixel overlap) {
+        List<PolygonPoint> polygons = new ArrayList<>();
+        for (RectanglePoint range : ranges)
             polygons.add(convertRange(range, overlap));
         return polygons;
     }
@@ -308,7 +308,7 @@ public class Polygon {
     /**
      * Возвращает многоугольник, построенный на точках, являющихся концами линий из массива {@code lines}.
      */
-    private static Polygon createPolygon(Line[] lines, double squarePixels) throws NullPointerException {
+    private static PolygonPoint createPolygon(Line[] lines, double squarePixels) throws NullPointerException {
         Line[] sides = order(lines);
         List<Point> points = new ArrayList<>();
         for (Line side : sides) {
@@ -317,7 +317,7 @@ public class Polygon {
             if (!points.contains(side.getB()))
                 points.add(side.getB());
         }
-        Polygon polygon = new Polygon(points, squarePixels);
+        PolygonPoint polygon = new PolygonPoint(points, squarePixels);
         polygon.removeRedundantVertices();
         return polygon;
     }
@@ -337,7 +337,7 @@ public class Polygon {
      * @param side1Index    индекс стороны многоугольника {@code polygon1}, внутренность которой содержит точку
      *                      {@code end1}
      */
-    private static Line[][] getPolygonalChains(Polygon polygon0, Polygon polygon1, Point vertex0, Line perpendicular,
+    private static Line[][] getPolygonalChains(PolygonPoint polygon0, PolygonPoint polygon1, Point vertex0, Line perpendicular,
                                                Point end1, int side0Index, int side1Index) {
         Line[] sides0 = polygon0.getSides();
         Line[] sides1 = polygon1.getSides();
@@ -424,17 +424,17 @@ public class Polygon {
         int i2 = Math.max(p1.getX(), p2.getX());
         int j1 = Math.min(p1.getY(), p2.getY());
         int j2 = Math.max(p1.getY(), p2.getY());
-        return Pixel.squareRectangleWithoutOverlap(new Range(new Point(i1, j1), new Point(i2, j2)).toRectangle(), overlap);
+        return Pixel.squareRectangleWithoutOverlap(new RectanglePoint(new Point(i1, j1), new Point(i2, j2)).toRectangle(), overlap);
     }
 
     /**
      * Возвращает многоугольник, являющийся объединением текущего многоугольника и многоугольника {@code polygon},
      * расстояние между которыми не превышает величины {@code distance}.
-     * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, int)} выдаёт {@code true}.
+     * Надо вызывать этот метод, только если {@link #isCloseTo(PolygonPoint, int)} выдаёт {@code true}.
      *
-     * @see #isCloseTo(Polygon, int)
+     * @see #isCloseTo(PolygonPoint, int)
      */
-    Polygon uniteWith(Polygon polygon, int distance, PolygonPixel overlap) throws NullPointerException {
+    PolygonPoint uniteWith(PolygonPoint polygon, int distance, PolygonPixel overlap) throws NullPointerException {
         Line[] lines = perpendicular(polygon, distance);
         Line perpendicular = lines[0];
         Point vertex0 = perpendicular.getA();
@@ -455,8 +455,8 @@ public class Polygon {
      * Возвращает список многоугольников, полученный путём объединения лежащих на расстоянии, не превышающим
      * {@code distance}, многоугольников из списка {@code polygons}.
      */
-    private static List<Polygon> toBiggerPolygons(List<Polygon> polygons, int distance, PolygonPixel overlap) {
-        List<Polygon> newPolygons = new ArrayList<>();
+    private static List<PolygonPoint> toBiggerPolygons(List<PolygonPoint> polygons, int distance, PolygonPixel overlap) {
+        List<PolygonPoint> newPolygons = new ArrayList<>();
         List<Integer> processed = new ArrayList<>();
         try {
             for (int i = 0; i < polygons.size(); i++)
@@ -491,14 +491,14 @@ public class Polygon {
      *
      * @return список укрупнённых многоугольников
      */
-    public static List<Polygon> enlargeIteratively(List<Polygon> polygons, int distance, PolygonPixel overlap) {
-        List<Polygon> newPolygons = null;
-        List<Polygon> prevPolygons;
+    public static List<PolygonPoint> enlargeIteratively(List<PolygonPoint> polygons, int distance, PolygonPixel overlap) {
+        List<PolygonPoint> newPolygons = null;
+        List<PolygonPoint> prevPolygons;
         int count = -1; // число итераций, приводящих к укрупнению
         List<Integer> sizes = new ArrayList<>(); // размеры первоначального и всех последующих списков многоугольников
         do {
             prevPolygons = count >= 0 ? newPolygons : polygons;
-            newPolygons = Polygon.toBiggerPolygons(prevPolygons, distance, overlap);
+            newPolygons = PolygonPoint.toBiggerPolygons(prevPolygons, distance, overlap);
             count++;
             sizes.add(prevPolygons.size());
         } while (newPolygons.size() < prevPolygons.size());

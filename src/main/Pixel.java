@@ -1,7 +1,5 @@
 package main;
 
-import polygons.Polygon;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -116,29 +114,6 @@ public class Pixel {
     }
 
     /**
-     * Определяет принадлежность текущего пикселя многоугольнику {@code polygon}.
-     */
-    private boolean isInPolygon(PolygonPixel polygon) {
-        for (PolygonPixel triangle : polygon.toTriangles())
-            if (isInTriangle(triangle))
-                return true;
-        return false;
-    }
-
-    /**
-     * Преобразует прямоугольник {@code rectangle} в многоугольник, возвращая список его вершин, начиная с нижней левой
-     * вершины и заканчивая верхней левой.
-     */
-    private static Pixel[] toPolygon(Rectangle rectangle) {
-        Pixel[] vertices = new Pixel[4];
-        vertices[0] = rectangle.getLowerLeft();
-        vertices[1] = new Pixel(rectangle.getUpperRight().getI(), rectangle.getLowerLeft().getJ());
-        vertices[2] = rectangle.getUpperRight();
-        vertices[3] = new Pixel(rectangle.getLowerLeft().getI(), rectangle.getUpperRight().getJ());
-        return vertices;
-    }
-
-    /**
      * Определяет принадлежность текущего пикселя треугольнику {@code triangle}.
      */
     public boolean isInTriangle(PolygonPixel triangle) {
@@ -165,17 +140,6 @@ public class Pixel {
     }
 
     /**
-     * Возвращает список вершин многоугольника {@code polygonFrom}, которые принадлежат многоугольнику {@code polygon}.
-     */
-    public static List<Pixel> inPolygon(Pixel[] polygonFrom, PolygonPixel polygon) {
-        List<Pixel> res = new ArrayList<>();
-        for (Pixel vertex : polygonFrom)
-            if (vertex.isInPolygon(polygon))
-                res.add(vertex);
-        return res;
-    }
-
-    /**
      * Возвращает площадь треугольника {@code triangle}.
      */
     public static double squareTriangle(PolygonPixel triangle) {
@@ -196,21 +160,21 @@ public class Pixel {
     /**
      * Возвращает площадь части прямоугольника {@code rectangle}, которая не принадлежит многоугольнику {@code overlap}.
      */
-    public static double squareRectangleWithoutOverlap(Rectangle rectangle, PolygonPixel overlap) {
-        double d1 = rectangle.squareRectangle();
+    public static double squareRectangleWithoutOverlap(RectanglePixel rectangle, PolygonPixel overlap) {
+        double d1 = rectangle.square();
         PolygonPixel inter = getIntersection(rectangle, overlap);
         double d2 = squarePolygon(inter);
         return d1 - d2;
     }
 
-    public static PolygonPixel getIntersection(Rectangle rectangle, PolygonPixel polygon) {
+    public static PolygonPixel getIntersection(RectanglePixel rectangle, PolygonPixel polygon) {
         List<Pixel> vertices = new ArrayList<>();
-        vertices.addAll(rectangle.inRectangle(polygon));
-        vertices.addAll(inPolygon(toPolygon(rectangle), polygon));
+        vertices.addAll(rectangle.verticesFrom(polygon));
+        vertices.addAll(polygon.verticesFrom(PolygonPixel.toPolygon(rectangle)));
         Pixel intersection;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < polygon.getVertices().size(); j++) {
-                intersection = Pixel.findIntersection(toPolygon(rectangle)[i], toPolygon(rectangle)[i + 1 < 4 ? i + 1 : 0],
+                intersection = Pixel.findIntersection(PolygonPixel.toPolygon(rectangle).getVertices().get(i), PolygonPixel.toPolygon(rectangle).getVertices().get(i + 1 < 4 ? i + 1 : 0),
                         polygon.getVertices().get(j), polygon.getVertices().get(j + 1 < polygon.getVertices().size() ? j + 1 : 0));
                 if (intersection.getI() != -1)
                     vertices.add(intersection);

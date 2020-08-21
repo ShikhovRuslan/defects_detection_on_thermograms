@@ -3,7 +3,7 @@ package polygons;
 import javenue.csv.Csv;
 import main.NewClass;
 import main.Pixel;
-import main.Rectangle;
+import main.RectanglePixel;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -15,11 +15,11 @@ import java.util.regex.Pattern;
 
 
 /**
- * Переменная x в системе координат Oxy переименована в i, а y - в j.
+ * Переменная x в системе координат Oxy переименована в i, а переменная y - в j.
  * <p>
  * Стороны прямоугольника параллельны координатным осям, и он задаётся двумя вершинами: верхней левой и нижней правой.
  */
-public class Range {
+public class RectanglePoint {
     /**
      * Верхняя левая вершина прямоугольника.
      */
@@ -46,16 +46,16 @@ public class Range {
      */
     public static final int MIN_SQUARE_PIXELS = 25;
 
-    public Range(Point upperLeft, Point lowerRight) {
+    public RectanglePoint(Point upperLeft, Point lowerRight) {
         this.upperLeft = upperLeft;
         this.lowerRight = lowerRight;
     }
 
-    public Point getUpperLeft(){
+    public Point getUpperLeft() {
         return upperLeft;
     }
 
-    public Point getLowerRight(){
+    public Point getLowerRight() {
         return lowerRight;
     }
 
@@ -172,15 +172,15 @@ public class Range {
     /**
      * Конвертирует текущий прямоугольник из системы координат Oij в систему координат c'x'y'.
      */
-    public Rectangle toRectangle() {
-        return new Rectangle(new Pixel(upperLeft.getY(), NewClass.RES_Y - lowerRight.getX()), new Pixel(lowerRight.getY(), NewClass.RES_Y - upperLeft.getX()));
+    public RectanglePixel toRectangle() {
+        return new RectanglePixel(new Pixel(upperLeft.getY(), NewClass.RES_Y - lowerRight.getX()), new Pixel(lowerRight.getY(), NewClass.RES_Y - upperLeft.getX()));
     }
 
     /**
      * Определяет, пересекает ли вертикальная линия с концами ({@code i0}, {@code j}) и ({@code i1}, {@code j})
      * какой-нибудь прямоугольник из списка {@code ranges}.
      */
-    private static boolean verticalLineIntersectsRanges(int i0, int i1, int j, List<Range> ranges) {
+    private static boolean verticalLineIntersectsRanges(int i0, int i1, int j, List<RectanglePoint> ranges) {
         for (int k = Math.min(i0, i1); k <= Math.max(i0, i1); k++)
             if (new Point(k, j).isInRanges(ranges))
                 return true;
@@ -203,39 +203,39 @@ public class Range {
      * Возвращает прямоугольник, чья верхняя левая вершина примерно совпадает с точкой {@code point}, на основании
      * таблицы {@code table} и списка уже построенных прямоугольников {@code ranges}.
      */
-    private static Range makeRange(int[][] table, Point point, List<Range> ranges) {
+    private static RectanglePoint makeRange(int[][] table, Point point, List<RectanglePoint> ranges) {
         int x = point.getX(), y = point.getY();
         boolean incrementX, incrementY;
         do {
             incrementX = false;
             incrementY = false;
             if (x + 1 < table.length &&
-                    new Range(point, new Point(x + 1, y)).amountOfOnes(table) - new Range(point, new Point(x, y)).amountOfOnes(table) > (y - point.getY() + 1) / 2) {
+                    new RectanglePoint(point, new Point(x + 1, y)).amountOfOnes(table) - new RectanglePoint(point, new Point(x, y)).amountOfOnes(table) > (y - point.getY() + 1) / 2) {
                 x++;
                 incrementX = true;
             }
             if (y + 1 < table[0].length &&
-                    new Range(point, new Point(x, y+1)).amountOfOnes(table) - new Range(point, new Point(x, y)).amountOfOnes(table) > (x - point.getX() + 1) / 2 &&
-                    !Range.verticalLineIntersectsRanges(point.getX(), x, y + 1, ranges)) {
+                    new RectanglePoint(point, new Point(x, y + 1)).amountOfOnes(table) - new RectanglePoint(point, new Point(x, y)).amountOfOnes(table) > (x - point.getX() + 1) / 2 &&
+                    !RectanglePoint.verticalLineIntersectsRanges(point.getX(), x, y + 1, ranges)) {
                 y++;
                 incrementY = true;
             }
         } while (incrementX || incrementY);
         int newI = point.getX();
         int newJ = point.getY();
-        if (new Range(point, new Point(point.getX(), y)).amountOfOnes(table) < (y - point.getY() + 1) / 2 && point.getX() + 1 < table.length)
+        if (new RectanglePoint(point, new Point(point.getX(), y)).amountOfOnes(table) < (y - point.getY() + 1) / 2 && point.getX() + 1 < table.length)
             newI++;
-        if (new Range(point, new Point(x, point.getY())).amountOfOnes(table) < (x - point.getX() + 1) / 2 && point.getY() + 1 < table[0].length)
+        if (new RectanglePoint(point, new Point(x, point.getY())).amountOfOnes(table) < (x - point.getX() + 1) / 2 && point.getY() + 1 < table[0].length)
             newJ++;
-        return new Range(new Point(newI, newJ), new Point(x,y));
+        return new RectanglePoint(new Point(newI, newJ), new Point(x, y));
     }
 
     /**
      * Возвращает список прямоугольников, созданных на основании таблицы {@code table}.
      */
-    public static List<Range> findRanges(int[][] table) {
-        List<Range> ranges = new ArrayList<>();
-        Range range;
+    public static List<RectanglePoint> findRanges(int[][] table) {
+        List<RectanglePoint> ranges = new ArrayList<>();
+        RectanglePoint range;
         for (int i = 0; i < table.length; i++)
             for (int j = 0; j < table[0].length; j++)
                 if (table[i][j] == 1 && !(new Point(i, j).isInRanges(ranges))) {
