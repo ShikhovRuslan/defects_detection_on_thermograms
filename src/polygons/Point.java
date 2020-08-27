@@ -1,6 +1,7 @@
 package polygons;
 
 import main.AbstractPoint;
+import main.Rectangle;
 
 import java.util.List;
 
@@ -20,7 +21,7 @@ public class Point extends AbstractPoint {
      * @throws IllegalArgumentException если текущая точка не может быть спроектирована на внутренность линии или линия
      *                                  не является ни горизонтальной, ни вертикальной
      */
-    int distance(Line line) {
+    public int distance(Line line) {
         if (projectableTo(line)) {
             if (line.isHorizontal())
                 return Math.abs(i - line.getA().getI());
@@ -36,7 +37,7 @@ public class Point extends AbstractPoint {
      *
      * @throws IllegalArgumentException если линия не является ни горизонтальной, ни вертикальной
      */
-    boolean projectableTo(Line line) {
+    public boolean projectableTo(Line line) {
         if (line.isHorizontal())
             return j > Math.min(line.getA().getJ(), line.getB().getJ()) && j < Math.max(line.getA().getJ(), line.getB().getJ());
         if (line.isVertical())
@@ -50,7 +51,7 @@ public class Point extends AbstractPoint {
      * @throws IllegalArgumentException если текущую точку нельзя спроектировать на линию или линия не является ни
      *                                  горизонтальной, ни вертикальной
      */
-    Point project(Line line) {
+    public Point project(Line line) {
         if (line.isHorizontal() && (projectableTo(line) || j == line.getA().j || j == line.getB().j))
             return new Point(line.getA().getI(), j);
         if (line.isVertical() && (projectableTo(line) || i == line.getA().i || i == line.getB().i))
@@ -62,9 +63,9 @@ public class Point extends AbstractPoint {
     /**
      * Определяет, принадлежит ли текущая точка какому-нибудь прямоугольнику из списка {@code ranges}.
      */
-    public boolean isInRanges(List<RectanglePoint> ranges) {
-        for (RectanglePoint range : ranges)
-            if (range.containsPoint(this))
+    public boolean isInRanges(List<Rectangle<Point>> ranges) {
+        for (Rectangle<Point> range : ranges)
+            if (range.contains(this))
                 return true;
         return false;
     }

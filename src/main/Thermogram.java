@@ -104,7 +104,7 @@ public class Thermogram {
         return pixels;
     }
 
-    PolygonPixel getOverlap(Thermogram previousThermogram) {
+    Polygon<Pixel> getOverlap(Thermogram previousThermogram) {
         List<Pixel> vertices = new ArrayList<>();
         vertices.addAll(cornersFromOther(this, previousThermogram));
         vertices.addAll(cornersFromOther(previousThermogram, this));
@@ -116,6 +116,6 @@ public class Thermogram {
                 if (intersection.getI() != -1)
                     vertices.add(intersection);
             }
-        return new PolygonPixel(order(vertices));
+        return new Polygon<>(order(vertices));
     }
 }

@@ -1,7 +1,11 @@
 package polygons;
 
+import main.Helper;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Line {
@@ -13,19 +17,19 @@ public class Line {
         this.b = b;
     }
 
-    Point getA() {
+    public Point getA() {
         return a;
     }
 
-    Point getB() {
+    public Point getB() {
         return b;
     }
 
-    boolean isHorizontal() {
+    public boolean isHorizontal() {
         return a.getI() == b.getI();
     }
 
-    boolean isVertical() {
+    public boolean isVertical() {
         return a.getJ() == b.getJ();
     }
 
@@ -34,7 +38,7 @@ public class Line {
      *
      * @throws IllegalArgumentException если точка {@code end} не является концом текущей линии.
      */
-    Point getOtherEnd(Point end) {
+    public Point getOtherEnd(Point end) {
         if (a == end) return b;
         if (b == end) return a;
         throw new IllegalArgumentException("Аргумент не является концом текущей линии.");
@@ -45,7 +49,7 @@ public class Line {
      *
      * @throws IllegalArgumentException если текущая линия горизонтальна
      */
-    Point upperEnd() {
+    public Point upperEnd() {
         if (isHorizontal())
             throw new IllegalArgumentException("Текущая линия горизонтальна.");
         return a.getI() < b.getI() ? a : b;
@@ -56,7 +60,7 @@ public class Line {
      *
      * @throws IllegalArgumentException если текущая линия горизонтальна
      */
-    Point lowerEnd() {
+    public Point lowerEnd() {
         if (isHorizontal())
             throw new IllegalArgumentException("Текущая линия горизонтальна.");
         return a.getI() > b.getI() ? a : b;
@@ -67,7 +71,7 @@ public class Line {
      *
      * @throws IllegalArgumentException если текущая линия вертикальна
      */
-    Point rightEnd() {
+    public Point rightEnd() {
         if (isVertical())
             throw new IllegalArgumentException("Текущая линия вертикальна.");
         return a.getJ() > b.getJ() ? a : b;
@@ -78,7 +82,7 @@ public class Line {
      *
      * @throws IllegalArgumentException если текущая линия вертикальна
      */
-    Point leftEnd() {
+    public Point leftEnd() {
         if (isVertical())
             throw new IllegalArgumentException("Текущая линия вертикальна.");
         return a.getJ() < b.getJ() ? a : b;
@@ -89,7 +93,7 @@ public class Line {
      *
      * @throws IllegalArgumentException если текущая линия ни горизонтальна, ни вертикальна
      */
-    boolean contains(Point point) {
+    public boolean contains(Point point) {
         if (isHorizontal())
             return point.getI() == a.getI() && point.projectableTo(this);
         if (isVertical())
@@ -102,7 +106,7 @@ public class Line {
      *
      * @throws IllegalArgumentException если текущая линия ни горизонтальна, ни вертикальна
      */
-    void draw(BufferedImage image, Color color) {
+    public void draw(BufferedImage image, Color color) {
         if (isHorizontal()) {
             for (int i = Math.min(a.getJ(), b.getJ()); i <= Math.max(a.getJ(), b.getJ()); i++)
                 image.setRGB(i, a.getI(), color.getRGB());
@@ -119,8 +123,32 @@ public class Line {
     /**
      * Определяет, является ли текущая линия точкой.
      */
-    boolean isPointNotLine() {
+    public boolean isPointNotLine() {
         return a.equals(b);
+    }
+
+    /**
+     * Возвращает упорядоченный массив линий из массива {@code lines}.
+     */
+    public static Line[] order(Line[] lines) throws NullPointerException {
+        Line[] newLines = new Line[lines.length];
+        List<Integer> processed = new ArrayList<>();
+        newLines[0] = lines[0];
+        for (int i = 1; i < lines.length; i++)
+            for (int j = 1; j < lines.length; j++)
+                if (!Helper.isIn(processed, j)) {
+                    if (newLines[i - 1].getB().equals(lines[j].getA())) {
+                        newLines[i] = lines[j];
+                        processed.add(j);
+                        break;
+                    }
+                    if (newLines[i - 1].getB().equals(lines[j].getB())) {
+                        newLines[i] = new Line(lines[j].getB(), lines[j].getA());
+                        processed.add(j);
+                        break;
+                    }
+                }
+        return newLines;
     }
 
     @Override

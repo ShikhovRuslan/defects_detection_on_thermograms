@@ -1,14 +1,11 @@
 package main;
 
-import com.grum.geocalc.Coordinate;
-import com.grum.geocalc.Point;
-import polygons.PolygonPoint;
-import polygons.RectanglePoint;
-
 import java.awt.*;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Scanner;
+
+import polygons.Point;
 
 /*
 
@@ -37,31 +34,31 @@ public class Main {
         String newPictureName = pictureName.substring(0, pictureName.lastIndexOf(ch) + 1) + NEW_PICTURENAME;
         System.out.println("\nФайл с выделенными дефектами: " + newPictureName + "\n");
 
-        List<List<String>> rawTable = RectanglePoint.extractRawTable(fileName);
-        List<List<String>> table = RectanglePoint.extractTable(rawTable);
-        int[][] tableBin = RectanglePoint.findIf(table, num -> num > RectanglePoint.T_MIN);
-        List<RectanglePoint> ranges = RectanglePoint.findRanges(tableBin);
-        ranges.removeIf(range -> range.squarePixels() < RectanglePoint.MIN_SQUARE_PIXELS);
+        List<List<String>> rawTable = Helper.extractRawTable(fileName);
+        List<List<String>> table = Helper.extractTable(rawTable);
+        int[][] tableBin = Helper.findIf(table, num -> num > Helper.T_MIN);
+        List<Rectangle<Point>> ranges = Rectangle.findRanges(tableBin);
+        ranges.removeIf(range -> range.squarePixels() < Helper.MIN_SQUARE_PIXELS);
 
 
         double yaw837 = 109.6 - 90;
         double yaw841 = 110.4 - 90;
         double height837 = 152.2;
         double height841 = 152.3;
-        com.grum.geocalc.Point groundNadir837 = com.grum.geocalc.Point.at(Coordinate.fromDMS(53, 46, 42.72), Coordinate.fromDMS(87, 15, 35.18));
-        com.grum.geocalc.Point groundNadir841 = Point.at(Coordinate.fromDMS(53, 46, 42.41), Coordinate.fromDMS(87, 15, 33.89));
+        com.grum.geocalc.Point groundNadir837 = com.grum.geocalc.Point.at(com.grum.geocalc.Coordinate.fromDMS(53, 46, 42.72), com.grum.geocalc.Coordinate.fromDMS(87, 15, 35.18));
+        com.grum.geocalc.Point groundNadir841 = com.grum.geocalc.Point.at(com.grum.geocalc.Coordinate.fromDMS(53, 46, 42.41), com.grum.geocalc.Coordinate.fromDMS(87, 15, 33.89));
 
         Thermogram thermogram837 = new Thermogram(yaw837, height837, groundNadir837);
         Thermogram thermogram841 = new Thermogram(yaw841, height841, groundNadir841);
-        PolygonPixel overlap = thermogram841.getOverlap(thermogram837);
+        Polygon<Pixel> overlap = thermogram841.getOverlap(thermogram837);
         System.out.println(overlap);
 
 
-        List<PolygonPoint> polygons = PolygonPoint.convertRanges(ranges, overlap);
-        List<PolygonPoint> enlargedPolygons = PolygonPoint.enlargeIteratively(polygons, 5, overlap);
+        List<Polygon<Point>> polygons = Polygon.convertRanges(ranges, overlap);
+        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap);
 
-        PolygonPoint.drawPolygons(enlargedPolygons, Color.BLACK, pictureName, newPictureName);
-        PolygonPoint.showSquaresPixels(enlargedPolygons);
+        Polygon.drawPolygons(enlargedPolygons, Color.BLACK, pictureName, newPictureName);
+        Polygon.showSquaresPixels(enlargedPolygons);
     }
 
     public static void main(String[] args) {

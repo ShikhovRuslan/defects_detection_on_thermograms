@@ -91,30 +91,4 @@ public class Pixel extends AbstractPoint {
         }
         return no;
     }
-
-    /**
-     * Определяет принадлежность текущего пикселя треугольнику {@code triangle}.
-     */
-    public boolean isInTriangle(PolygonPixel triangle) {
-        int[] sgn = new int[3];
-        for (int k = 0; k < 3; k++) {
-            if (isInLine(new Pixel[]{triangle.getVertices().get(k), triangle.getVertices().get(k + 1 < 3 ? k + 1 : 0)}))
-                return true;
-            sgn[k] = (triangle.getVertices().get(k).getI() - i) * (triangle.getVertices().get(k + 1 < 3 ? k + 1 : 0).getJ() - triangle.getVertices().get(k).getJ()) -
-                    (triangle.getVertices().get(k).getJ() - j) * (triangle.getVertices().get(k + 1 < 3 ? k + 1 : 0).getI() - triangle.getVertices().get(k).getI());
-        }
-        return (sgn[0] > 0 && sgn[1] > 0 && sgn[2] > 0) || (sgn[0] < 0 && sgn[1] < 0 && sgn[2] < 0);
-    }
-
-    /**
-     * Определяет принадлежность текущего пикселя отрезку {@code line}.
-     */
-    public boolean isInLine(Pixel[] line) {
-        if (line[0].getI() == line[1].getI())
-            return i == line[0].getI() && min(line[0].getJ(), line[1].getJ()) <= j && j <= max(line[0].getJ(), line[1].getJ());
-        // Прямая, содержащая отрезок (в случае невертикального отрезка): y = a*x + b.
-        double a = (line[0].getJ() - line[1].getJ()) / (line[0].getI() - line[1].getI() + 0.);
-        double b = line[0].getJ() - a * line[0].getI();
-        return j == a * i + b && min(line[0].getI(), line[1].getI()) <= i && i <= max(line[0].getI(), line[1].getI());
-    }
 }

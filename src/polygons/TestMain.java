@@ -1,5 +1,7 @@
 package polygons;
 
+import main.Polygon;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,8 +28,8 @@ class TestMain {
         pointsB1.add(new Point(10, 11));
         pointsB1.add(new Point(10, 8));
 
-        PolygonPoint gonA1 = new PolygonPoint(pointsA1);
-        PolygonPoint gonB1 = new PolygonPoint(pointsB1);
+        Polygon<Point> gonA1 = new Polygon<>(pointsA1);
+        Polygon<Point> gonB1 = new Polygon<>(pointsB1);
 
         //Line[][] res = Polygon.getPolygonalChains(gonA1, gonB1, 1, ver0, new Line(ver0, new Point(5, 8)), new Point(5, 8), 7);
 
@@ -47,8 +49,8 @@ class TestMain {
         pointsB2.add(new Point(7, 5));
         pointsB2.add(new Point(7, 2));
 
-        PolygonPoint gonA2 = new PolygonPoint(pointsA2);
-        PolygonPoint gonB2 = new PolygonPoint(pointsB2);
+        Polygon<Point> gonA2 = new Polygon<>(pointsA2);
+        Polygon<Point> gonB2 = new Polygon<>(pointsB2);
 
         //Polygon unitedGon2 = Polygon.unitePolygons(gonA2, gonB2);
         //Polygon unitedGon22 = gonB2.uniteWith(gonA2, 3);
