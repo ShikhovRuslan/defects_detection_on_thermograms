@@ -13,7 +13,7 @@ import java.util.List;
  *
  * @param <T> тип вершин
  */
-public class Rectangle<T extends AbstractPoint> {
+public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     /**
      * Левая вершина.
      */
@@ -57,9 +57,7 @@ public class Rectangle<T extends AbstractPoint> {
         return rectangle.square() - getIntersection(rectangle, overlap).squarePolygon();
     }
 
-    /**
-     * Определяет принадлежность точки {@code point} текущему прямоугольнику.
-     */
+    @Override
     public boolean contains(T point) {
         return (left.getI() <= point.getI() && point.getI() <= right.getI()) &&
                 (left.getJ() <= point.getJ() && point.getJ() <= right.getJ());
@@ -84,17 +82,6 @@ public class Rectangle<T extends AbstractPoint> {
                     vertices.add(intersection);
             }
         return new Polygon<>(AbstractPoint.order(vertices));
-    }
-
-    /**
-     * Возвращает список вершин многоугольника {@code polygon}, которые принадлежат текущему прямоугольнику.
-     */
-    public List<T> verticesFrom(Polygon<T> polygon) {
-        List<T> res = new ArrayList<>();
-        for (T vertex : polygon.getVertices())
-            if (contains(vertex))
-                res.add(vertex);
-        return res;
     }
 
     /**

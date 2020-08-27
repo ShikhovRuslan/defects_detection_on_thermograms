@@ -19,7 +19,7 @@ import java.util.List;
  *
  * @param <T> тип вершин
  */
-public class Polygon<T extends AbstractPoint> {
+public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Список вершин.
      */
@@ -70,20 +70,7 @@ public class Polygon<T extends AbstractPoint> {
         return square;
     }
 
-    /**
-     * Возвращает список вершин многоугольника {@code polygon}, которые принадлежат текущему многоугольнику.
-     */
-    public List<T> verticesFrom(Polygon<T> polygon) {
-        List<T> res = new ArrayList<>();
-        for (T vertex : polygon.getVertices())
-            if (contains(vertex))
-                res.add(vertex);
-        return res;
-    }
-
-    /**
-     * Определяет принадлежность точки {@code point} текущему многоугольнику.
-     */
+    @Override
     public boolean contains(T point) {
         for (Polygon<T> triangle : toTriangles())
             if (point.isInTriangle(triangle))
