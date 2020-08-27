@@ -1,7 +1,7 @@
 package main;
 
 import javenue.csv.Csv;
-import polygons.Line;
+import polygons.Segment;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -135,8 +135,8 @@ public class Helper {
      * Возвращает массив, состоящий из массива {@code array} с удалённым элементом с индексом {@code index} и со
      * сдвинутыми влево элементами.
      */
-    public static Line[] deleteWithShift(Line[] array, int index) {
-        Line[] result = new Line[array.length - 1];
+    public static Segment[] deleteWithShift(Segment[] array, int index) {
+        Segment[] result = new Segment[array.length - 1];
         System.arraycopy(array, 0, result, 0, index);
         System.arraycopy(array, index + 1, result, index, array.length - index - 1);
         return result;

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import polygons.Point;
+import polygons.Segment;
 
 /*
 
@@ -50,7 +51,7 @@ public class Main {
 
         Thermogram thermogram837 = new Thermogram(yaw837, height837, groundNadir837);
         Thermogram thermogram841 = new Thermogram(yaw841, height841, groundNadir841);
-        Polygon<Pixel> overlap = thermogram841.getOverlap(thermogram837);
+        Polygon<Pixel> overlap = thermogram841.getOverlapWith(thermogram837);
         System.out.println(overlap);
 
 
@@ -67,5 +68,6 @@ public class Main {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+        //System.out.println(new Segment(new Point(0,1),new Point(-1,9)));
     }
 }

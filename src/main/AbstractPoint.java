@@ -1,11 +1,16 @@
 package main;
 
+import java.util.List;
+import java.util.OptionalDouble;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static java.lang.Math.signum;
+import static java.lang.Math.atan2;
+
 
 /**
- * Содержит точку двумерной системы координат.
+ * Содержит точку правой дискретной двумерной системы координат.
  */
 public abstract class AbstractPoint {
     /**
@@ -17,12 +22,12 @@ public abstract class AbstractPoint {
      */
     protected final int j;
 
-    public AbstractPoint(int i, int j) {
+    protected AbstractPoint(int i, int j) {
         this.i = i;
         this.j = j;
     }
 
-    public AbstractPoint(double iD, double jD) {
+    protected AbstractPoint(double iD, double jD) {
         this((int) Math.round(iD), (int) Math.round(jD));
     }
 
@@ -35,21 +40,23 @@ public abstract class AbstractPoint {
     }
 
     /**
-     * Определяет принадлежность текущего пикселя треугольнику {@code triangle}.
+     * Определяет принадлежность текущей точки треугольнику {@code t}.
      */
-    public <T extends AbstractPoint> boolean isInTriangle(Polygon<T> triangle) {
+    public <T extends AbstractPoint> boolean isInTriangle(Polygon<T> t) {
         int[] sgn = new int[3];
         for (int k = 0; k < 3; k++) {
-            if (isInLine(triangle.getVertices().get(k), triangle.getVertices().get(k + 1 < 3 ? k + 1 : 0)))
+            if (isInLine(t.getVertices().get(k), t.getVertices().get(k + 1 < 3 ? k + 1 : 0)))
                 return true;
-            sgn[k] = (triangle.getVertices().get(k).getI() - i) * (triangle.getVertices().get(k + 1 < 3 ? k + 1 : 0).getJ() - triangle.getVertices().get(k).getJ()) -
-                    (triangle.getVertices().get(k).getJ() - j) * (triangle.getVertices().get(k + 1 < 3 ? k + 1 : 0).getI() - triangle.getVertices().get(k).getI());
+            sgn[k] = (t.getVertices().get(k).getI() - i) *
+                    (t.getVertices().get(k + 1 < 3 ? k + 1 : 0).getJ() - t.getVertices().get(k).getJ()) -
+                    (t.getVertices().get(k).getJ() - j) *
+                            (t.getVertices().get(k + 1 < 3 ? k + 1 : 0).getI() - t.getVertices().get(k).getI());
         }
         return (sgn[0] > 0 && sgn[1] > 0 && sgn[2] > 0) || (sgn[0] < 0 && sgn[1] < 0 && sgn[2] < 0);
     }
 
     /**
-     * Определяет принадлежность текущей точки отрезку {@code line}.
+     * Определяет принадлежность текущей точки отрезку с концами {@code p1} и {@code p2}.
      */
     public <T extends AbstractPoint> boolean isInLine(T p1, T p2) {
         if (p1.getI() == p2.getI())
@@ -60,8 +67,38 @@ public abstract class AbstractPoint {
         return j == a * i + b && min(p1.getI(), p2.getI()) <= i && i <= max(p1.getI(), p2.getI());
     }
 
+    /**
+     * Упорядочивает точки из списка {@code points} против часовой стрелки.
+     */
+    public static <T extends AbstractPoint> List<T> order(List<T> points) {
+        OptionalDouble newI0Optional = points
+                .stream()
+                .mapToDouble(AbstractPoint::getI)
+                .average();
+        OptionalDouble newJ0Optional = points
+                .stream()
+                .mapToDouble(AbstractPoint::getJ)
+                .average();
+        double newI0 = newI0Optional.orElse(0);
+        double newJ0 = newJ0Optional.orElse(0);
+        points.sort((p1, p2) -> (int) signum(atan2(p1.getJ() - newJ0, p1.getI() - newI0) -
+                atan2(p2.getJ() - newJ0, p2.getI() - newI0)));
+        return points;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null || obj.getClass() != getClass())
+            return false;
+        return i == ((AbstractPoint) obj).getI() && j == ((AbstractPoint) obj).getJ();
+    }
+
     @Override
     public String toString() {
         return getClass().getName() + "(" + i + ", " + j + ")";
+    }
+
+    public String toShortString() {
+        return "(" + i + ", " + j + ")";
     }
 }

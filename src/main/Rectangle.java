@@ -61,7 +61,7 @@ public class Rectangle<T extends AbstractPoint> {
                 if (intersection.getI() != -1)
                     vertices.add(intersection);
             }
-        return new Polygon<Pixel>(Thermogram.order(vertices));
+        return new Polygon<>(AbstractPoint.order(vertices));
     }
 
     /**
@@ -110,7 +110,7 @@ public class Rectangle<T extends AbstractPoint> {
      */
     private static boolean verticalLineIntersectsRanges(int i0, int i1, int j, List<Rectangle<Point>> ranges) {
         for (int k = Math.min(i0, i1); k <= Math.max(i0, i1); k++)
-            if (new Point(k, j).isInRanges(ranges))
+            if (new Point(k, j).isInRectangles(ranges))
                 return true;
         return false;
     }
@@ -166,7 +166,7 @@ public class Rectangle<T extends AbstractPoint> {
         Rectangle<Point> range;
         for (int i = 0; i < table.length; i++)
             for (int j = 0; j < table[0].length; j++)
-                if (table[i][j] == 1 && !(new Point(i, j).isInRanges(ranges))) {
+                if (table[i][j] == 1 && !(new Point(i, j).isInRectangles(ranges))) {
                     range = makeRange(table, new Point(i, j), ranges);
                     if (!range.isLine())
                         ranges.add(range);

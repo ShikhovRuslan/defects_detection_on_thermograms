@@ -5,8 +5,7 @@ import static java.lang.Math.min;
 
 
 /**
- * Используется для хранения пиксельных координат точек (т. е. координат точек в пиксельной системе координат c'x'y'z',
- * которая связана с термограммой).
+ * Используется для хранения координат точек в системе координат c'x'y'.
  */
 public class Pixel extends AbstractPoint {
     public Pixel(int i, int j) {
@@ -40,7 +39,8 @@ public class Pixel extends AbstractPoint {
 
         // У отрезков нет общей абсциссы или ординаты.
         if ((p2.getI() < p3.getI() || p4.getI() < p1.getI()) ||
-                (max(p1.getJ(), p2.getJ()) < min(p3.getJ(), p4.getJ()) || max(p3.getJ(), p4.getJ()) < min(p1.getJ(), p2.getJ())))
+                (max(p1.getJ(), p2.getJ()) < min(p3.getJ(), p4.getJ()) ||
+                        max(p3.getJ(), p4.getJ()) < min(p1.getJ(), p2.getJ())))
             return no;
 
         // Отрезки либо оба вертикальные, либо оба горизонтальные.

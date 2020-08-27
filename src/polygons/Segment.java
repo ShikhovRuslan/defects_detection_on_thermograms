@@ -1,0 +1,173 @@
+package polygons;
+
+import main.Helper;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
+
+
+/**
+ * Используется для хранения концов отрезка в системе координат Oxy.
+ */
+public class Segment {
+    /**
+     * Конец отрезка.
+     */
+    private final Point a;
+    /**
+     * Конец отрезка.
+     */
+    private final Point b;
+
+    public Segment(Point a, Point b) {
+        this.a = a;
+        this.b = b;
+    }
+
+    public Point getA() {
+        return a;
+    }
+
+    public Point getB() {
+        return b;
+    }
+
+    /**
+     * Определяет, является ли текущий отрезок горизонтальным.
+     */
+    public boolean isHorizontal() {
+        return a.getI() == b.getI();
+    }
+
+    /**
+     * Определяет, является ли текущий отрезок вертикальным.
+     */
+    public boolean isVertical() {
+        return a.getJ() == b.getJ();
+    }
+
+    /**
+     * Возвращает конец текущего отрезка, отличный от точки {@code end}.
+     *
+     * @throws IllegalArgumentException если точка {@code end} не является концом текущего отрезка.
+     */
+    public Point getOtherEnd(Point end) {
+        if (a == end) return b;
+        if (b == end) return a;
+        throw new IllegalArgumentException("Аргумент не является концом текущего отрезка.");
+    }
+
+    /**
+     * Возвращает верхний конец текущего отрезка.
+     *
+     * @throws IllegalArgumentException если текущий отрезок горизонтален
+     */
+    public Point upperEnd() {
+        if (isHorizontal())
+            throw new IllegalArgumentException("Текущий отрезок горизонтален.");
+        return a.getI() < b.getI() ? a : b;
+    }
+
+    /**
+     * Возвращает нижний конец текущего отрезка.
+     *
+     * @throws IllegalArgumentException если текущий отрезок горизонтален
+     */
+    public Point lowerEnd() {
+        if (isHorizontal())
+            throw new IllegalArgumentException("Текущий отрезок горизонтален.");
+        return a.getI() > b.getI() ? a : b;
+    }
+
+    /**
+     * Возвращает правый конец текущего отрезка.
+     *
+     * @throws IllegalArgumentException если текущий отрезок вертикален
+     */
+    public Point rightEnd() {
+        if (isVertical())
+            throw new IllegalArgumentException("Текущий отрезок вертикален.");
+        return a.getJ() > b.getJ() ? a : b;
+    }
+
+    /**
+     * Возвращает левый конец текущего отрезка.
+     *
+     * @throws IllegalArgumentException если текущий отрезок вертикален
+     */
+    public Point leftEnd() {
+        if (isVertical())
+            throw new IllegalArgumentException("Текущий отрезок вертикален.");
+        return a.getJ() < b.getJ() ? a : b;
+    }
+
+    /**
+     * Определяет принадлежность точки {@code point} внутренности текущего отрезка.
+     *
+     * @throws IllegalArgumentException если текущий отрезок ни горизонтален, ни вертикален
+     */
+    public boolean contains(Point point) {
+        if (isHorizontal())
+            return point.getI() == a.getI() && point.projectableTo(this);
+        if (isVertical())
+            return point.getJ() == a.getJ() && point.projectableTo(this);
+        throw new IllegalArgumentException("Текущий отрезок ни горизонтален, ни вертикален.");
+    }
+
+    /**
+     * Рисует текущий отрезок.
+     *
+     * @throws IllegalArgumentException если текущий отрезок ни горизонтален, ни вертикален
+     */
+    public void draw(BufferedImage image, Color color) {
+        if (isHorizontal()) {
+            for (int i = Math.min(a.getJ(), b.getJ()); i <= Math.max(a.getJ(), b.getJ()); i++)
+                image.setRGB(i, a.getI(), color.getRGB());
+            return;
+        }
+        if (isVertical()) {
+            for (int i = Math.min(a.getI(), b.getI()); i <= Math.max(a.getI(), b.getI()); i++)
+                image.setRGB(a.getJ(), i, color.getRGB());
+            return;
+        }
+        throw new IllegalArgumentException("Текущий отрезок ни горизонтален, ни вертикален.");
+    }
+
+    /**
+     * Определяет, является ли текущий отрезок точкой.
+     */
+    public boolean isPointNotLine() {
+        return a.equals(b);
+    }
+
+    /**
+     * Возвращает упорядоченный массив отрезков из массива {@code segments}.
+     */
+    public static Segment[] order(Segment[] segments) throws NullPointerException {
+        Segment[] newSegments = new Segment[segments.length];
+        List<Integer> processed = new ArrayList<>();
+        newSegments[0] = segments[0];
+        for (int i = 1; i < segments.length; i++)
+            for (int j = 1; j < segments.length; j++)
+                if (!Helper.isIn(processed, j)) {
+                    if (newSegments[i - 1].getB().equals(segments[j].getA())) {
+                        newSegments[i] = segments[j];
+                        processed.add(j);
+                        break;
+                    }
+                    if (newSegments[i - 1].getB().equals(segments[j].getB())) {
+                        newSegments[i] = new Segment(segments[j].getB(), segments[j].getA());
+                        processed.add(j);
+                        break;
+                    }
+                }
+        return newSegments;
+    }
+
+    @Override
+    public String toString() {
+        return a.getClass().getName() + "[" + a.toShortString() + ", " + b.toShortString() + "]";
+    }
+}

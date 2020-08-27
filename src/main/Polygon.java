@@ -1,6 +1,6 @@
 package main;
 
-import polygons.Line;
+import polygons.Segment;
 import polygons.Point;
 
 import javax.imageio.ImageIO;
@@ -100,10 +100,10 @@ public class Polygon<T extends AbstractPoint> {
     /**
      * Возвращает список сторон многоугольника {@code polygon}, соединяя последовательно его вершины.
      */
-    private static Line[] getSides(Polygon<Point> polygon) {
-        Line[] sides = new Line[polygon.vertices.size()];
+    private static Segment[] getSides(Polygon<Point> polygon) {
+        Segment[] sides = new Segment[polygon.vertices.size()];
         for (int i = 0; i < polygon.vertices.size(); i++)
-            sides[i] = new Line(polygon.vertices.get(i), polygon.vertices.get(i < polygon.vertices.size() - 1 ? i + 1 : 0));
+            sides[i] = new Segment(polygon.vertices.get(i), polygon.vertices.get(i < polygon.vertices.size() - 1 ? i + 1 : 0));
         return sides;
     }
 
@@ -115,9 +115,9 @@ public class Polygon<T extends AbstractPoint> {
      * не превышает величины {@code distance}.
      */
     private static boolean isCloseTo(Polygon<Point> current, Polygon<Point> polygon, int distance) {
-        Line[] sides = getSides(polygon);
+        Segment[] sides = getSides(polygon);
         for (Point vertex : current.vertices)
-            for (Line side : sides)
+            for (Segment side : sides)
                 // Специально используется сокращённый оператор AND.
                 if (vertex.projectableTo(side) && vertex.distance(side) <= distance)
                     return true;
@@ -129,9 +129,9 @@ public class Polygon<T extends AbstractPoint> {
      *
      * @throws IllegalArgumentException если эта точка не является вершиной многоугольника
      */
-    private static Line incomingSide(Polygon<Point> current, Point vertex) {
-        Line[] sides = getSides(current);
-        for (Line side : sides)
+    private static Segment incomingSide(Polygon<Point> current, Point vertex) {
+        Segment[] sides = getSides(current);
+        for (Segment side : sides)
             if (side.getB().equals(vertex))
                 return side;
         throw new IllegalArgumentException("Точка не является вершиной многоугольника.");
@@ -142,9 +142,9 @@ public class Polygon<T extends AbstractPoint> {
      *
      * @throws IllegalArgumentException если эта точка не является вершиной многоугольника
      */
-    private static Line outgoingSide(Polygon<Point> current, Point vertex) {
-        Line[] sides = getSides(current);
-        for (Line side : sides)
+    private static Segment outgoingSide(Polygon<Point> current, Point vertex) {
+        Segment[] sides = getSides(current);
+        for (Segment side : sides)
             if (side.getA().equals(vertex))
                 return side;
         throw new IllegalArgumentException("Точка не является вершиной многоугольника.");
@@ -166,13 +166,13 @@ public class Polygon<T extends AbstractPoint> {
      * превышает величины {@code distance}.
      * Надо вызывать этот метод, только если {@link #isCloseTo(Polygon, Polygon, int)} выдаёт {@code true}.
      */
-    private static Line[] perpendicular(Polygon<Point> current, Polygon<Point> polygon, int distance) {
+    private static Segment[] perpendicular(Polygon<Point> current, Polygon<Point> polygon, int distance) {
         List<Integer> tmpDistances = new ArrayList<>();
         List<Point> tmpVertices = new ArrayList<>();
-        List<Line> tmpSides = new ArrayList<>();
-        Line[] sides = getSides(polygon);
+        List<Segment> tmpSides = new ArrayList<>();
+        Segment[] sides = getSides(polygon);
         for (Point vertex : current.vertices)
-            for (Line side : sides)
+            for (Segment side : sides)
                 if (vertex.projectableTo(side) && vertex.distance(side) <= distance) {
                     tmpDistances.add(vertex.distance(side));
                     tmpVertices.add(vertex);
@@ -180,8 +180,8 @@ public class Polygon<T extends AbstractPoint> {
                 }
         int index = Helper.findIndexOfMin(tmpDistances);
         Point vertex0 = tmpVertices.get(index);
-        Line side1 = tmpSides.get(index);
-        return new Line[]{new Line(vertex0, vertex0.project(side1)), side1};
+        Segment side1 = tmpSides.get(index);
+        return new Segment[]{new Segment(vertex0, vertex0.project(side1)), side1};
     }
 
     /**
@@ -191,7 +191,7 @@ public class Polygon<T extends AbstractPoint> {
      * это значение может быть выдано, если эта точка является вершиной развёрнутого угла.
      */
     private static int indexOfSideToShorten(Polygon<Point> current, Point vertex, boolean isPerpendicularHorizontal) {
-        Line[] sides = getSides(current);
+        Segment[] sides = getSides(current);
         for (int i = 0; i < sides.length; i++)
             if ((vertex.equals(sides[i].getA()) || vertex.equals(sides[i].getB())) &&
                     (isPerpendicularHorizontal && sides[i].isVertical() ||
@@ -207,7 +207,7 @@ public class Polygon<T extends AbstractPoint> {
      *                                  многоугольника
      */
     private static int indexOfSideWithPoint(Polygon<Point> current, Point point) {
-        Line[] sides = getSides(current);
+        Segment[] sides = getSides(current);
         for (int i = 0; i < sides.length; i++)
             if (sides[i].contains(point))
                 return i;
@@ -219,8 +219,8 @@ public class Polygon<T extends AbstractPoint> {
      * Рисует многоугольник {@code current}.
      */
     private static void draw(Polygon<Point> current, BufferedImage image, Color color) {
-        Line[] sides = getSides(current);
-        for (Line side : sides)
+        Segment[] sides = getSides(current);
+        for (Segment side : sides)
             side.draw(image, color);
     }
 
@@ -293,10 +293,10 @@ public class Polygon<T extends AbstractPoint> {
     /**
      * Возвращает многоугольник, построенный на точках, являющихся концами линий из массива {@code lines}.
      */
-    private static Polygon<Point> createPolygon(Line[] lines, double squarePixels) throws NullPointerException {
-        Line[] sides = Line.order(lines);
+    private static Polygon<Point> createPolygon(Segment[] segments, double squarePixels) throws NullPointerException {
+        Segment[] sides = Segment.order(segments);
         List<Point> points = new ArrayList<>();
-        for (Line side : sides) {
+        for (Segment side : sides) {
             if (!points.contains(side.getA()))
                 points.add(side.getA());
             if (!points.contains(side.getB()))
@@ -322,63 +322,63 @@ public class Polygon<T extends AbstractPoint> {
      * @param side1Index    индекс стороны многоугольника {@code polygon1}, внутренность которой содержит точку
      *                      {@code end1}
      */
-    private static Line[][] getPolygonalChains(Polygon<Point> polygon0, Polygon<Point> polygon1, Point vertex0, Line perpendicular,
-                                               Point end1, int side0Index, int side1Index) {
-        Line[] sides0 = getSides(polygon0);
-        Line[] sides1 = getSides(polygon1);
-        Line side0ToShorten = sides0[side0Index];
-        Line side1ToShorten = sides1[side1Index];
-        Line newSide0 = null;
-        Line newSide1 = null;
-        Line newSide11;
+    private static Segment[][] getPolygonalChains(Polygon<Point> polygon0, Polygon<Point> polygon1, Point vertex0, Segment perpendicular,
+                                                  Point end1, int side0Index, int side1Index) {
+        Segment[] sides0 = getSides(polygon0);
+        Segment[] sides1 = getSides(polygon1);
+        Segment side0ToShorten = sides0[side0Index];
+        Segment side1ToShorten = sides1[side1Index];
+        Segment newSide0 = null;
+        Segment newSide1 = null;
+        Segment newSide11;
         Point end0 = side0ToShorten.getOtherEnd(vertex0);
         Point otherBorder0, otherBorder1;
         if (perpendicular.isHorizontal())
             if (end0.getI() < vertex0.getI()) {
                 if (end0.getI() < side1ToShorten.upperEnd().getI()) {
-                    newSide0 = new Line(end0, new Point(side1ToShorten.upperEnd().getI(), vertex0.getJ()));
+                    newSide0 = new Segment(end0, new Point(side1ToShorten.upperEnd().getI(), vertex0.getJ()));
                     otherBorder1 = side1ToShorten.upperEnd();
                     otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide1 = new Line(side1ToShorten.upperEnd(), new Point(end0.getI(), end1.getJ()));
+                    newSide1 = new Segment(side1ToShorten.upperEnd(), new Point(end0.getI(), end1.getJ()));
                     otherBorder0 = end0;
                     otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
-                newSide11 = new Line(end1, side1ToShorten.lowerEnd());
+                newSide11 = new Segment(end1, side1ToShorten.lowerEnd());
             } else {
                 if (end0.getI() > side1ToShorten.lowerEnd().getI()) {
-                    newSide0 = new Line(end0, new Point(side1ToShorten.lowerEnd().getI(), vertex0.getJ()));
+                    newSide0 = new Segment(end0, new Point(side1ToShorten.lowerEnd().getI(), vertex0.getJ()));
                     otherBorder1 = side1ToShorten.lowerEnd();
                     otherBorder0 = otherBorder1.project(side0ToShorten);
                 } else {
-                    newSide1 = new Line(side1ToShorten.lowerEnd(), new Point(end0.getI(), end1.getJ()));
+                    newSide1 = new Segment(side1ToShorten.lowerEnd(), new Point(end0.getI(), end1.getJ()));
                     otherBorder0 = end0;
                     otherBorder1 = otherBorder0.project(side1ToShorten);
                 }
-                newSide11 = new Line(end1, side1ToShorten.upperEnd());
+                newSide11 = new Segment(end1, side1ToShorten.upperEnd());
             }
         else if (end0.getJ() < vertex0.getJ()) {
             if (end0.getJ() < side1ToShorten.leftEnd().getJ()) {
-                newSide0 = new Line(end0, new Point(vertex0.getI(), side1ToShorten.leftEnd().getJ()));
+                newSide0 = new Segment(end0, new Point(vertex0.getI(), side1ToShorten.leftEnd().getJ()));
                 otherBorder1 = side1ToShorten.leftEnd();
                 otherBorder0 = otherBorder1.project(side0ToShorten);
             } else {
-                newSide1 = new Line(side1ToShorten.leftEnd(), new Point(end1.getI(), end0.getJ()));
+                newSide1 = new Segment(side1ToShorten.leftEnd(), new Point(end1.getI(), end0.getJ()));
                 otherBorder0 = end0;
                 otherBorder1 = otherBorder0.project(side1ToShorten);
             }
-            newSide11 = new Line(end1, side1ToShorten.rightEnd());
+            newSide11 = new Segment(end1, side1ToShorten.rightEnd());
         } else {
             if (end0.getJ() > side1ToShorten.rightEnd().getJ()) {
-                newSide0 = new Line(end0, new Point(vertex0.getI(), side1ToShorten.rightEnd().getJ()));
+                newSide0 = new Segment(end0, new Point(vertex0.getI(), side1ToShorten.rightEnd().getJ()));
                 otherBorder1 = side1ToShorten.rightEnd();
                 otherBorder0 = otherBorder1.project(side0ToShorten);
             } else {
-                newSide1 = new Line(side1ToShorten.rightEnd(), new Point(end1.getI(), end0.getJ()));
+                newSide1 = new Segment(side1ToShorten.rightEnd(), new Point(end1.getI(), end0.getJ()));
                 otherBorder0 = end0;
                 otherBorder1 = otherBorder0.project(side1ToShorten);
             }
-            newSide11 = new Line(end1, side1ToShorten.leftEnd());
+            newSide11 = new Segment(end1, side1ToShorten.leftEnd());
         }
 
         // newSide0 не является точкой
@@ -391,13 +391,13 @@ public class Polygon<T extends AbstractPoint> {
         sides1[side1Index] = newSide11;
 
         if (newSide1 != null && !newSide1.isPointNotLine()) {
-            Line[] tmp = new Line[sides1.length + 1];
+            Segment[] tmp = new Segment[sides1.length + 1];
             System.arraycopy(sides1, 0, tmp, 0, sides1.length);
             tmp[sides1.length] = newSide1;
             sides1 = tmp;
         }
 
-        return new Line[][]{sides0, sides1, new Line[]{new Line(otherBorder0, otherBorder1)}};
+        return new Segment[][]{sides0, sides1, new Segment[]{new Segment(otherBorder0, otherBorder1)}};
     }
 
     /**
@@ -420,20 +420,20 @@ public class Polygon<T extends AbstractPoint> {
      * @see #isCloseTo(Polygon, Polygon, int)
      */
     static Polygon<Point> uniteWith(Polygon<Point> current, Polygon<Point> polygon, int distance, Polygon<Pixel> overlap) throws NullPointerException {
-        Line[] lines = perpendicular(current, polygon, distance);
-        Line perpendicular = lines[0];
+        Segment[] segments = perpendicular(current, polygon, distance);
+        Segment perpendicular = segments[0];
         Point vertex0 = perpendicular.getA();
         Point end1 = perpendicular.getB();
         int side0Index = indexOfSideToShorten(current, vertex0, perpendicular.isHorizontal());
         int side1Index = indexOfSideWithPoint(polygon, end1);
-        Line[][] polygonalChains = getPolygonalChains(current, polygon, vertex0, perpendicular, end1, side0Index, side1Index);
-        Line otherBoarder = polygonalChains[2][0];
-        Line[] allLines = new Line[polygonalChains[0].length + polygonalChains[1].length + 2];
-        System.arraycopy(polygonalChains[0], 0, allLines, 0, polygonalChains[0].length);
-        System.arraycopy(polygonalChains[1], 0, allLines, polygonalChains[0].length, polygonalChains[1].length);
-        System.arraycopy(new Line[]{perpendicular, otherBoarder}, 0, allLines, polygonalChains[0].length + polygonalChains[1].length, 2);
+        Segment[][] polygonalChains = getPolygonalChains(current, polygon, vertex0, perpendicular, end1, side0Index, side1Index);
+        Segment otherBoarder = polygonalChains[2][0];
+        Segment[] allSegments = new Segment[polygonalChains[0].length + polygonalChains[1].length + 2];
+        System.arraycopy(polygonalChains[0], 0, allSegments, 0, polygonalChains[0].length);
+        System.arraycopy(polygonalChains[1], 0, allSegments, polygonalChains[0].length, polygonalChains[1].length);
+        System.arraycopy(new Segment[]{perpendicular, otherBoarder}, 0, allSegments, polygonalChains[0].length + polygonalChains[1].length, 2);
         double squarePixelsOfConnectingRectangle = squarePixels(vertex0, otherBoarder.getB(), overlap);
-        return createPolygon(allLines, current.squarePixels + polygon.squarePixels + squarePixelsOfConnectingRectangle);
+        return createPolygon(allSegments, current.squarePixels + polygon.squarePixels + squarePixelsOfConnectingRectangle);
     }
 
     /**
