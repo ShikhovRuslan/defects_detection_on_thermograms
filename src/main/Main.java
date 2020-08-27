@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Scanner;
 
 import polygons.Point;
-import polygons.Segment;
 
 /*
 
@@ -38,7 +37,7 @@ public class Main {
         List<List<String>> rawTable = Helper.extractRawTable(fileName);
         List<List<String>> table = Helper.extractTable(rawTable);
         int[][] tableBin = Helper.findIf(table, num -> num > Helper.T_MIN);
-        List<Rectangle<Point>> ranges = Rectangle.findRanges(tableBin);
+        List<Rectangle<Point>> ranges = Rectangle.findRectangles(tableBin);
         ranges.removeIf(range -> range.squarePixels() < Helper.MIN_SQUARE_PIXELS);
 
 
