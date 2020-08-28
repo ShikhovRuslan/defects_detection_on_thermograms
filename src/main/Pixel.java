@@ -1,5 +1,7 @@
 package main;
 
+import polygons.Point;
+
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
@@ -14,6 +16,11 @@ public class Pixel extends AbstractPoint {
 
     public Pixel(double iD, double jD) {
         super(iD, jD);
+    }
+
+    @Override
+    public Pixel create(int i, int j) {
+        return new Pixel(i, j);
     }
 
     /**

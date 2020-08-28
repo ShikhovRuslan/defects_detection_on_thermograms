@@ -2,6 +2,7 @@ package main;
 
 import java.awt.*;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -72,5 +73,11 @@ public class Main {
 
         //System.out.println(new Triangle<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))));
         //System.out.println(new Polygon<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))));
+
+//        Rectangle<Pixel> r1 = new Rectangle<>(new Pixel(0,0), new Pixel(8,9));
+//        Rectangle<Point> r2 = new Rectangle<>(new Point(0,0), new Point(8,9));
+//        Polygon<Pixel> ov = new Polygon<>(Arrays.asList(new Pixel(1,1), new Pixel(3,4),new Pixel(-1,2)));
+//        System.out.println(Figure.toPolygon(r2, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(r2), ov)));
+//        System.out.println(Figure.toPolygon(r1, -1));
     }
 }

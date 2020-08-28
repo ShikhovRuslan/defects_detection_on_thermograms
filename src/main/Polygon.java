@@ -247,20 +247,8 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     public static List<Polygon<Point>> toPolygons(List<Rectangle<Point>> rectangles, Polygon<Pixel> overlap) {
         List<Polygon<Point>> polygons = new ArrayList<>();
         for (Rectangle<Point> rectangle : rectangles)
-            polygons.add(toPolygon(rectangle, overlap));
+            polygons.add(Figure.toPolygon(rectangle, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(rectangle), overlap)));
         return polygons;
-    }
-
-    /**
-     * Возвращает многоугольник, построенный на основе прямоугольника {@code rectangle}.
-     */
-    private static Polygon<Point> toPolygon(Rectangle<Point> rectangle, Polygon<Pixel> overlap) {
-        List<Point> vertices = new ArrayList<>();
-        vertices.add(rectangle.getLeft());
-        vertices.add(new Point(rectangle.getLeft().getI(), rectangle.getRight().getJ()));
-        vertices.add(rectangle.getRight());
-        vertices.add(new Point(rectangle.getRight().getI(), rectangle.getLeft().getJ()));
-        return new Polygon<>(vertices, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(rectangle), overlap));
     }
 
     /**

@@ -14,6 +14,11 @@ public class Point extends AbstractPoint {
         super(i, j);
     }
 
+    @Override
+    public Point create(int i, int j) {
+        return new Point(i, j);
+    }
+
     /**
      * Возвращает расстояние от текущей точки до отрезка {@code segment}.
      *

@@ -40,6 +40,11 @@ public abstract class AbstractPoint {
     }
 
     /**
+     * Создаёт точку с координатами ({@code i}, {@code j}).
+     */
+    public abstract AbstractPoint create(int i, int j);
+
+    /**
      * Определяет принадлежность текущей точки отрезку с концами {@code p1} и {@code p2}.
      */
     public <T extends AbstractPoint> boolean isInLine(T p1, T p2) {

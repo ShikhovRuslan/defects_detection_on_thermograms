@@ -68,12 +68,12 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     public static Polygon<Pixel> getIntersection(Rectangle<Pixel> rectangle, Polygon<Pixel> polygon) {
         List<Pixel> vertices = new ArrayList<>();
         vertices.addAll(rectangle.verticesFrom(polygon));
-        vertices.addAll(polygon.verticesFrom(Rectangle.toPolygon(rectangle)));
+        vertices.addAll(polygon.verticesFrom(Figure.toPolygon(rectangle, -1)));
         Pixel intersection;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < polygon.getVertices().size(); j++) {
-                intersection = Pixel.findIntersection(Rectangle.toPolygon(rectangle).getVertices().get(i),
-                        Rectangle.toPolygon(rectangle).getVertices().get(i + 1 < 4 ? i + 1 : 0),
+                intersection = Pixel.findIntersection(Figure.toPolygon(rectangle, -1).getVertices().get(i),
+                        Figure.toPolygon(rectangle, -1).getVertices().get(i + 1 < 4 ? i + 1 : 0),
                         polygon.getVertices().get(j),
                         polygon.getVertices().get(j + 1 < polygon.getVertices().size() ? j + 1 : 0));
                 if (intersection.getI() != -1)
@@ -182,18 +182,5 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
                         rectangles.add(rectangle);
                 }
         return rectangles;
-    }
-
-    /**
-     * Преобразует прямоугольник {@code rectangle} в многоугольник, создавая список его вершин, которые упорядочены
-     * против часовой стрелки.
-     */
-    public static Polygon<Pixel> toPolygon(Rectangle<Pixel> rectangle) {
-        List<Pixel> vertices = new ArrayList<>();
-        vertices.add(rectangle.getLeft());
-        vertices.add(new Pixel(rectangle.getRight().getI(), rectangle.getLeft().getJ()));
-        vertices.add(rectangle.getRight());
-        vertices.add(new Pixel(rectangle.getLeft().getI(), rectangle.getRight().getJ()));
-        return new Polygon<>(vertices);
     }
 }
