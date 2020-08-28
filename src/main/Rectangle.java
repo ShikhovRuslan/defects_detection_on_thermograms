@@ -36,9 +36,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
         return right;
     }
 
-    /**
-     * Возвращает площадь текущего прямоугольника.
-     */
+    @Override
     public double square() {
         return (right.getI() - left.getI()) * (right.getJ() - left.getJ());
     }
@@ -54,7 +52,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * Возвращает площадь части прямоугольника {@code rectangle}, которая не принадлежит многоугольнику {@code overlap}.
      */
     public static double squareRectangleWithoutOverlap(Rectangle<Pixel> rectangle, Polygon<Pixel> overlap) {
-        return rectangle.square() - getIntersection(rectangle, overlap).squarePolygon();
+        return rectangle.square() - getIntersection(rectangle, overlap).square();
     }
 
     @Override
@@ -97,6 +95,17 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     public static Rectangle<Pixel> toRectangle(Rectangle<Point> rectangle) {
         return new Rectangle<>(new Pixel(rectangle.left.getJ(), NewClass.RES_Y - rectangle.right.getI()),
                 new Pixel(rectangle.right.getJ(), NewClass.RES_Y - rectangle.left.getI()));
+    }
+
+    /**
+     * Возвращает прямоугольник, чьими противоположными вершинами являются точки {@code p1} и {@code p2}.
+     */
+    public static Rectangle<Pixel> toRectangle(Point p1, Point p2) {
+        int i1 = Math.min(p1.getI(), p2.getI());
+        int i2 = Math.max(p1.getI(), p2.getI());
+        int j1 = Math.min(p1.getJ(), p2.getJ());
+        int j2 = Math.max(p1.getJ(), p2.getJ());
+        return toRectangle(new Rectangle<>(new Point(i1, j1), new Point(i2, j2)));
     }
 
     /**

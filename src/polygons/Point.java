@@ -23,9 +23,9 @@ public class Point extends AbstractPoint {
     public int distance(Segment segment) {
         if (projectableTo(segment)) {
             if (segment.isHorizontal())
-                return Math.abs(i - segment.getA().getI());
+                return Math.abs(getI() - segment.getA().getI());
             if (segment.isVertical())
-                return Math.abs(j - segment.getA().getJ());
+                return Math.abs(getJ() - segment.getA().getJ());
         }
         throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность отрезка, или " +
                 "отрезок не является ни горизонтальным, ни вертикальным.");
@@ -38,11 +38,11 @@ public class Point extends AbstractPoint {
      */
     public boolean projectableTo(Segment segment) {
         if (segment.isHorizontal())
-            return j > Math.min(segment.getA().getJ(), segment.getB().getJ()) &&
-                    j < Math.max(segment.getA().getJ(), segment.getB().getJ());
+            return getJ() > Math.min(segment.getA().getJ(), segment.getB().getJ()) &&
+                    getJ() < Math.max(segment.getA().getJ(), segment.getB().getJ());
         if (segment.isVertical())
-            return i > Math.min(segment.getA().getI(), segment.getB().getI()) &&
-                    i < Math.max(segment.getA().getI(), segment.getB().getI());
+            return getI() > Math.min(segment.getA().getI(), segment.getB().getI()) &&
+                    getI() < Math.max(segment.getA().getI(), segment.getB().getI());
         throw new IllegalArgumentException("Отрезок не является ни горизонтальным, ни вертикальным.");
     }
 
@@ -53,10 +53,10 @@ public class Point extends AbstractPoint {
      *                                  горизонтальным, ни вертикальным
      */
     public Point project(Segment segment) {
-        if (segment.isHorizontal() && (projectableTo(segment) || j == segment.getA().j || j == segment.getB().j))
-            return new Point(segment.getA().getI(), j);
-        if (segment.isVertical() && (projectableTo(segment) || i == segment.getA().i || i == segment.getB().i))
-            return new Point(i, segment.getA().getJ());
+        if (segment.isHorizontal() && (projectableTo(segment) || getJ() == segment.getA().getJ() || getJ() == segment.getB().getJ()))
+            return new Point(segment.getA().getI(), getJ());
+        if (segment.isVertical() && (projectableTo(segment) || getI() == segment.getA().getI() || getI() == segment.getB().getI()))
+            return new Point(getI(), segment.getA().getJ());
         throw new IllegalArgumentException("Текущую точку нельзя спроектировать на отрезок, или отрезок не является " +
                 "ни горизонтальным, ни вертикальным.");
     }

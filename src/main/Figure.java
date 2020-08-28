@@ -23,4 +23,9 @@ public interface Figure<T extends AbstractPoint> {
      * Определяет принадлежность точки {@code point} текущей фигуре.
      */
     boolean contains(T point);
+
+    /**
+     * Возвращает площадь (в кв. пикселях) текущей фигуры.
+     */
+    double square();
 }

@@ -16,11 +16,11 @@ public abstract class AbstractPoint {
     /**
      * Абсцисса точки.
      */
-    protected final int i;
+    private final int i;
     /**
      * Ордината точки.
      */
-    protected final int j;
+    private final int j;
 
     protected AbstractPoint(int i, int j) {
         this.i = i;
@@ -37,22 +37,6 @@ public abstract class AbstractPoint {
 
     public int getJ() {
         return j;
-    }
-
-    /**
-     * Определяет принадлежность текущей точки треугольнику {@code t}.
-     */
-    public <T extends AbstractPoint> boolean isInTriangle(Polygon<T> t) {
-        int[] sgn = new int[3];
-        for (int k = 0; k < 3; k++) {
-            if (isInLine(t.getVertices().get(k), t.getVertices().get(k + 1 < 3 ? k + 1 : 0)))
-                return true;
-            sgn[k] = (t.getVertices().get(k).getI() - i) *
-                    (t.getVertices().get(k + 1 < 3 ? k + 1 : 0).getJ() - t.getVertices().get(k).getJ()) -
-                    (t.getVertices().get(k).getJ() - j) *
-                            (t.getVertices().get(k + 1 < 3 ? k + 1 : 0).getI() - t.getVertices().get(k).getI());
-        }
-        return (sgn[0] > 0 && sgn[1] > 0 && sgn[2] > 0) || (sgn[0] < 0 && sgn[1] < 0 && sgn[2] < 0);
     }
 
     /**
@@ -95,7 +79,7 @@ public abstract class AbstractPoint {
 
     @Override
     public String toString() {
-        return getClass().getName() + "(" + i + ", " + j + ")";
+        return getClass().getName() + toShortString();
     }
 
     public String toShortString() {

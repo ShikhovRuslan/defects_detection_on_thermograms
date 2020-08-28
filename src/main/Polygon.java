@@ -45,35 +45,25 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Возвращает список треугольников, из которых состоит текущий многоугольник.
      */
-    public List<Polygon<T>> toTriangles() {
-        List<Polygon<T>> triangles = new ArrayList<>();
+    public List<Triangle<T>> toTriangles() {
+        List<Triangle<T>> triangles = new ArrayList<>();
         for (int k = 1; k < vertices.size() - 1; k++)
-            triangles.add(new Polygon<>(Arrays.asList(vertices.get(0), vertices.get(k), vertices.get(k + 1))));
+            triangles.add(new Triangle<>(Arrays.asList(vertices.get(0), vertices.get(k), vertices.get(k + 1))));
         return triangles;
     }
 
-    /**
-     * Возвращает площадь текущего треугольника.
-     */
-    public double squareTriangle() {
-        return 0.5 * Math.abs((vertices.get(2).getI() - vertices.get(0).getI()) * (vertices.get(1).getJ() - vertices.get(0).getJ()) -
-                (vertices.get(2).getJ() - vertices.get(0).getJ()) * (vertices.get(1).getI() - vertices.get(0).getI()));
-    }
-
-    /**
-     * Возвращает площадь текущего многоугольника.
-     */
-    public double squarePolygon() {
+    @Override
+    public double square() {
         double square = 0;
-        for (Polygon<T> triangle : toTriangles())
-            square += triangle.squareTriangle();
+        for (Triangle<T> triangle : toTriangles())
+            square += triangle.square();
         return square;
     }
 
     @Override
     public boolean contains(T point) {
-        for (Polygon<T> triangle : toTriangles())
-            if (point.isInTriangle(triangle))
+        for (Triangle<T> triangle : toTriangles())
+            if (triangle.contains(point))
                 return true;
         return false;
     }
@@ -168,10 +158,10 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     }
 
     /**
-     * Возвращает индекс стороны многоугольника {@code polygon}, которая имеет своим концом точку {@code vertex} и имеет
+     * Возвращает номер стороны многоугольника {@code polygon}, которая имеет своим концом точку {@code vertex} и имеет
      * противоположную значению {@code isPerpendicularHorizontal} ориентацию, или {@code -1}, в противном случае.
-     * Если точка {@code vertex} не является вершиной текущего многоугольника, то выдаётся значение {@code -1}. Также
-     * это значение может быть выдано, если эта точка является вершиной развёрнутого угла.
+     * (Ориентация стороны понимается относительно термограммы.)
+     * Значение {@code -1} может быть выдано, если эта точка является вершиной развёрнутого угла.
      */
     private static int indexOfSideToShorten(Polygon<Point> polygon, Point vertex, boolean isPerpendicularHorizontal) {
         Segment[] sides = getSides(polygon);
@@ -238,18 +228,6 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         }
     }
 
-    /**
-     * Возвращает многоугольник, построенный на основе прямоугольника {@code rectangle}.
-     */
-    private static Polygon<Point> convertRange(Rectangle<Point> rectangle, Polygon<Pixel> overlap) {
-        List<Point> vertices = new ArrayList<>();
-        vertices.add(new Point(rectangle.getLeft().getI(), rectangle.getLeft().getJ()));
-        vertices.add(new Point(rectangle.getLeft().getI(), rectangle.getRight().getJ()));
-        vertices.add(new Point(rectangle.getRight().getI(), rectangle.getRight().getJ()));
-        vertices.add(new Point(rectangle.getRight().getI(), rectangle.getLeft().getJ()));
-        return new Polygon<>(vertices, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(rectangle), overlap));
-    }
-
     public static void showSquaresPixels(List<Polygon<Point>> polygons) {
         List<Double> squaresPixels = new ArrayList<>();
         for (Polygon<Point> polygon : polygons)
@@ -266,11 +244,23 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Возвращает список многоугольников, построенных на основе прямоугольников из списка {@code rectangles}.
      */
-    public static List<Polygon<Point>> convertRanges(List<Rectangle<Point>> rectangles, Polygon<Pixel> overlap) {
+    public static List<Polygon<Point>> toPolygons(List<Rectangle<Point>> rectangles, Polygon<Pixel> overlap) {
         List<Polygon<Point>> polygons = new ArrayList<>();
-        for (Rectangle<Point> range : rectangles)
-            polygons.add(convertRange(range, overlap));
+        for (Rectangle<Point> rectangle : rectangles)
+            polygons.add(toPolygon(rectangle, overlap));
         return polygons;
+    }
+
+    /**
+     * Возвращает многоугольник, построенный на основе прямоугольника {@code rectangle}.
+     */
+    private static Polygon<Point> toPolygon(Rectangle<Point> rectangle, Polygon<Pixel> overlap) {
+        List<Point> vertices = new ArrayList<>();
+        vertices.add(rectangle.getLeft());
+        vertices.add(new Point(rectangle.getLeft().getI(), rectangle.getRight().getJ()));
+        vertices.add(rectangle.getRight());
+        vertices.add(new Point(rectangle.getRight().getI(), rectangle.getLeft().getJ()));
+        return new Polygon<>(vertices, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(rectangle), overlap));
     }
 
     /**
@@ -291,8 +281,9 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     }
 
     /**
-     * Возвращает подкорректированные массивы сторон многоугольников {@code polygon0}, {@code polygon1} и линию,
-     * соединяющую эти многоугольники, отличную от перпендикуляра.
+     * Возвращает подкорректированные массивы сторон многоугольников {@code polygon0}, {@code polygon1} и отрезок,
+     * соединяющий эти многоугольники, отличный от перпендикуляра. (Ориентация стороны понимается относительно
+     * термограммы.)
      *
      * @param polygon0      многоугольник
      * @param polygon1      многоугольник
@@ -300,9 +291,9 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * @param perpendicular перпендикуляр, опущенный из вершины {@code vertex0} на внутренность стороны многоугольника
      *                      {@code polygon1}
      * @param end1          конец {@code perpendicular}, принадлежащий многоугольнику {@code polygon1}
-     * @param side0Index    индекс стороны многоугольника {@code polygon0}, которая имеет своим концом вершину
+     * @param side0Index    номер стороны многоугольника {@code polygon0}, которая имеет своим концом вершину
      *                      {@code vertex0} и имеет ориентацию, противоположную ориентации {@code perpendicular}
-     * @param side1Index    индекс стороны многоугольника {@code polygon1}, внутренность которой содержит точку
+     * @param side1Index    номер стороны многоугольника {@code polygon1}, внутренность которой содержит точку
      *                      {@code end1}
      */
     private static Segment[][] getPolygonalChains(Polygon<Point> polygon0, Polygon<Point> polygon1, Point vertex0,
@@ -384,19 +375,6 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     }
 
     /**
-     * Возвращает площадь (в кв. пикселях) части прямоугольника, чьими противоположными вершинами являются точки
-     * {@code p1} и {@code p2}, которая не принадлежит многоугольнику {@code overlap}.
-     */
-    private static double squarePixels(Point p1, Point p2, Polygon<Pixel> overlap) {
-        int i1 = Math.min(p1.getI(), p2.getI());
-        int i2 = Math.max(p1.getI(), p2.getI());
-        int j1 = Math.min(p1.getJ(), p2.getJ());
-        int j2 = Math.max(p1.getJ(), p2.getJ());
-        return Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(
-                new Rectangle<>(new Point(i1, j1), new Point(i2, j2))), overlap);
-    }
-
-    /**
      * Возвращает многоугольник, являющийся объединением многоугольников {@code first} и {@code second}, расстояние
      * между которыми не превышает величины {@code distance}.
      * <p>
@@ -421,7 +399,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 polygonalChains[1].length);
         System.arraycopy(new Segment[]{perpendicular, otherBoarder}, 0, allSegments,
                 polygonalChains[0].length + polygonalChains[1].length, 2);
-        double squarePixelsOfConnectingRectangle = squarePixels(vertex0, otherBoarder.getB(), overlap);
+        double squarePixelsOfConnectingRectangle = Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(vertex0, otherBoarder.getB()), overlap);
         return createPolygon(allSegments,
                 first.squarePixels + second.squarePixels + squarePixelsOfConnectingRectangle);
     }
@@ -486,6 +464,9 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     @Override
     public String toString() {
-        return Arrays.toString(vertices.toArray());
+        StringBuilder str = new StringBuilder(getClass().getName() + "<" + vertices.get(0).getClass().getName() + ">[");
+        for (T vertex : vertices)
+            str.append(vertex.toShortString()).append(", ");
+        return str.substring(0, str.toString().length() - 2) + "]";
     }
 }

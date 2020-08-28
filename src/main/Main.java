@@ -2,6 +2,7 @@ package main;
 
 import java.awt.*;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -54,7 +55,7 @@ public class Main {
         System.out.println(overlap);
 
 
-        List<Polygon<Point>> polygons = Polygon.convertRanges(ranges, overlap);
+        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap);
         List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap);
 
         Polygon.drawPolygons(enlargedPolygons, Color.BLACK, pictureName, newPictureName);
@@ -68,5 +69,8 @@ public class Main {
             e.printStackTrace();
         }
         //System.out.println(new Segment(new Point(0,1),new Point(-1,9)));
+
+        //System.out.println(new Triangle<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))));
+        //System.out.println(new Polygon<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))));
     }
 }
