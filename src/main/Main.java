@@ -2,11 +2,12 @@ package main;
 
 import java.awt.*;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
+import com.grum.geocalc.Coordinate;
 import polygons.Point;
 
 /*
@@ -38,9 +39,9 @@ public class Main {
 
         List<List<String>> rawTable = Helper.extractRawTable(fileName);
         List<List<String>> table = Helper.extractTable(rawTable);
-        int[][] tableBin = Helper.findIf(table, num -> num > Helper.T_MIN);
+        int[][] tableBin = Helper.findIf(table, num -> num > Thermogram.T_MIN);
         List<Rectangle<Point>> ranges = Rectangle.findRectangles(tableBin);
-        ranges.removeIf(range -> range.squarePixels() < Helper.MIN_SQUARE_PIXELS);
+        ranges.removeIf(range -> range.squarePixels() < Thermogram.MIN_PIXEL_SQUARE);
 
 
         double yaw837 = 109.6 - 90;
@@ -56,14 +57,34 @@ public class Main {
         System.out.println(overlap);
 
 
-        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap);
-        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap);
+        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram841.getHeight());
+        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap, thermogram841.getHeight());
 
-        Polygon.drawPolygons(enlargedPolygons, Color.BLACK, pictureName, newPictureName);
-        Polygon.showSquaresPixels(enlargedPolygons);
+        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), Color.BLACK, pictureName, newPictureName);
+        Polygon.showSquares(enlargedPolygons, thermogram841.getHeight());
     }
 
-    public static void main(String[] args) {
+    private static void process2() {
+        System.out.println(Pixel.findIntersection(new Pixel(0, 0), new Pixel(3, 3), new Pixel(3, 3), new Pixel(5, 5)));
+
+        double s1 = Thermogram.earthDistance(new Pixel(0, 0), new Pixel(Thermogram.RES_X - 1, 0), 152);
+        double s2 = Thermogram.earthDistance(new Pixel(0, 0), new Pixel(0, Thermogram.RES_Y - 1), 152);
+        System.out.println(Thermogram.Corners.C2.angle(new Pixel(484, 490)) + " " + s2);
+
+        com.grum.geocalc.Point mE = com.grum.geocalc.Point.at(Coordinate.fromDMS(53, 46, 45.70), Coordinate.fromDMS(87, 15, 44.59));
+
+        Pixel m = new Pixel(484, 490);
+
+
+        Rectangle<Pixel> rectangle = new Rectangle<>(new Pixel(10, 10), new Pixel(100, 100));
+        Polygon<Pixel> polygon = new Polygon<>(Arrays.asList(new Pixel(1, 1), new Pixel(1, 104), new Pixel(107, 108), new Pixel(101, 2)));
+        System.out.println(Rectangle.getIntersection(rectangle, polygon));
+
+        System.out.println(new Triangle<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))).square());
+        System.out.println(new Polygon<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 102))).square());
+    }
+
+    public static void main(String[] args) throws IOException {
         try {
             process();
         } catch (FileNotFoundException e) {
@@ -79,5 +100,13 @@ public class Main {
 //        Polygon<Pixel> ov = new Polygon<>(Arrays.asList(new Pixel(1,1), new Pixel(3,4),new Pixel(-1,2)));
 //        System.out.println(Figure.toPolygon(r2, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(r2), ov)));
 //        System.out.println(Figure.toPolygon(r1, -1));
+
+//        String pictureName = "C:\\Users\\shikh\\Documents\\Geo\\DJI_0841_R.jpg";
+//        char ch = '\\';
+//        String newPictureName = pictureName.substring(0, pictureName.lastIndexOf(ch) + 1) + NEW_PICTURENAME;
+//        Segment s = new Segment(new Point(250, 250), new Point(302, 300));
+//        BufferedImage image = ImageIO.read(new File(pictureName));
+//        s.draw(image, Color.BLACK);
+//        ImageIO.write(image, "jpg", new File(newPictureName));
     }
 }

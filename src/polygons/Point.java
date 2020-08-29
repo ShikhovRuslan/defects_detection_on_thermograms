@@ -1,7 +1,6 @@
 package polygons;
 
-import main.AbstractPoint;
-import main.Rectangle;
+import main.*;
 
 import java.util.List;
 
@@ -34,6 +33,13 @@ public class Point extends AbstractPoint {
         }
         throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность отрезка, или " +
                 "отрезок не является ни горизонтальным, ни вертикальным.");
+    }
+
+    /**
+     * Конвертирует точку {@code point} из системы координат c'x'y' в систему координат Oxy.
+     */
+    public static Point toPoint(Pixel point) {
+        return new Point(Thermogram.RES_Y - 1 - point.getJ(), point.getI());
     }
 
     /**

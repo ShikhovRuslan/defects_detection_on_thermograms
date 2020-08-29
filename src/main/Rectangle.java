@@ -68,12 +68,12 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     public static Polygon<Pixel> getIntersection(Rectangle<Pixel> rectangle, Polygon<Pixel> polygon) {
         List<Pixel> vertices = new ArrayList<>();
         vertices.addAll(rectangle.verticesFrom(polygon));
-        vertices.addAll(polygon.verticesFrom(Figure.toPolygon(rectangle, -1)));
+        vertices.addAll(polygon.verticesFrom(Figure.toPolygon(rectangle, -1, 0)));
         Pixel intersection;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < polygon.getVertices().size(); j++) {
-                intersection = Pixel.findIntersection(Figure.toPolygon(rectangle, -1).getVertices().get(i),
-                        Figure.toPolygon(rectangle, -1).getVertices().get(i + 1 < 4 ? i + 1 : 0),
+                intersection = Pixel.findIntersection(Figure.toPolygon(rectangle, -1, 0).getVertices().get(i),
+                        Figure.toPolygon(rectangle, -1, 0).getVertices().get(i + 1 < 4 ? i + 1 : 0),
                         polygon.getVertices().get(j),
                         polygon.getVertices().get(j + 1 < polygon.getVertices().size() ? j + 1 : 0));
                 if (intersection.getI() != -1)
@@ -93,8 +93,16 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * Конвертирует прямоугольник {@code rectangle} из системы координат Oxy в систему координат c'x'y'.
      */
     public static Rectangle<Pixel> toRectangle(Rectangle<Point> rectangle) {
-        return new Rectangle<>(new Pixel(rectangle.left.getJ(), NewClass.RES_Y - rectangle.right.getI()),
-                new Pixel(rectangle.right.getJ(), NewClass.RES_Y - rectangle.left.getI()));
+        return new Rectangle<>(new Pixel(rectangle.left.getJ(), Thermogram.RES_Y - rectangle.right.getI()),
+                new Pixel(rectangle.right.getJ(), Thermogram.RES_Y - rectangle.left.getI()));
+    }
+
+    /**
+     * Конвертирует прямоугольник {@code rectangle} из системы координат c'x'y' в систему координат Oxy.
+     */
+    public static Rectangle<Point> toRectangle2(Rectangle<Pixel> rectangle) {
+        return new Rectangle<>(new Point(Thermogram.RES_Y - rectangle.right.getJ(), rectangle.left.getI()),
+                new Point(Thermogram.RES_Y - rectangle.left.getJ(), rectangle.right.getI()));
     }
 
     /**

@@ -13,23 +13,6 @@ import java.util.regex.Pattern;
 
 public class Helper {
     /**
-     * Минимальная температура.
-     */
-    public static final double T_MIN = 30;
-    /**
-     * Разрешение по оси Oi.
-     */
-    public static final int RES_I = 512;
-    /**
-     * Разрешение по оси Oj.
-     */
-    public static final int RES_J = 640;
-    /**
-     * Минимальная площадь прямоугольника (в кв. пикселях).
-     */
-    public static final int MIN_SQUARE_PIXELS = 25;
-
-    /**
      * Возвращает представление файла с названием {@code filename} в виде таблицы.
      */
     public static List<List<String>> extractRawTable(String filename) throws FileNotFoundException {
