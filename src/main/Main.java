@@ -1,27 +1,29 @@
 package main;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.grum.geocalc.Coordinate;
+import polygons.Point;
+
 import java.awt.*;
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.FileReader;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
-import com.grum.geocalc.Coordinate;
-import polygons.Point;
 
-/*
-
-http://www.javenue.info/post/78 - чтение и запись CSV файлов в Java.
-
+/**
+ * http://www.javenue.info/post/78 - чтение и запись CSV файлов в Java.
  */
-
 public class Main {
     private final static String NEW_PICTURENAME = "new_picture2.jpg";
+    private final static String THERMOGRAMS_INFO = "C:\\Users\\shikh\\Documents\\Geo\\out.txt";
 
     private static void process() throws FileNotFoundException {
         Scanner sc = new Scanner(System.in);
-        System.out.print("Введите полное имя снимка: ");
+        System.out.print("-Введите полное имя снимка: ");
         String pictureName = sc.nextLine();
         System.out.print("Введите полное имя файла с таблицей: ");
         String fileName = sc.nextLine();
@@ -84,12 +86,20 @@ public class Main {
         System.out.println(new Polygon<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 102))).square());
     }
 
-    public static void main(String[] args) throws IOException {
-        try {
+    private static Thermogram[] readThermograms(String filename) throws FileNotFoundException {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Thermogram.class, new ThermogramDeserializer())
+                .create();
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(filename));
+        return gson.fromJson(bufferedReader, Thermogram[].class);
+    }
+
+    public static void main(String[] args) throws FileNotFoundException {
+        /*try {
             process();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        }
+        }*/
         //System.out.println(new Segment(new Point(0,1),new Point(-1,9)));
 
         //System.out.println(new Triangle<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))));
@@ -108,5 +118,7 @@ public class Main {
 //        BufferedImage image = ImageIO.read(new File(pictureName));
 //        s.draw(image, Color.BLACK);
 //        ImageIO.write(image, "jpg", new File(newPictureName));
+
+        System.out.println(Arrays.toString(readThermograms(THERMOGRAMS_INFO)));
     }
 }
