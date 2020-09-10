@@ -172,12 +172,12 @@ public class Range {
             incrementX = false;
             incrementY = false;
             if (x + 1 < table.length &&
-                    amountOfOnes(table, i, j, x + 1, y) - amountOfOnes(table, i, j, x, y) > (y - j + 1) / 2) {
+                    amountOfOnes(table, i, j, x + 1, y) - amountOfOnes(table, i, j, x, y) > (y - j + 1) / 3) {
                 x++;
                 incrementX = true;
             }
             if (y + 1 < table[0].length &&
-                    amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i + 1) / 2 &&
+                    amountOfOnes(table, i, j, x, y + 1) - amountOfOnes(table, i, j, x, y) > (x - i + 1) / 3 &&
                     !Range.verticalLineIntersectsRanges(i, x, y + 1, ranges)) {
                 y++;
                 incrementY = true;

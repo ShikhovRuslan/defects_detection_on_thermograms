@@ -17,19 +17,23 @@ public class Main {
     private final static String NEW_PICTURENAME = "new_picture.jpg";
 
     private static void process() throws FileNotFoundException {
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Введите полное имя снимка: ");
-        String pictureName = sc.nextLine();
-        System.out.print("Введите полное имя файла с таблицей: ");
-        String fileName = sc.nextLine();
+//        Scanner sc = new Scanner(System.in);
+//        System.out.print("Введите полное имя снимка: ");
+//        String pictureName = sc.nextLine();
+//        System.out.print("Введите полное имя файла с таблицей: ");
+//        String fileName = sc.nextLine();
+//
+//        char ch = 0;
+//        if (System.getProperty("os.name").contains("Linux"))
+//            ch = '/';
+//        if (System.getProperty("os.name").contains("Windows"))
+//            ch = '\\';
+//        String newPictureName = pictureName.substring(0, pictureName.lastIndexOf(ch) + 1) + NEW_PICTURENAME;
+//        System.out.println("\nФайл с выделенными дефектами: " + newPictureName + "\n");
 
-        char ch = 0;
-        if (System.getProperty("os.name").contains("Linux"))
-            ch = '/';
-        if (System.getProperty("os.name").contains("Windows"))
-            ch = '\\';
-        String newPictureName = pictureName.substring(0, pictureName.lastIndexOf(ch) + 1) + NEW_PICTURENAME;
-        System.out.println("\nФайл с выделенными дефектами: " + newPictureName + "\n");
+        String pictureName = "/home/ruslan/geo/picture.jpg";
+        String fileName = "/home/ruslan/geo/тест.csv";
+        String newPictureName = "/home/ruslan/geo/new_picture.jpg";
 
         List<List<String>> rawTable = Range.extractRawTable(fileName);
         List<List<String>> table = Range.extractTable(rawTable);
@@ -38,7 +42,7 @@ public class Main {
         ranges.removeIf(range -> Range.squarePixels(range) < Range.MIN_SQUARE_PIXELS);
 
         List<Polygon> polygons = Polygon.convertRanges(ranges);
-        List<Polygon> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5);
+        List<Polygon> enlargedPolygons = Polygon.enlargeIteratively(polygons, 8);
         Polygon.drawPolygons(enlargedPolygons, Color.BLACK, pictureName, newPictureName);
         Polygon.showSquaresPixels(enlargedPolygons);
     }
