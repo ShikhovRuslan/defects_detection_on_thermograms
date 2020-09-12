@@ -20,6 +20,10 @@ import static java.lang.Math.*;
  */
 public class Thermogram {
     /**
+     * Название термограммы.
+     */
+    private final String name;
+    /**
      * Угол поворота оси c'x' относительно оси OX, отсчитываемый против часовой стрелки.
      */
     private final double yaw;
@@ -73,10 +77,15 @@ public class Thermogram {
      */
     public final static int MIN_PIXEL_SQUARE = 25;
 
-    public Thermogram(double yaw, double height, Point groundNadir) {
+    public Thermogram(String name, double yaw, double height, Point groundNadir) {
+        this.name = name;
         this.yaw = yaw;
         this.height = height;
         this.groundNadir = groundNadir;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public double getYaw() {

@@ -6,9 +6,8 @@ import com.grum.geocalc.Coordinate;
 import polygons.Point;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -19,51 +18,106 @@ import java.util.Scanner;
  */
 public class Main {
     private final static String NEW_PICTURENAME = "new_picture2.jpg";
-    private final static String THERMOGRAMS_INFO = "C:\\Users\\shikh\\Documents\\Geo\\out.txt";
 
-    private static void process() throws FileNotFoundException {
-        Scanner sc = new Scanner(System.in);
-        System.out.print("-Введите полное имя снимка: ");
-        String pictureName = sc.nextLine();
-        System.out.print("Введите полное имя файла с таблицей: ");
-        String fileName = sc.nextLine();
+    private final static String GLOBAL_PARAMS_FILENAME;
+    private final static String THERMOGRAMS_INFO_FILENAME;
 
-        pictureName = "C:\\Users\\shikh\\Documents\\Geo\\DJI_0841_R.jpg";
-        fileName = "C:\\Users\\shikh\\Documents\\Geo\\ui.csv";
+    private final static String CONFIG_SHORT_FILENAME = "config.txt";
+    private final static String GLOBAL_PARAMS_SHORT_FILENAME = "global_params.txt";
+    private final static String THERMOGRAMS_INFO_SHORT_FILENAME = "thermograms_info.txt";
 
-        char ch = 0;
-        if (System.getProperty("os.name").contains("Linux"))
-            ch = '/';
-        if (System.getProperty("os.name").contains("Windows"))
-            ch = '\\';
-        String newPictureName = pictureName.substring(0, pictureName.lastIndexOf(ch) + 1) + NEW_PICTURENAME;
+    private final static String THERMOGRAMS_DIR_PROPERTY = "THERMOGRAMS_DIR";
+    private final static String OUTPUT_SUBDIR_PROPERTY = "OUTPUT_SUBDIR";
+    private final static String RAW_SUBDIR_PROPERTY = "RAW_SUBDIR";
+
+    private final static String THERMOGRAMS_DIR;
+    private final static String RAW_DIR;
+
+    private final static String PREFIX = "_raw.pgm";
+
+    private final static String NEW_PICTURES_DIR;
+
+    static {
+        String currentDir = "";
+        try {
+            currentDir = Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        currentDir = currentDir.substring(0, currentDir.lastIndexOf('/'));
+
+        File configFile = new File(currentDir + "/" + CONFIG_SHORT_FILENAME);
+
+        String outputSubdir = "";
+        try {
+            Scanner sc = new Scanner(configFile);
+            String nextLine;
+            while (sc.hasNextLine()) {
+                nextLine = sc.nextLine();
+                if (nextLine.matches(OUTPUT_SUBDIR_PROPERTY + ".*"))
+                    outputSubdir = nextLine.substring(nextLine.indexOf('=') + 2);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String thermogramsDir = "";
+        try {
+            Scanner sc = new Scanner(configFile);
+            String nextLine;
+            while (sc.hasNextLine()) {
+                nextLine = sc.nextLine();
+                if (nextLine.matches(THERMOGRAMS_DIR_PROPERTY + ".*"))
+                    thermogramsDir = nextLine.substring(nextLine.indexOf('=') + 2);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String rawSubdir = "";
+        try {
+            Scanner sc = new Scanner(configFile);
+            String nextLine;
+            while (sc.hasNextLine()) {
+                nextLine = sc.nextLine();
+                if (nextLine.matches(RAW_SUBDIR_PROPERTY + ".*"))
+                    rawSubdir = nextLine.substring(nextLine.indexOf('=') + 2);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        GLOBAL_PARAMS_FILENAME = currentDir + "/" + outputSubdir + "/" + GLOBAL_PARAMS_SHORT_FILENAME;
+        THERMOGRAMS_INFO_FILENAME = currentDir + "/" + outputSubdir + "/" + THERMOGRAMS_INFO_SHORT_FILENAME;
+        THERMOGRAMS_DIR = "/" + thermogramsDir.replace('\\', '/');
+        RAW_DIR = currentDir + "/" + rawSubdir;
+        NEW_PICTURES_DIR = currentDir + "/" + "new_pictures";
+    }
+
+    private static void process(Thermogram current, Thermogram previous) {
+        String pictureName = THERMOGRAMS_DIR + "/" + current.getName() + ".jpg";
+        String rawFile = RAW_DIR + "/" + current.getName() + PREFIX;
+        String newPictureName = NEW_PICTURES_DIR + "/" + current.getName() + ".jpg";
+
         System.out.println("\nФайл с выделенными дефектами: " + newPictureName + "\n");
 
-        List<List<String>> rawTable = Helper.extractRawTable(fileName);
-        List<List<String>> table = Helper.extractTable(rawTable);
-        int[][] tableBin = Helper.findIf(table, num -> num > Thermogram.T_MIN);
-        List<Rectangle<Point>> ranges = Rectangle.findRectangles(tableBin);
+        int[][] rawTable = New.read(rawFile,
+                (int) New.getParam(GLOBAL_PARAMS_FILENAME, New.Param.RAW_THERMAL_IMAGE_HEIGHT),
+                (int) New.getParam(GLOBAL_PARAMS_FILENAME, New.Param.RAW_THERMAL_IMAGE_WIDTH));
+        double[][] temperatureTable = New.convertTable(rawTable, New.getParams(GLOBAL_PARAMS_FILENAME));
+
+        int[][] binTable = Helper.findIf(temperatureTable, num -> num > Thermogram.T_MIN);
+        List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable);
         ranges.removeIf(range -> range.squarePixels() < Thermogram.MIN_PIXEL_SQUARE);
 
-
-        double yaw837 = 109.6 - 90;
-        double yaw841 = 110.4 - 90;
-        double height837 = 152.2;
-        double height841 = 152.3;
-        com.grum.geocalc.Point groundNadir837 = com.grum.geocalc.Point.at(com.grum.geocalc.Coordinate.fromDMS(53, 46, 42.72), com.grum.geocalc.Coordinate.fromDMS(87, 15, 35.18));
-        com.grum.geocalc.Point groundNadir841 = com.grum.geocalc.Point.at(com.grum.geocalc.Coordinate.fromDMS(53, 46, 42.41), com.grum.geocalc.Coordinate.fromDMS(87, 15, 33.89));
-
-        Thermogram thermogram837 = new Thermogram(yaw837, height837, groundNadir837);
-        Thermogram thermogram841 = new Thermogram(yaw841, height841, groundNadir841);
-        Polygon<Pixel> overlap = thermogram841.getOverlapWith(thermogram837);
+        Polygon<Pixel> overlap = current.getOverlapWith(previous);
         System.out.println(overlap);
 
-
-        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram841.getHeight());
-        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap, thermogram841.getHeight());
+        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, current.getHeight());
+        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap, current.getHeight());
 
         Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), Color.BLACK, pictureName, newPictureName);
-        Polygon.showSquares(enlargedPolygons, thermogram841.getHeight());
+        Polygon.showSquares(enlargedPolygons, current.getHeight());
     }
 
     private static void process2() {
@@ -95,30 +149,8 @@ public class Main {
     }
 
     public static void main(String[] args) throws FileNotFoundException {
-        /*try {
-            process();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }*/
-        //System.out.println(new Segment(new Point(0,1),new Point(-1,9)));
+        Thermogram[] thermograms = readThermograms(THERMOGRAMS_INFO_FILENAME);
 
-        //System.out.println(new Triangle<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))));
-        //System.out.println(new Polygon<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))));
-
-//        Rectangle<Pixel> r1 = new Rectangle<>(new Pixel(0,0), new Pixel(8,9));
-//        Rectangle<Point> r2 = new Rectangle<>(new Point(0,0), new Point(8,9));
-//        Polygon<Pixel> ov = new Polygon<>(Arrays.asList(new Pixel(1,1), new Pixel(3,4),new Pixel(-1,2)));
-//        System.out.println(Figure.toPolygon(r2, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(r2), ov)));
-//        System.out.println(Figure.toPolygon(r1, -1));
-
-//        String pictureName = "C:\\Users\\shikh\\Documents\\Geo\\DJI_0841_R.jpg";
-//        char ch = '\\';
-//        String newPictureName = pictureName.substring(0, pictureName.lastIndexOf(ch) + 1) + NEW_PICTURENAME;
-//        Segment s = new Segment(new Point(250, 250), new Point(302, 300));
-//        BufferedImage image = ImageIO.read(new File(pictureName));
-//        s.draw(image, Color.BLACK);
-//        ImageIO.write(image, "jpg", new File(newPictureName));
-
-        System.out.println(Arrays.toString(readThermograms(THERMOGRAMS_INFO)));
+        process(thermograms[4], thermograms[3]);
     }
 }

@@ -73,12 +73,24 @@ public class Helper {
      * же месте в таблице целых чисел пишется значение {@code 1}, иначе остаётся значение по умолчанию {@code 0}.
      */
     public static int[][] findIf(List<List<String>> table, Predicate<Double> predicate) {
-        int[][] newTable = new int[table.size()][table.get(0).size()];
+        int[][] binTable = new int[table.size()][table.get(0).size()];
         for (int i = 0; i < table.size(); i++)
             for (int j = 0; j < table.get(0).size(); j++)
                 if (predicate.test(new Double(table.get(i).get(j).replace(',', '.'))))
-                    newTable[i][j] = 1;
-        return newTable;
+                    binTable[i][j] = 1;
+        return binTable;
+    }
+
+    /**
+     *
+     */
+    public static int[][] findIf(double[][] table, Predicate<Double> predicate) {
+        int[][] binTable = new int[table.length][table[0].length];
+        for (int i = 0; i < binTable.length; i++)
+            for (int j = 0; j < binTable[0].length; j++)
+                if (predicate.test(table[i][j]))
+                    binTable[i][j] = 1;
+        return binTable;
     }
 
     /**
