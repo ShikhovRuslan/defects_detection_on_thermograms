@@ -1,15 +1,24 @@
 package main;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 import javenue.csv.Csv;
 import polygons.Segment;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.lang.Math.*;
 
 public class Helper {
     /**
@@ -145,5 +154,81 @@ public class Helper {
             if (val == val0)
                 return true;
         return false;
+    }
+
+    public static JsonObject getJsonObject(String filename) {
+        JsonObject jsonObject = null;
+        try {
+            jsonObject = (JsonObject) (new JsonParser().parse(new FileReader(filename)));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return jsonObject;
+    }
+
+    /**
+     * Конвертирует необработанное температурное значение {@code rawValue} в температуру.
+     */
+    public static double rawValueToReal(int rawValue, double[] exifParams) {
+        double planckR1 = exifParams[0];
+        double planckR2 = exifParams[1];
+        double planckO = exifParams[2];
+        double planckB = exifParams[3];
+        double planckF = exifParams[4];
+        double emissivity = exifParams[5];
+        double tRefl = exifParams[6] + 273.15;
+
+        double rawRefl = planckR1 / (planckR2 * (pow(E, planckB / tRefl) - planckF)) - planckO;
+        double rawObj = (rawValue - (1 - emissivity) * rawRefl) / emissivity;
+        return planckB / log(planckR1 / (planckR2 * (rawObj + planckO)) + planckF) - 273.15;
+    }
+
+    /**
+     * Конвертирует таблицу необработанных температурных данных {@code rawTable} в таблицу температур.
+     */
+    public static double[][] rawTableToReal(int[][] rawTable, double[] exifParams) {
+        double[][] realTable = new double[rawTable.length][rawTable[0].length];
+        for (int i = 0; i < realTable.length; i++)
+            for (int j = 0; j < realTable[0].length; j++)
+                realTable[i][j] = Helper.rawValueToReal(rawTable[i][j], exifParams);
+        return realTable;
+    }
+
+    /**
+     * Извлекает таблицу размером {@code height x width} необработанных температурных данных из файла {@code filename}.
+     */
+    public static int[][] extractRawTable(String filename, int height, int width) {
+        int[][] rawTable = new int[height][width];
+        FileReader reader = null;
+        List<String[]> allData = null;
+
+        try {
+            reader = new FileReader(filename);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        CSVParser parser = new CSVParserBuilder().withSeparator(' ').build();
+        CSVReader csvReader = new CSVReaderBuilder(reader)
+                .withCSVParser(parser)
+                .build();
+        try {
+            allData = csvReader.readAll();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        int i0 = 0;
+        int j0 = 0;
+        for (int i = 0; i < rawTable.length; i++)
+            for (int j = 0; j < rawTable[0].length; j++) {
+                rawTable[i][j] = new Integer(allData.get(i0)[j0]);
+                if (j0 + 1 < allData.get(i0).length - 1)
+                    j0++;
+                else {
+                    j0 = 0;
+                    i0++;
+                }
+            }
+        return rawTable;
     }
 }

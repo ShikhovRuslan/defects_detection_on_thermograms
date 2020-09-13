@@ -1,41 +1,127 @@
 package main;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.grum.geocalc.Coordinate;
 import polygons.Point;
 
 import java.awt.*;
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
 
 /**
  * http://www.javenue.info/post/78 - чтение и запись CSV файлов в Java.
+ * https://exiftool.org/forum/index.php/topic,4898.msg23972.html#msg23972.
  */
 public class Main {
-    private final static String NEW_PICTURENAME = "new_picture2.jpg";
+    /**
+     * Краткое имя файла с конфигурационными параметрами.
+     */
+    private final static String SHORT_FILENAME_CONFIG = "config.txt";
+    /**
+     * Краткое имя файла с общими для всех термограмм параметрами.
+     */
+    private final static String SHORT_FILENAME_GLOBAL_PARAMS = "global_params.txt";
+    /**
+     * Краткое имя файла с геометрическими характеристиками съёмки.
+     */
+    private final static String SHORT_FILENAME_THERMOGRAMS_INFO = "thermograms_info.txt";
 
-    private final static String GLOBAL_PARAMS_FILENAME;
-    private final static String THERMOGRAMS_INFO_FILENAME;
+    /**
+     * Полное имя файла {@code SHORT_FILENAME_GLOBAL_PARAMS}.
+     */
+    private final static String FILENAME_GLOBAL_PARAMS;
+    /**
+     * Полное имя файла {@code SHORT_FILENAME_THERMOGRAMS_INFO}.
+     */
+    private final static String FILENAME_THERMOGRAMS_INFO;
 
-    private final static String CONFIG_SHORT_FILENAME = "config.txt";
-    private final static String GLOBAL_PARAMS_SHORT_FILENAME = "global_params.txt";
-    private final static String THERMOGRAMS_INFO_SHORT_FILENAME = "thermograms_info.txt";
+    /**
+     * Папка с термограммами.
+     */
+    private final static String DIR_THERMOGRAMS;
+    /**
+     * Папка с файлами, содержащими необработанные температурные данные термограмм.
+     */
+    private final static String DIR_RAW;
+    /**
+     * Папка с термограммами с выделенными дефектами.
+     */
+    private final static String DIR_OUTPUT_PICTURES;
 
-    private final static String THERMOGRAMS_DIR_PROPERTY = "THERMOGRAMS_DIR";
-    private final static String OUTPUT_SUBDIR_PROPERTY = "OUTPUT_SUBDIR";
-    private final static String RAW_SUBDIR_PROPERTY = "RAW_SUBDIR";
+    /**
+     * Постфикс (содержащий расширение {@code EXTENSION}), используемый для формирования имён файлов с необработанными
+     * температурными данными термограмм.
+     */
+    private final static String POSTFIX;
+    /**
+     * Расширение файлов с необработанными температурными данными термограмм.
+     */
+    private final static String EXTENSION = ".pgm";
 
-    private final static String THERMOGRAMS_DIR;
-    private final static String RAW_DIR;
+    /**
+     * Содержит названия параметров в конфигурационном файле {@code SHORT_FILENAME_CONFIG}.
+     */
+    private enum Property {
+        DIR_THERMOGRAMS("THERMOGRAMS_DIR"),
+        SUBDIR_OUTPUT("OUTPUT_SUBDIR"),
+        SUBDIR_RAW("RAW_SUBDIR"),
+        SUBDIR_OUTPUT_PICTURES("OUTPUT_PICTURES_SUBDIR"),
+        POSTFIX("POSTFIX");
 
-    private final static String PREFIX = "_raw.pgm";
+        private final String name;
 
-    private final static String NEW_PICTURES_DIR;
+        Property(String name) {
+            this.name = name;
+        }
+
+        private String getName() {
+            return name;
+        }
+    }
+
+    /**
+     * Содержит общие для всех термограмм EXIF-параметры, находящиеся в файле {@code SHORT_FILENAME_GLOBAL_PARAMS}.
+     */
+    private enum ExifParam {
+        PLANCK_R1("PlanckR1"),
+        PLANCK_R2("PlanckR2"),
+        PLANCK_O("PlanckO"),
+        PLANCK_B("PlanckB"),
+        PLANCK_F("PlanckF"),
+        EMISSIVITY("Emissivity"),
+        REFLECTED_APPARENT_TEMPERATURE("ReflectedApparentTemperature"),
+        RAW_THERMAL_IMAGE_HEIGHT("RawThermalImageHeight"),
+        RAW_THERMAL_IMAGE_WIDTH("RawThermalImageWidth");
+
+        private final String rawName;
+
+        ExifParam(String rawName) {
+            this.rawName = rawName;
+        }
+
+        private String getRawName() {
+            return rawName;
+        }
+
+        /**
+         * Извлекает значение ключа {@code exifParam} из файла {@code filename} в формате JSON.
+         */
+        private static double getExifParam(ExifParam exifParam, String filename) {
+            return Helper.getJsonObject(filename).get(exifParam.getRawName()).getAsDouble();
+        }
+
+        /**
+         * Извлекает массив значений всех ключей из файла {@code filename} в формате JSON.
+         */
+        private static double[] getExifParams(String filename) {
+            double[] exifParams = new double[ExifParam.values().length];
+            for (int i = 0; i < ExifParam.values().length; i++)
+                exifParams[i] = getExifParam(ExifParam.values()[i], filename);
+            return exifParams;
+        }
+    }
 
     static {
         String currentDir = "";
@@ -46,111 +132,64 @@ public class Main {
         }
         currentDir = currentDir.substring(0, currentDir.lastIndexOf('/'));
 
-        File configFile = new File(currentDir + "/" + CONFIG_SHORT_FILENAME);
+        File configFile = new File(currentDir + "/" + SHORT_FILENAME_CONFIG);
 
-        String outputSubdir = "";
+        Scanner sc = null;
         try {
-            Scanner sc = new Scanner(configFile);
-            String nextLine;
-            while (sc.hasNextLine()) {
-                nextLine = sc.nextLine();
-                if (nextLine.matches(OUTPUT_SUBDIR_PROPERTY + ".*"))
-                    outputSubdir = nextLine.substring(nextLine.indexOf('=') + 2);
-            }
-        } catch (IOException e) {
+            sc = new Scanner(configFile);
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-
-        String thermogramsDir = "";
-        try {
-            Scanner sc = new Scanner(configFile);
-            String nextLine;
-            while (sc.hasNextLine()) {
-                nextLine = sc.nextLine();
-                if (nextLine.matches(THERMOGRAMS_DIR_PROPERTY + ".*"))
-                    thermogramsDir = nextLine.substring(nextLine.indexOf('=') + 2);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        String nextLine;
+        String[] values = new String[Property.values().length];
+        while (sc.hasNextLine()) {
+            nextLine = sc.nextLine();
+            for (int i = 0; i < Property.values().length; i++)
+                if (nextLine.matches(Property.values()[i].getName() + ".*"))
+                    values[i] = nextLine.substring(nextLine.indexOf('=') + 2);
         }
+        String dirThermograms = values[0];
+        String subdirOutput = values[1];
+        String subdirRaw = values[2];
+        String subdirOutputPictures = values[3];
+        String postfix = values[4];
 
-        String rawSubdir = "";
-        try {
-            Scanner sc = new Scanner(configFile);
-            String nextLine;
-            while (sc.hasNextLine()) {
-                nextLine = sc.nextLine();
-                if (nextLine.matches(RAW_SUBDIR_PROPERTY + ".*"))
-                    rawSubdir = nextLine.substring(nextLine.indexOf('=') + 2);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        GLOBAL_PARAMS_FILENAME = currentDir + "/" + outputSubdir + "/" + GLOBAL_PARAMS_SHORT_FILENAME;
-        THERMOGRAMS_INFO_FILENAME = currentDir + "/" + outputSubdir + "/" + THERMOGRAMS_INFO_SHORT_FILENAME;
-        THERMOGRAMS_DIR = "/" + thermogramsDir.replace('\\', '/');
-        RAW_DIR = currentDir + "/" + rawSubdir;
-        NEW_PICTURES_DIR = currentDir + "/" + "new_pictures";
+        FILENAME_GLOBAL_PARAMS = currentDir + "/" + subdirOutput + "/" + SHORT_FILENAME_GLOBAL_PARAMS;
+        FILENAME_THERMOGRAMS_INFO = currentDir + "/" + subdirOutput + "/" + SHORT_FILENAME_THERMOGRAMS_INFO;
+        DIR_THERMOGRAMS = "/" + dirThermograms.replace('\\', '/');
+        DIR_RAW = currentDir + "/" + subdirRaw;
+        DIR_OUTPUT_PICTURES = currentDir + "/" + subdirOutputPictures;
+        POSTFIX = postfix + EXTENSION;
     }
 
-    private static void process(Thermogram current, Thermogram previous) {
-        String pictureName = THERMOGRAMS_DIR + "/" + current.getName() + ".jpg";
-        String rawFile = RAW_DIR + "/" + current.getName() + PREFIX;
-        String newPictureName = NEW_PICTURES_DIR + "/" + current.getName() + ".jpg";
+    private static void process(Thermogram thermogram, Thermogram previous) {
+        String thermogramFilename = DIR_THERMOGRAMS + "/" + thermogram.getName() + ".jpg";
+        String rawFilename = DIR_RAW + "/" + thermogram.getName() + POSTFIX;
+        String outputPictureFilename = DIR_OUTPUT_PICTURES + "/" + thermogram.getName() + ".jpg";
 
-        System.out.println("\nФайл с выделенными дефектами: " + newPictureName + "\n");
+        System.out.println("Файл с выделенными дефектами: " + outputPictureFilename + "\n");
 
-        int[][] rawTable = New.read(rawFile,
-                (int) New.getParam(GLOBAL_PARAMS_FILENAME, New.Param.RAW_THERMAL_IMAGE_HEIGHT),
-                (int) New.getParam(GLOBAL_PARAMS_FILENAME, New.Param.RAW_THERMAL_IMAGE_WIDTH));
-        double[][] temperatureTable = New.convertTable(rawTable, New.getParams(GLOBAL_PARAMS_FILENAME));
+        int[][] rawTable = Helper.extractRawTable(rawFilename,
+                (int) ExifParam.getExifParam(ExifParam.RAW_THERMAL_IMAGE_HEIGHT, FILENAME_GLOBAL_PARAMS),
+                (int) ExifParam.getExifParam(ExifParam.RAW_THERMAL_IMAGE_WIDTH, FILENAME_GLOBAL_PARAMS));
+        double[][] temperatureTable = Helper.rawTableToReal(rawTable, ExifParam.getExifParams(FILENAME_GLOBAL_PARAMS));
 
         int[][] binTable = Helper.findIf(temperatureTable, num -> num > Thermogram.T_MIN);
         List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable);
         ranges.removeIf(range -> range.squarePixels() < Thermogram.MIN_PIXEL_SQUARE);
 
-        Polygon<Pixel> overlap = current.getOverlapWith(previous);
+        Polygon<Pixel> overlap = thermogram.getOverlapWith(previous);
         System.out.println(overlap);
 
-        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, current.getHeight());
-        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap, current.getHeight());
+        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight());
+        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap, thermogram.getHeight());
 
-        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), Color.BLACK, pictureName, newPictureName);
-        Polygon.showSquares(enlargedPolygons, current.getHeight());
+        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), Color.BLACK, thermogramFilename, outputPictureFilename);
+        Polygon.showSquares(enlargedPolygons, thermogram.getHeight());
     }
 
-    private static void process2() {
-        System.out.println(Pixel.findIntersection(new Pixel(0, 0), new Pixel(3, 3), new Pixel(3, 3), new Pixel(5, 5)));
-
-        double s1 = Thermogram.earthDistance(new Pixel(0, 0), new Pixel(Thermogram.RES_X - 1, 0), 152);
-        double s2 = Thermogram.earthDistance(new Pixel(0, 0), new Pixel(0, Thermogram.RES_Y - 1), 152);
-        System.out.println(Thermogram.Corners.C2.angle(new Pixel(484, 490)) + " " + s2);
-
-        com.grum.geocalc.Point mE = com.grum.geocalc.Point.at(Coordinate.fromDMS(53, 46, 45.70), Coordinate.fromDMS(87, 15, 44.59));
-
-        Pixel m = new Pixel(484, 490);
-
-
-        Rectangle<Pixel> rectangle = new Rectangle<>(new Pixel(10, 10), new Pixel(100, 100));
-        Polygon<Pixel> polygon = new Polygon<>(Arrays.asList(new Pixel(1, 1), new Pixel(1, 104), new Pixel(107, 108), new Pixel(101, 2)));
-        System.out.println(Rectangle.getIntersection(rectangle, polygon));
-
-        System.out.println(new Triangle<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 85), new Pixel(403, 102))).square());
-        System.out.println(new Polygon<>(Arrays.asList(new Pixel(401, 85), new Pixel(403, 102))).square());
-    }
-
-    private static Thermogram[] readThermograms(String filename) throws FileNotFoundException {
-        Gson gson = new GsonBuilder()
-                .registerTypeAdapter(Thermogram.class, new ThermogramDeserializer())
-                .create();
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(filename));
-        return gson.fromJson(bufferedReader, Thermogram[].class);
-    }
-
-    public static void main(String[] args) throws FileNotFoundException {
-        Thermogram[] thermograms = readThermograms(THERMOGRAMS_INFO_FILENAME);
-
+    public static void main(String[] args) {
+        Thermogram[] thermograms = Thermogram.readThermograms(FILENAME_THERMOGRAMS_INFO);
         process(thermograms[4], thermograms[3]);
     }
 }

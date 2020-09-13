@@ -7,6 +7,9 @@ import com.grum.geocalc.DMSCoordinate;
 import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -260,6 +263,22 @@ public class Thermogram {
                     vertices.add(intersection);
             }
         return new Polygon<>(AbstractPoint.order(vertices));
+    }
+
+    /**
+     * Возвращает массив термограмм, прочитанных из файла {@code filename}, содержащим массив в формате JSON.
+     */
+    static Thermogram[] readThermograms(String filename) {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Thermogram.class, new ThermogramDeserializer())
+                .create();
+        BufferedReader bufferedReader = null;
+        try {
+            bufferedReader = new BufferedReader(new FileReader(filename));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return gson.fromJson(bufferedReader, Thermogram[].class);
     }
 
     @Override
