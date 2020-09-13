@@ -1,5 +1,7 @@
 package main;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.DMSCoordinate;
 import com.grum.geocalc.EarthCalc;
@@ -258,5 +260,10 @@ public class Thermogram {
                     vertices.add(intersection);
             }
         return new Polygon<>(AbstractPoint.order(vertices));
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + new GsonBuilder().setPrettyPrinting().create().toJson(this);
     }
 }
