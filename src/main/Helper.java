@@ -170,13 +170,13 @@ public class Helper {
      * Конвертирует необработанное температурное значение {@code rawValue} в температуру.
      */
     public static double rawValueToReal(int rawValue, double[] exifParams) {
-        double planckR1 = exifParams[0];
-        double planckR2 = exifParams[1];
-        double planckO = exifParams[2];
-        double planckB = exifParams[3];
-        double planckF = exifParams[4];
-        double emissivity = exifParams[5];
-        double tRefl = exifParams[6] + 273.15;
+        double planckR1 = exifParams[1];
+        double planckR2 = exifParams[2];
+        double planckO = exifParams[3];
+        double planckB = exifParams[4];
+        double planckF = exifParams[5];
+        double emissivity = exifParams[6];
+        double tRefl = exifParams[7] + 273.15;
 
         double rawRefl = planckR1 / (planckR2 * (pow(E, planckB / tRefl) - planckF)) - planckO;
         double rawObj = (rawValue - (1 - emissivity) * rawRefl) / emissivity;

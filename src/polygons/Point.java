@@ -39,7 +39,7 @@ public class Point extends AbstractPoint {
      * Конвертирует точку {@code point} из системы координат c'x'y' в систему координат Oxy.
      */
     public static Point toPoint(Pixel point) {
-        return new Point(Thermogram.RES_Y - 1 - point.getJ(), point.getI());
+        return new Point(Main.RES_Y - 1 - point.getJ(), point.getI());
     }
 
     /**

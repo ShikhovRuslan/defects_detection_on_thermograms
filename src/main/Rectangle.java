@@ -93,16 +93,16 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * Конвертирует прямоугольник {@code rectangle} из системы координат Oxy в систему координат c'x'y'.
      */
     public static Rectangle<Pixel> toRectangle(Rectangle<Point> rectangle) {
-        return new Rectangle<>(new Pixel(rectangle.left.getJ(), Thermogram.RES_Y - rectangle.right.getI()),
-                new Pixel(rectangle.right.getJ(), Thermogram.RES_Y - rectangle.left.getI()));
+        return new Rectangle<>(new Pixel(rectangle.left.getJ(), Main.RES_Y - rectangle.right.getI()),
+                new Pixel(rectangle.right.getJ(), Main.RES_Y - rectangle.left.getI()));
     }
 
     /**
      * Конвертирует прямоугольник {@code rectangle} из системы координат c'x'y' в систему координат Oxy.
      */
     public static Rectangle<Point> toRectangle2(Rectangle<Pixel> rectangle) {
-        return new Rectangle<>(new Point(Thermogram.RES_Y - rectangle.right.getJ(), rectangle.left.getI()),
-                new Point(Thermogram.RES_Y - rectangle.left.getJ(), rectangle.right.getI()));
+        return new Rectangle<>(new Point(Main.RES_Y - rectangle.right.getJ(), rectangle.left.getI()),
+                new Point(Main.RES_Y - rectangle.left.getJ(), rectangle.right.getI()));
     }
 
     /**

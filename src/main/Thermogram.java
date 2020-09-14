@@ -41,47 +41,6 @@ public class Thermogram {
      */
     private final Point groundNadir;
 
-    /**
-     * Разрешение матрицы по горизонтали (т. е. по оси c'x').
-     */
-    public final static int RES_X = 640;
-    /**
-     * Разрешение матрицы по вертикали (т. е. по оси c'y').
-     */
-    public final static int RES_Y = 512;
-    /**
-     * Шаг пикселя, м.
-     */
-    public final static double PIXEL_SIZE = 17. / 1000_000;
-    /**
-     * Фокусное расстояние, м.
-     */
-    public final static double FOCAL_LENGTH = 25. / 1000;
-    /**
-     * Средний радиус Земли, м.
-     */
-    public final static double EARTH_RADIUS = 6371.01 * 1000;
-    /**
-     * Абсцисса главной точки снимка в системе координат c'x'y'.
-     */
-    public final static int PRINCIPAL_POINT_X = 310;
-    /**
-     * Ордината главной точки снимка в системе координат c'x'y'.
-     */
-    public final static int PRINCIPAL_POINT_Y = 182;
-    /**
-     * Главная точка снимка в системе координат c'x'y'.
-     */
-    public final static Pixel PRINCIPAL_POINT = new Pixel(PRINCIPAL_POINT_X, PRINCIPAL_POINT_Y);
-    /**
-     * Минимальная температура.
-     */
-    public final static double T_MIN = 30;
-    /**
-     * Минимальная площадь прямоугольника (в кв. пикселях).
-     */
-    public final static int MIN_PIXEL_SQUARE = 25;
-
     public Thermogram(String name, double yaw, double height, Point groundNadir) {
         this.name = name;
         this.yaw = yaw;
@@ -112,15 +71,15 @@ public class Thermogram {
         /**
          * Верхний левый угол термограммы.
          */
-        C0(0, RES_Y - 1),
+        C0(0, Main.RES_Y - 1),
         /**
          * Верхний правый угол термограммы.
          */
-        C1(RES_X - 1, RES_Y - 1),
+        C1(Main.RES_X - 1, Main.RES_Y - 1),
         /**
          * Нижний правый угол термограммы.
          */
-        C2(RES_X - 1, 0),
+        C2(Main.RES_X - 1, 0),
         /**
          * Нижний левый угол термограммы.
          */
@@ -160,15 +119,15 @@ public class Thermogram {
      * Возвращает величину, обратную к масштабу матрицы, т. е. отношение длины отрезка на местности к длине
      * соответствующего отрезка на матрице камеры.
      */
-    private static double reverseScale(double height) {
-        return height / FOCAL_LENGTH;
+    public static double reverseScale(double height) {
+        return height / Main.FOCAL_LENGTH;
     }
 
     /**
      * Вычисляет расстояние в метрах между пикселями {@code a} и {@code b}.
      */
     private static double matrixDistance(Pixel a, Pixel b) {
-        return PIXEL_SIZE * sqrt(pow(a.getI() - b.getI(), 2) + pow(a.getJ() - b.getJ(), 2));
+        return Main.PIXEL_SIZE * sqrt(pow(a.getI() - b.getI(), 2) + pow(a.getJ() - b.getJ(), 2));
     }
 
     /**
@@ -183,7 +142,7 @@ public class Thermogram {
      * на этот участок матрицы.
      */
     public static double toEarthSquare(double pixelSquare, double height) {
-        return pixelSquare * pow(PIXEL_SIZE * reverseScale(height), 2);
+        return pixelSquare * pow(Main.PIXEL_SIZE * reverseScale(height), 2);
     }
 
     /**
@@ -204,13 +163,13 @@ public class Thermogram {
     Point[] getCorners() {
         Point[] corners = new Point[4];
         double[] angles = {
-                Corners.C0.angle(PRINCIPAL_POINT) - yaw - 180,
-                -Corners.C1.angle(PRINCIPAL_POINT) - yaw,
-                Corners.C2.angle(PRINCIPAL_POINT) - yaw,
-                -Corners.C3.angle(PRINCIPAL_POINT) - yaw + 180};
+                Corners.C0.angle(Main.PRINCIPAL_POINT) - yaw - 180,
+                -Corners.C1.angle(Main.PRINCIPAL_POINT) - yaw,
+                Corners.C2.angle(Main.PRINCIPAL_POINT) - yaw,
+                -Corners.C3.angle(Main.PRINCIPAL_POINT) - yaw + 180};
         for (int i = 0; i < 4; i++)
             corners[i] = EarthCalc.pointAt(groundNadir, angles[i],
-                    earthDistance(PRINCIPAL_POINT, Corners.values()[i].toPixel(), height));
+                    earthDistance(Main.PRINCIPAL_POINT, Corners.values()[i].toPixel(), height));
         return corners;
     }
 
@@ -221,7 +180,7 @@ public class Thermogram {
         Point centre = getCorners()[3];
         double earthDistance = EarthCalc.harvesineDistance(point, centre);
         double omega = (PI / 180) * (360 - yaw - EarthCalc.bearing(centre, point));
-        double pixelDistance = earthDistance / reverseScale(height) / PIXEL_SIZE;
+        double pixelDistance = earthDistance / reverseScale(height) / Main.PIXEL_SIZE;
         return new Pixel(pixelDistance * cos(omega), pixelDistance * sin(omega));
     }
 
@@ -230,7 +189,7 @@ public class Thermogram {
      */
     private boolean contains(Point point) {
         Pixel pixel = toPixel(point);
-        return (0 <= pixel.getI() && pixel.getI() < RES_X) && (0 <= pixel.getJ() && pixel.getJ() < RES_Y);
+        return (0 <= pixel.getI() && pixel.getI() < Main.RES_X) && (0 <= pixel.getJ() && pixel.getJ() < Main.RES_Y);
     }
 
     /**

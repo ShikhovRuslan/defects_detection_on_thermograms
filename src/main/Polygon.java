@@ -258,12 +258,12 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         for (Double num : earthSquares)
             totalEarthSquare += num;
         System.out.printf("%n%f  -  %s%n", totalPixelSquare, "суммарная площадь дефектов, кв. п.");
-        System.out.printf("%.2f %%  -  %s%n", 100 * totalPixelSquare / (Thermogram.RES_X * Thermogram.RES_Y),
+        System.out.printf("%.2f %%  -  %s%n", 100 * totalPixelSquare / (Main.RES_X * Main.RES_Y),
                 "доля суммарной площади дефектов от общей площади");
         System.out.printf("%s%n%s%n", "Площади дефектов, кв. п.:", Arrays.toString(pixelSquares.toArray()));
 
         System.out.printf("%n%f  -  %s%n", totalEarthSquare, "суммарная площадь дефектов, кв. м.");
-        System.out.printf("%.2f %%  -  %s%n", 100 * totalEarthSquare / Thermogram.toEarthSquare(Thermogram.RES_X * Thermogram.RES_Y, height),
+        System.out.printf("%.2f %%  -  %s%n", 100 * totalEarthSquare / Thermogram.toEarthSquare(Main.RES_X * Main.RES_Y, height),
                 "доля суммарной площади дефектов от общей площади");
         System.out.printf("%s%n%s%n", "Площади дефектов, кв. м.:", Arrays.toString(earthSquares.toArray()));
     }
@@ -479,7 +479,12 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     @Override
     public String toString() {
-        StringBuilder str = new StringBuilder(getClass().getName() + "<" + vertices.get(0).getClass().getName() + ">[");
+        String str0;
+        if (vertices.size() > 0)
+            str0 = vertices.get(0).getClass().getName();
+        else
+            str0 = "empty";
+        StringBuilder str = new StringBuilder(getClass().getName() + "<" + str0 + ">[");
         for (T vertex : vertices)
             str.append(vertex.toShortString()).append(", ");
         return str.substring(0, str.toString().length() - 2) + "]";
