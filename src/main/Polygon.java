@@ -215,12 +215,17 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Рисует многоугольники из списка {@code polygons}.
      */
-    public static void drawPolygons(List<Polygon<Point>> polygons, Polygon<Point> overlap, Color color, String pictureName, String newPictureName) {
+    public static void drawPolygons(List<Polygon<Point>> polygons, Polygon<Point> overlap,
+                                    List<Rectangle<Pixel>> forbiddenZones, Color color,
+                                    String pictureName, String newPictureName) {
         try {
             BufferedImage image = ImageIO.read(new File(pictureName));
             draw(overlap, image, color);
             for (Polygon<Point> polygon : polygons)
                 draw(polygon, image, color);
+            if (forbiddenZones != null)
+                for (Rectangle<Pixel> rectangle : forbiddenZones)
+                    draw(toPointPolygon(Figure.toPolygon(rectangle, 0, 0)), image, color);
             ImageIO.write(image, "jpg", new File(newPictureName));
         } catch (IOException e) {
             e.printStackTrace();

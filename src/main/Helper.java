@@ -20,7 +20,11 @@ import java.util.regex.Pattern;
 
 import static java.lang.Math.*;
 
-public class Helper {
+
+public final class Helper {
+    private Helper() {
+    }
+
     /**
      * Возвращает представление файла с названием {@code filename} в виде таблицы.
      */
@@ -91,12 +95,12 @@ public class Helper {
     }
 
     /**
-     *
+     * Аналогично методу {@link main.Helper#findIf(List, Predicate)}.
      */
     public static int[][] findIf(double[][] table, Predicate<Double> predicate) {
         int[][] binTable = new int[table.length][table[0].length];
-        for (int i = 0; i < binTable.length; i++)
-            for (int j = 0; j < binTable[0].length; j++)
+        for (int i = 0; i < table.length; i++)
+            for (int j = 0; j < table[0].length; j++)
                 if (predicate.test(table[i][j]))
                     binTable[i][j] = 1;
         return binTable;
@@ -156,6 +160,9 @@ public class Helper {
         return false;
     }
 
+    /**
+     * @param filename файл в формате JSON
+     */
     public static JsonObject getJsonObject(String filename) {
         JsonObject jsonObject = null;
         try {
@@ -169,14 +176,14 @@ public class Helper {
     /**
      * Конвертирует необработанное температурное значение {@code rawValue} в температуру.
      */
-    public static double rawValueToReal(int rawValue, double[] exifParams) {
-        double planckR1 = exifParams[1];
-        double planckR2 = exifParams[2];
-        double planckO = exifParams[3];
-        double planckB = exifParams[4];
-        double planckF = exifParams[5];
-        double emissivity = exifParams[6];
-        double tRefl = exifParams[7] + 273.15;
+    public static double rawValueToReal(int rawValue) {
+        double planckR1 = ExifParam.PLANCK_R1.getValue();
+        double planckR2 = ExifParam.PLANCK_R2.getValue();
+        double planckO = ExifParam.PLANCK_O.getValue();
+        double planckB = ExifParam.PLANCK_B.getValue();
+        double planckF = ExifParam.PLANCK_F.getValue();
+        double emissivity = ExifParam.EMISSIVITY.getValue();
+        double tRefl = ExifParam.REFLECTED_APPARENT_TEMPERATURE.getValue() + 273.15;
 
         double rawRefl = planckR1 / (planckR2 * (pow(E, planckB / tRefl) - planckF)) - planckO;
         double rawObj = (rawValue - (1 - emissivity) * rawRefl) / emissivity;
@@ -186,11 +193,11 @@ public class Helper {
     /**
      * Конвертирует таблицу необработанных температурных данных {@code rawTable} в таблицу температур.
      */
-    public static double[][] rawTableToReal(int[][] rawTable, double[] exifParams) {
+    public static double[][] rawTableToReal(int[][] rawTable) {
         double[][] realTable = new double[rawTable.length][rawTable[0].length];
         for (int i = 0; i < realTable.length; i++)
             for (int j = 0; j < realTable[0].length; j++)
-                realTable[i][j] = Helper.rawValueToReal(rawTable[i][j], exifParams);
+                realTable[i][j] = Helper.rawValueToReal(rawTable[i][j]);
         return realTable;
     }
 
@@ -230,5 +237,19 @@ public class Helper {
                 }
             }
         return rawTable;
+    }
+
+    /**
+     * В таблице {@code table} ставит значение {@code 0} в тех позициях, которые принадлежат хотя бы одному
+     * прямоугольнику из списка {@code rectangles}.
+     * Точка ({@code i}, {@code j}) системы координат c'x'y' соответствует позиции ({@code RES_Y-1-j}, {@code i}) в
+     * таблице.
+     */
+    static void nullifyForbiddenZones(int[][] table, List<Rectangle<Pixel>> rectangles) {
+        if (rectangles != null)
+            for (Rectangle<Pixel> rectangle : rectangles)
+                for (int i = rectangle.getLeft().getI(); i <= rectangle.getRight().getI(); i++)
+                    for (int j = rectangle.getLeft().getJ(); j <= rectangle.getRight().getJ(); j++)
+                        table[Main.RES_Y - 1 - j][i] = 0;
     }
 }

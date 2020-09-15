@@ -8,7 +8,7 @@ import java.lang.reflect.Type;
 
 
 /**
- * Используется для десериализации термограммы.
+ * Используется для десериализации термограммы. Заполняются все поля, кроме поля {@code forbiddenZones}.
  */
 public class ThermogramDeserializer implements JsonDeserializer<Thermogram> {
     @Override

@@ -28,6 +28,10 @@ public class Main {
      * Краткое имя файла с геометрическими характеристиками съёмки.
      */
     private final static String SHORT_FILENAME_THERMOGRAMS_INFO = "thermograms_info.txt";
+    /**
+     * Краткое имя файла с запрещёнными зонами.
+     */
+    private final static String SHORT_FILENAME_FORBIDDEN_ZONES = "forbidden_zones.txt";
 
 
     //
@@ -146,10 +150,6 @@ public class Main {
         }
         DIR_CURRENT = dirCurrent.substring(0, dirCurrent.lastIndexOf('/'));
 
-        FOCAL_LENGTH = ExifParam.FOCAL_LENGTH.getValue() / 1000;
-        RES_X = (int) ExifParam.RAW_THERMAL_IMAGE_WIDTH.getValue();
-        RES_Y = (int) ExifParam.RAW_THERMAL_IMAGE_HEIGHT.getValue();
-
         FILENAME_GLOBAL_PARAMS = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_GLOBAL_PARAMS;
         FILENAME_THERMOGRAMS_INFO = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO;
         DIR_THERMOGRAMS = "/" + Property.DIR_THERMOGRAMS.getValue().replace('\\', '/');
@@ -163,13 +163,17 @@ public class Main {
         PRINCIPAL_POINT = new Pixel(PRINCIPAL_POINT_X, PRINCIPAL_POINT_Y);
         T_MIN = Property.T_MIN.getDoubleValue();
         SQUARE_MIN = Property.SQUARE_MIN.getDoubleValue();
+
+        FOCAL_LENGTH = ExifParam.FOCAL_LENGTH.getValue() / 1000;
+        RES_X = (int) ExifParam.RAW_THERMAL_IMAGE_WIDTH.getValue();
+        RES_Y = (int) ExifParam.RAW_THERMAL_IMAGE_HEIGHT.getValue();
     }
 
 
     private static void process(Thermogram thermogram, Thermogram previous) {
         String thermogramFilename = DIR_THERMOGRAMS + "/" + thermogram.getName() + EXTENSION;
         String rawFilename = DIR_RAW + "/" + thermogram.getName() + POSTFIX_RAW;
-        String outputPictureFilename = DIR_OUTPUT_PICTURES + "/" + thermogram.getName() + EXTENSION;
+        String outputPictureFilename = DIR_OUTPUT_PICTURES + "/" + thermogram.getName() + POSTFIX_PROCESSED;
 
         System.out.println("Файл с выделенными дефектами: " + outputPictureFilename + "\n");
 
@@ -177,20 +181,20 @@ public class Main {
                 (int) ExifParam.RAW_THERMAL_IMAGE_HEIGHT.getValue(),
                 (int) ExifParam.RAW_THERMAL_IMAGE_WIDTH.getValue());
 
-        double[][] realTable = Helper.rawTableToReal(rawTable, ExifParam.readValues());
-
+        double[][] realTable = Helper.rawTableToReal(rawTable);
         int[][] binTable = Helper.findIf(realTable, num -> num > T_MIN);
+        Helper.nullifyForbiddenZones(binTable, thermogram.getForbiddenZones());
 
         List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable);
         ranges.removeIf(range -> range.squarePixels() < MIN_PIXEL_SQUARE);
 
         Polygon<Pixel> overlap = thermogram.getOverlapWith(previous);
-        //System.out.println(overlap);
+        System.out.println(overlap);
 
         List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight());
         List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap, thermogram.getHeight());
 
-        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), Color.BLACK, thermogramFilename, outputPictureFilename);
+        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, outputPictureFilename);
         Polygon.showSquares(enlargedPolygons, thermogram.getHeight());
 
         System.out.println("\n");
@@ -198,6 +202,8 @@ public class Main {
 
     public static void main(String[] args) {
         Thermogram[] thermograms = Thermogram.readThermograms(FILENAME_THERMOGRAMS_INFO);
+        Thermogram.readForbiddenZones(thermograms, DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
+
         for (int i = 0; i < thermograms.length; i++)
             process(thermograms[i], thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1]);
     }

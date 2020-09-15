@@ -1,7 +1,6 @@
 package main;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.DMSCoordinate;
 import com.grum.geocalc.EarthCalc;
@@ -40,6 +39,10 @@ public class Thermogram {
      * Географические координаты места съёмки.
      */
     private final Point groundNadir;
+    /**
+     * Список прямоугольников, где не нужно искать дефекты.
+     */
+    private List<Rectangle<Pixel>> forbiddenZones;
 
     public Thermogram(String name, double yaw, double height, Point groundNadir) {
         this.name = name;
@@ -62,6 +65,10 @@ public class Thermogram {
 
     public Point getGroundNadir() {
         return groundNadir;
+    }
+
+    public List<Rectangle<Pixel>> getForbiddenZones() {
+        return forbiddenZones;
     }
 
     /**
@@ -225,7 +232,8 @@ public class Thermogram {
     }
 
     /**
-     * Возвращает массив термограмм, прочитанных из файла {@code filename}, содержащим массив в формате JSON.
+     * Возвращает массив термограмм, прочитанных из файла {@code filename}, содержащего массив в формате JSON.
+     * У термограмм заполняются все поля, кроме поля {@code forbiddenZones}.
      */
     static Thermogram[] readThermograms(String filename) {
         Gson gson = new GsonBuilder()
@@ -238,6 +246,55 @@ public class Thermogram {
             e.printStackTrace();
         }
         return gson.fromJson(bufferedReader, Thermogram[].class);
+    }
+
+    /**
+     * Возвращает термограмму из массива {@code thermograms}, имя которой совпадает с именем {@code name}.
+     *
+     * @throws IllegalArgumentException если термограмма с указанным именем в указанном массиве отсутствует
+     */
+    private static Thermogram getByName(String name, Thermogram[] thermograms) {
+        for (Thermogram thermogram : thermograms)
+            if (thermogram.name.equals(name))
+                return thermogram;
+        throw new IllegalArgumentException("Термограмма с указанным именем в указанном массиве отсутствует.");
+    }
+
+    /**
+     * Заполняет у каждой термограммы массива {@code thermograms} поле {@code forbiddenZones} информацией из файла
+     * {@code filename}, содержащего массив в формате JSON.
+     */
+    static void readForbiddenZones(Thermogram[] thermograms, String filename) {
+        JsonArray arrEntries = null, arrRectangles;
+        JsonObject jEntry, jRectangle, jLeft, jRight;
+
+        List<String> names = new ArrayList<>();
+        List<List<Rectangle<Pixel>>> rectangleLists = new ArrayList<>();
+        List<Rectangle<Pixel>> rectangles = new ArrayList<>();
+
+        Pixel left, right;
+        try {
+            arrEntries = (JsonArray) new JsonParser().parse(new FileReader(filename));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        for (Object objEntry : arrEntries) {
+            jEntry = (JsonObject) objEntry;
+            names.add(jEntry.get("Name").getAsString());
+            arrRectangles = (JsonArray) jEntry.get("ForbiddenZone");
+            for (Object objRectangle : arrRectangles) {
+                jRectangle = (JsonObject) objRectangle;
+                jLeft = (JsonObject) jRectangle.get("Left");
+                jRight = (JsonObject) jRectangle.get("Right");
+                left = new Pixel(jLeft.get("I").getAsInt(), jLeft.get("J").getAsInt());
+                right = new Pixel(jRight.get("I").getAsInt(), jRight.get("J").getAsInt());
+                rectangles.add(new Rectangle<>(left, right));
+            }
+            rectangleLists.add(rectangles);
+            rectangles.clear();
+        }
+        for (int i = 0; i < names.size(); i++)
+            Thermogram.getByName(names.get(i), thermograms).forbiddenZones = rectangleLists.get(i);
     }
 
     @Override
