@@ -484,14 +484,15 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     @Override
     public String toString() {
-        String str0;
-        if (vertices.size() > 0)
-            str0 = vertices.get(0).getClass().getName();
-        else
-            str0 = "empty";
-        StringBuilder str = new StringBuilder(getClass().getName() + "<" + str0 + ">[");
-        for (T vertex : vertices)
-            str.append(vertex.toShortString()).append(", ");
-        return str.substring(0, str.toString().length() - 2) + "]";
+        String str1 = "";
+        String str2 = "<empty>";
+        if (vertices.size() > 0) {
+            str1 = vertices.get(0).getClass().getName();
+            StringBuilder str = new StringBuilder();
+            for (T vertex : vertices)
+                str.append(vertex.toShortString()).append(", ");
+            str2 = str.substring(0, str.toString().length() - 2);
+        }
+        return getClass().getName() + "<" + str1 + ">" + "[" + str2 + "]";
     }
 }

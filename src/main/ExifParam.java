@@ -27,7 +27,9 @@ public enum ExifParam {
 
     ExifParam(String rawName) {
         this.rawName = rawName;
-        this.value = readValue(Main.FILENAME_GLOBAL_PARAMS);
+        this.value = readValue(
+                Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" +
+                        Main.SHORT_FILENAME_GLOBAL_PARAMS);
     }
 
     public String getRawName() {

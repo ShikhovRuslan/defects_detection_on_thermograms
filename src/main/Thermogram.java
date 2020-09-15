@@ -253,7 +253,7 @@ public class Thermogram {
      *
      * @throws IllegalArgumentException если термограмма с указанным именем в указанном массиве отсутствует
      */
-    private static Thermogram getByName(String name, Thermogram[] thermograms) {
+    static Thermogram getByName(String name, Thermogram[] thermograms) {
         for (Thermogram thermogram : thermograms)
             if (thermogram.name.equals(name))
                 return thermogram;
@@ -290,7 +290,7 @@ public class Thermogram {
                 right = new Pixel(jRight.get("I").getAsInt(), jRight.get("J").getAsInt());
                 rectangles.add(new Rectangle<>(left, right));
             }
-            rectangleLists.add(rectangles);
+            rectangleLists.add(new ArrayList<>(rectangles));
             rectangles.clear();
         }
         for (int i = 0; i < names.size(); i++)

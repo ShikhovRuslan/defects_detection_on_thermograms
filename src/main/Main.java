@@ -19,11 +19,11 @@ public class Main {
     /**
      * Краткое имя файла с конфигурационными параметрами.
      */
-    public final static String SHORT_FILENAME_CONFIG = "config.txt";
+    final static String SHORT_FILENAME_CONFIG = "config.txt";
     /**
      * Краткое имя файла с общими для всех термограмм EXIF-параметрами.
      */
-    private final static String SHORT_FILENAME_GLOBAL_PARAMS = "global_params.txt";
+    final static String SHORT_FILENAME_GLOBAL_PARAMS = "global_params.txt";
     /**
      * Краткое имя файла с геометрическими характеристиками съёмки.
      */
@@ -32,20 +32,6 @@ public class Main {
      * Краткое имя файла с запрещёнными зонами.
      */
     private final static String SHORT_FILENAME_FORBIDDEN_ZONES = "forbidden_zones.txt";
-
-
-    //
-    // Полные имена файлов.
-    //
-
-    /**
-     * Полное имя файла {@code SHORT_FILENAME_GLOBAL_PARAMS}.
-     */
-    public final static String FILENAME_GLOBAL_PARAMS;
-    /**
-     * Полное имя файла {@code SHORT_FILENAME_THERMOGRAMS_INFO}.
-     */
-    private final static String FILENAME_THERMOGRAMS_INFO;
 
 
     //
@@ -150,8 +136,6 @@ public class Main {
         }
         DIR_CURRENT = dirCurrent.substring(0, dirCurrent.lastIndexOf('/'));
 
-        FILENAME_GLOBAL_PARAMS = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_GLOBAL_PARAMS;
-        FILENAME_THERMOGRAMS_INFO = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO;
         DIR_THERMOGRAMS = "/" + Property.DIR_THERMOGRAMS.getValue().replace('\\', '/');
         DIR_RAW = DIR_CURRENT + "/" + Property.SUBDIR_RAW.getValue();
         DIR_OUTPUT_PICTURES = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_PICTURES.getValue();
@@ -180,8 +164,7 @@ public class Main {
         int[][] rawTable = Helper.extractRawTable(rawFilename,
                 (int) ExifParam.RAW_THERMAL_IMAGE_HEIGHT.getValue(),
                 (int) ExifParam.RAW_THERMAL_IMAGE_WIDTH.getValue());
-
-        double[][] realTable = Helper.rawTableToReal(rawTable);
+        double[][] realTable = Helper.rawTableToReal(rawTable); // Сохранить в формате csv.
         int[][] binTable = Helper.findIf(realTable, num -> num > T_MIN);
         Helper.nullifyForbiddenZones(binTable, thermogram.getForbiddenZones());
 
@@ -201,7 +184,8 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        Thermogram[] thermograms = Thermogram.readThermograms(FILENAME_THERMOGRAMS_INFO);
+        Thermogram[] thermograms = Thermogram.readThermograms(
+                DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO);
         Thermogram.readForbiddenZones(thermograms, DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
 
         for (int i = 0; i < thermograms.length; i++)
