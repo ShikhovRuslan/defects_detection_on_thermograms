@@ -232,20 +232,23 @@ public class Thermogram {
     }
 
     /**
-     * Возвращает массив термограмм, прочитанных из файла {@code filename}, содержащего массив в формате JSON.
-     * У термограмм заполняются все поля, кроме поля {@code forbiddenZones}.
+     * Возвращает массив термограмм, прочитанных из файла {@code filename1}, содержащего массив в формате JSON.
+     * Все поля, кроме поля {@code forbiddenZones}, прочитываются из файла {@code filename1}, а поле
+     * {@code forbiddenZones} - из файла {@code filename2}, содержащего массив в формате JSON.
      */
-    static Thermogram[] readThermograms(String filename) {
+    static Thermogram[] readThermograms(String filename1, String filename2) {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(Thermogram.class, new ThermogramDeserializer())
                 .create();
         BufferedReader bufferedReader = null;
         try {
-            bufferedReader = new BufferedReader(new FileReader(filename));
+            bufferedReader = new BufferedReader(new FileReader(filename1));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        return gson.fromJson(bufferedReader, Thermogram[].class);
+        Thermogram[] thermograms = gson.fromJson(bufferedReader, Thermogram[].class);
+        readForbiddenZones(thermograms, filename2);
+        return thermograms;
     }
 
     /**

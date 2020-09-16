@@ -24,7 +24,7 @@ public final class Helper {
     /**
      * Возвращает представление файла с названием {@code filename} в виде таблицы.
      */
-    public static List<List<String>> extractRawTable(String filename) throws FileNotFoundException {
+    public static List<List<String>> extractTable(String filename) throws FileNotFoundException {
         Csv.Reader reader = new Csv.Reader(new FileReader(filename)).delimiter(';').ignoreComments(true);
         List<List<String>> rawTable = new ArrayList<>();
         List<String> line;
@@ -191,17 +191,20 @@ public final class Helper {
      */
     public static double[][] rawTableToReal(int[][] rawTable) {
         double[][] realTable = new double[rawTable.length][rawTable[0].length];
-        for (int i = 0; i < realTable.length; i++)
-            for (int j = 0; j < realTable[0].length; j++)
-                realTable[i][j] = Helper.rawValueToReal(rawTable[i][j]);
+        for (int i = 0; i < rawTable.length; i++)
+            for (int j = 0; j < rawTable[0].length; j++)
+                realTable[i][j] = rawValueToReal(rawTable[i][j]);
         return realTable;
     }
 
     /**
-     * Извлекает таблицу размером {@code height x width} необработанных температурных данных из файла {@code filename}.
+     * Извлекает таблицу размером {@code height x width} из файла {@code filename} в формате CSV с разделителем
+     * {@code separator}, содержащего по крайней мере {@code height*width} значений. Фактически, формирование таблицы
+     * происходит при помощи массива всех последовательных значений указанного файла. Число строк в нём и их длины
+     * произвольны.
      */
-    public static int[][] extractRawTable(String filename, int height, int width) {
-        int[][] rawTable = new int[height][width];
+    public static int[][] extractTable(String filename, int height, int width, char separator) {
+        int[][] table = new int[height][width];
         FileReader reader = null;
         List<String[]> allData = null;
 
@@ -210,7 +213,7 @@ public final class Helper {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        CSVParser parser = new CSVParserBuilder().withSeparator(' ').build();
+        CSVParser parser = new CSVParserBuilder().withSeparator(separator).build();
         CSVReader csvReader = new CSVReaderBuilder(reader)
                 .withCSVParser(parser)
                 .build();
@@ -222,9 +225,9 @@ public final class Helper {
 
         int i0 = 0;
         int j0 = 0;
-        for (int i = 0; i < rawTable.length; i++)
-            for (int j = 0; j < rawTable[0].length; j++) {
-                rawTable[i][j] = new Integer(allData.get(i0)[j0]);
+        for (int i = 0; i < table.length; i++)
+            for (int j = 0; j < table[0].length; j++) {
+                table[i][j] = new Integer(allData.get(i0)[j0]);
                 if (j0 + 1 < allData.get(i0).length - 1)
                     j0++;
                 else {
@@ -232,7 +235,7 @@ public final class Helper {
                     i0++;
                 }
             }
-        return rawTable;
+        return table;
     }
 
     /**
@@ -241,7 +244,7 @@ public final class Helper {
      * Точка ({@code i}, {@code j}) системы координат c'x'y' соответствует позиции ({@code RES_Y-1-j}, {@code i}) в
      * таблице.
      */
-    static void nullifyForbiddenZones(int[][] table, List<Rectangle<Pixel>> rectangles) {
+    static void nullifyRectangles(int[][] table, List<Rectangle<Pixel>> rectangles) {
         if (rectangles != null)
             for (Rectangle<Pixel> rectangle : rectangles)
                 for (int i = rectangle.getLeft().getI(); i <= rectangle.getRight().getI(); i++)
@@ -269,12 +272,54 @@ public final class Helper {
         try {
             try (FileOutputStream fos = new FileOutputStream(filename);
                  OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-                 CSVWriter writer = new CSVWriter(osw, separator,
-                         CSVWriter.DEFAULT_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END)) {
+                 CSVWriter writer = new CSVWriter(osw, separator, CSVWriter.DEFAULT_QUOTE_CHARACTER,
+                         CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END)) {
                 writer.writeAll(entries, false);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Записывает таблицу температур в файл {@code realFilename} в формате CSV с разделителем {@code realSeparator},
+     * вычисляемую на основании таблицы размером {@code height x width} необработанных температурных данных, извлечённой
+     * из файла {@code rawFilename} в формате CSV с разделителем {@code rawSeparator}.
+     */
+    public static void rawFileToRealFile(String rawFilename, String realFilename, int height, int width,
+                                         char rawSeparator, char realSeparator) {
+        int[][] rawTable = Helper.extractTable(rawFilename, height, width, rawSeparator);
+        double[][] realTable = Helper.rawTableToReal(rawTable);
+        Helper.writeAsCsv(realTable, realSeparator, realFilename);
+    }
+
+    /**
+     * Извлекает таблицу из файла {@code filename} в формате CSV с разделителем {@code separator}. Все строки в этом
+     * файле должны иметь одинаковую длину.
+     */
+    public static double[][] extractTable(String filename, char separator) {
+        FileReader reader = null;
+        List<String[]> allData = null;
+
+        try {
+            reader = new FileReader(filename);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        CSVParser parser = new CSVParserBuilder().withSeparator(separator).build();
+        CSVReader csvReader = new CSVReaderBuilder(reader)
+                .withCSVParser(parser)
+                .build();
+        try {
+            allData = csvReader.readAll();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        double[][] table = new double[allData.size()][allData.get(0).length];
+        for (int i = 0; i < allData.size(); i++)
+            for (int j = 0; j < allData.get(0).length; j++)
+                table[i][j] = Double.parseDouble(allData.get(i)[j]);
+        return table;
     }
 }

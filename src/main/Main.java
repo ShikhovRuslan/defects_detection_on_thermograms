@@ -53,7 +53,15 @@ public class Main {
     /**
      * Расширение файлов с температурными данными термограмм в формате CSV.
      */
-    private final static String EXTENSION_CSV = ".csv";
+    private final static String EXTENSION_REAL = ".csv";
+    /**
+     * Разделитель значений в файле с необработанными температурами в формате CSV.
+     */
+    private final static char SEPARATOR_RAW = ' ';
+    /**
+     * Разделитель значений в файле с температурами в формате CSV.
+     */
+    private final static char SEPARATOR_REAL = ';';
     /**
      * Минимальная площадь прямоугольника (в кв. пикселях).
      */
@@ -79,8 +87,7 @@ public class Main {
 
 
     //
-    // Константы, извлечённые с использованием информации из конфигурационного файла SHORT_FILENAME_CONFIG и текущей
-    // папки.
+    // Константы, извлечённые с использованием информации из конфигурационного файла SHORT_FILENAME_CONFIG.
     //
 
     /**
@@ -131,45 +138,66 @@ public class Main {
     }
 
 
-    private static void process(Thermogram thermogram, Thermogram previous) {
+    private enum Option {
+        CSV("csv"),
+        PROCESS("process");
+
+        private final String name;
+
+        Option(String name) {
+            this.name = name;
+        }
+
+        private String getName() {
+            return name;
+        }
+    }
+
+    private static void process(Thermogram thermogram, Polygon<Pixel> overlap) {
         String thermogramFilename = "/" + Property.DIR_THERMOGRAMS.getValue().replace('\\', '/') +
                 "/" + thermogram.getName() + EXTENSION;
-        String rawFilename = DIR_CURRENT + "/" + Property.SUBDIR_RAW.getValue() +
-                "/" + thermogram.getName() + Property.POSTFIX_RAW.getValue() + EXTENSION_RAW;
         String outputPictureFilename = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_PICTURES.getValue() +
                 "/" + thermogram.getName() + Property.POSTFIX_PROCESSED.getValue() + EXTENSION;
 
-        System.out.println("Файл с выделенными дефектами: " + outputPictureFilename + "\n");
+        System.out.println("=== Thermogram: " + thermogram.getName() + " ===\n");
 
-        int[][] rawTable = Helper.extractRawTable(rawFilename,
-                (int) ExifParam.RAW_THERMAL_IMAGE_HEIGHT.getValue(),
-                (int) ExifParam.RAW_THERMAL_IMAGE_WIDTH.getValue());
-        double[][] realTable = Helper.rawTableToReal(rawTable);
+        double[][] realTable = Helper.extractTable(DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
+                "/" + thermogram.getName() + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL, SEPARATOR_REAL);
         int[][] binTable = Helper.findIf(realTable, num -> num > T_MIN);
-        Helper.nullifyForbiddenZones(binTable, thermogram.getForbiddenZones());
-
-        Helper.writeAsCsv(realTable, ';', DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_CSV.getValue() +
-                "/" + thermogram.getName() + Property.POSTFIX_CSV.getValue() + EXTENSION_CSV);
+        Helper.nullifyRectangles(binTable, thermogram.getForbiddenZones());
 
         List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable);
         ranges.removeIf(range -> range.squarePixels() < MIN_PIXEL_SQUARE);
 
-        Polygon<Pixel> overlap = thermogram.getOverlapWith(previous);
-        System.out.println(overlap);
+        System.out.println("Overlap: " + overlap);
 
         List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight());
-        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap, thermogram.getHeight());
+        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap,
+                thermogram.getHeight());
 
-        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, outputPictureFilename);
+        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), thermogram.getForbiddenZones(),
+                Color.BLACK, thermogramFilename, outputPictureFilename);
         Polygon.showSquares(enlargedPolygons, thermogram.getHeight());
+
+        System.out.println("\n");
     }
 
     public static void main(String[] args) {
         Thermogram[] thermograms = Thermogram.readThermograms(
-                DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO);
-        Thermogram.readForbiddenZones(thermograms, DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
+                DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO,
+                DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
 
-        for (int i = 0; i < thermograms.length; i++)
-            process(thermograms[i], thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1]);
+        if (args.length == 1 && args[0].equals(Option.CSV.getName()))
+            for (Thermogram thermogram : thermograms)
+                Helper.rawFileToRealFile(DIR_CURRENT + "/" + Property.SUBDIR_RAW.getValue() +
+                                "/" + thermogram.getName() + Property.POSTFIX_RAW.getValue() + EXTENSION_RAW,
+                        DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
+                                "/" + thermogram.getName() + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL,
+                        RES_Y, RES_X, SEPARATOR_RAW, SEPARATOR_REAL);
+
+        if (args.length == 1 && args[0].equals(Option.PROCESS.getName()))
+            for (int i = 0; i < thermograms.length; i++)
+                process(thermograms[i],
+                        thermograms[i].getOverlapWith(thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1]));
     }
 }
