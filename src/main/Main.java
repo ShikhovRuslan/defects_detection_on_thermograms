@@ -51,6 +51,10 @@ public class Main {
      */
     private final static String EXTENSION = ".jpg";
     /**
+     * Расширение файлов с температурными данными термограмм в формате CSV.
+     */
+    private final static String EXTENSION_CSV = ".csv";
+    /**
      * Минимальная площадь прямоугольника (в кв. пикселях).
      */
     public final static int MIN_PIXEL_SQUARE = 25;
@@ -79,28 +83,6 @@ public class Main {
     // папки.
     //
 
-    /**
-     * Папка с термограммами.
-     */
-    private final static String DIR_THERMOGRAMS;
-    /**
-     * Папка с файлами, содержащими необработанные температурные данные термограмм.
-     */
-    private final static String DIR_RAW;
-    /**
-     * Папка с термограммами с выделенными дефектами.
-     */
-    private final static String DIR_OUTPUT_PICTURES;
-    /**
-     * Постфикс (содержащий расширение {@code EXTENSION}), используемый для формирования имён файлов с необработанными
-     * температурными данными термограмм.
-     */
-    private final static String POSTFIX_RAW;
-    /**
-     * Постфикс (содержащий расширение {@code .jpg}), используемый для формирования имён термограмм с выделенными
-     * дефектами.
-     */
-    private final static String POSTFIX_PROCESSED;
     /**
      * Шаг пикселя, м.
      */
@@ -136,11 +118,6 @@ public class Main {
         }
         DIR_CURRENT = dirCurrent.substring(0, dirCurrent.lastIndexOf('/'));
 
-        DIR_THERMOGRAMS = "/" + Property.DIR_THERMOGRAMS.getValue().replace('\\', '/');
-        DIR_RAW = DIR_CURRENT + "/" + Property.SUBDIR_RAW.getValue();
-        DIR_OUTPUT_PICTURES = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_PICTURES.getValue();
-        POSTFIX_RAW = Property.POSTFIX_RAW.getValue() + EXTENSION_RAW;
-        POSTFIX_PROCESSED = Property.POSTFIX_PROCESSED.getValue() + EXTENSION;
         PIXEL_SIZE = Property.PIXEL_SIZE.getDoubleValue() / 1000_000;
         PRINCIPAL_POINT_X = Property.PRINCIPAL_POINT_X.getIntValue();
         PRINCIPAL_POINT_Y = Property.PRINCIPAL_POINT_Y.getIntValue();
@@ -155,18 +132,24 @@ public class Main {
 
 
     private static void process(Thermogram thermogram, Thermogram previous) {
-        String thermogramFilename = DIR_THERMOGRAMS + "/" + thermogram.getName() + EXTENSION;
-        String rawFilename = DIR_RAW + "/" + thermogram.getName() + POSTFIX_RAW;
-        String outputPictureFilename = DIR_OUTPUT_PICTURES + "/" + thermogram.getName() + POSTFIX_PROCESSED;
+        String thermogramFilename = "/" + Property.DIR_THERMOGRAMS.getValue().replace('\\', '/') +
+                "/" + thermogram.getName() + EXTENSION;
+        String rawFilename = DIR_CURRENT + "/" + Property.SUBDIR_RAW.getValue() +
+                "/" + thermogram.getName() + Property.POSTFIX_RAW.getValue() + EXTENSION_RAW;
+        String outputPictureFilename = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_PICTURES.getValue() +
+                "/" + thermogram.getName() + Property.POSTFIX_PROCESSED.getValue() + EXTENSION;
 
         System.out.println("Файл с выделенными дефектами: " + outputPictureFilename + "\n");
 
         int[][] rawTable = Helper.extractRawTable(rawFilename,
                 (int) ExifParam.RAW_THERMAL_IMAGE_HEIGHT.getValue(),
                 (int) ExifParam.RAW_THERMAL_IMAGE_WIDTH.getValue());
-        double[][] realTable = Helper.rawTableToReal(rawTable); // Сохранить в формате csv.
+        double[][] realTable = Helper.rawTableToReal(rawTable);
         int[][] binTable = Helper.findIf(realTable, num -> num > T_MIN);
         Helper.nullifyForbiddenZones(binTable, thermogram.getForbiddenZones());
+
+        Helper.writeAsCsv(realTable, ';', DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_CSV.getValue() +
+                "/" + thermogram.getName() + Property.POSTFIX_CSV.getValue() + EXTENSION_CSV);
 
         List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable);
         ranges.removeIf(range -> range.squarePixels() < MIN_PIXEL_SQUARE);
@@ -179,8 +162,6 @@ public class Main {
 
         Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap), thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, outputPictureFilename);
         Polygon.showSquares(enlargedPolygons, thermogram.getHeight());
-
-        System.out.println("\n");
     }
 
     public static void main(String[] args) {

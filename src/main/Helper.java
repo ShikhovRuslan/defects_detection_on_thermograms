@@ -2,16 +2,12 @@ package main;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.opencsv.CSVParser;
-import com.opencsv.CSVParserBuilder;
-import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
+import com.opencsv.*;
 import javenue.csv.Csv;
 import polygons.Segment;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -251,5 +247,34 @@ public final class Helper {
                 for (int i = rectangle.getLeft().getI(); i <= rectangle.getRight().getI(); i++)
                     for (int j = rectangle.getLeft().getJ(); j <= rectangle.getRight().getJ(); j++)
                         table[Main.RES_Y - 1 - j][i] = 0;
+    }
+
+    /**
+     * Конвертирует массив {@code array} типа {@code double[]} в массив типа {@code String[]}.
+     */
+    public static String[] toStringArray(double[] array) {
+        String[] newArray = new String[array.length];
+        for (int i = 0; i < array.length; i++)
+            newArray[i] = String.valueOf(array[i]);
+        return newArray;
+    }
+
+    /**
+     * Записывает таблицу {@code table} в файл {@code filename} в формате CSV с разделителем {@code separator}.
+     */
+    public static void writeAsCsv(double[][] table, char separator, String filename) {
+        List<String[]> entries = new ArrayList<>();
+        for (double[] line : table)
+            entries.add(toStringArray(line));
+        try {
+            try (FileOutputStream fos = new FileOutputStream(filename);
+                 OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+                 CSVWriter writer = new CSVWriter(osw, separator,
+                         CSVWriter.DEFAULT_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END)) {
+                writer.writeAll(entries, false);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
