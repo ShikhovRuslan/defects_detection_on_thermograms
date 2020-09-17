@@ -42,13 +42,18 @@ public class Thermogram {
     /**
      * Список прямоугольников, где не нужно искать дефекты.
      */
-    private List<Rectangle<Pixel>> forbiddenZones;
+    private final List<Rectangle<Pixel>> forbiddenZones;
 
-    public Thermogram(String name, double yaw, double height, Point groundNadir) {
+    public Thermogram(String name, double yaw, double height, Point groundNadir, List<Rectangle<Pixel>> forbiddenZones) {
         this.name = name;
         this.yaw = yaw;
         this.height = height;
         this.groundNadir = groundNadir;
+        this.forbiddenZones = forbiddenZones;
+    }
+
+    public Thermogram(String name, double yaw, double height, Point groundNadir) {
+        this(name, yaw, height, groundNadir, null);
     }
 
     public String getName() {
@@ -246,8 +251,12 @@ public class Thermogram {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        Thermogram[] thermograms = gson.fromJson(bufferedReader, Thermogram[].class);
-        readForbiddenZones(thermograms, filename2);
+        Thermogram[] tmpThermograms = gson.fromJson(bufferedReader, Thermogram[].class);
+        Map<String, List<Rectangle<Pixel>>> map = readForbiddenZones(filename2);
+        Thermogram[] thermograms = new Thermogram[tmpThermograms.length];
+        for (int i = 0; i < tmpThermograms.length; i++)
+            thermograms[i] = new Thermogram(tmpThermograms[i].name, tmpThermograms[i].yaw, tmpThermograms[i].height,
+                    tmpThermograms[i].groundNadir, map.get(tmpThermograms[i].name));
         return thermograms;
     }
 
@@ -264,10 +273,10 @@ public class Thermogram {
     }
 
     /**
-     * Заполняет у каждой термограммы массива {@code thermograms} поле {@code forbiddenZones} информацией из файла
+     * Возвращает соответствие между значениями полей {@param name} и {@param forbiddenZones}, считанными из файла
      * {@code filename}, содержащего массив в формате JSON.
      */
-    static void readForbiddenZones(Thermogram[] thermograms, String filename) {
+    static Map<String, List<Rectangle<Pixel>>> readForbiddenZones(String filename) {
         JsonArray arrEntries = null, arrRectangles;
         JsonObject jEntry, jRectangle, jLeft, jRight;
 
@@ -284,7 +293,7 @@ public class Thermogram {
         for (Object objEntry : arrEntries) {
             jEntry = (JsonObject) objEntry;
             names.add(jEntry.get("Name").getAsString());
-            arrRectangles = (JsonArray) jEntry.get("ForbiddenZone");
+            arrRectangles = (JsonArray) jEntry.get("ForbiddenZones");
             for (Object objRectangle : arrRectangles) {
                 jRectangle = (JsonObject) objRectangle;
                 jLeft = (JsonObject) jRectangle.get("Left");
@@ -296,8 +305,10 @@ public class Thermogram {
             rectangleLists.add(new ArrayList<>(rectangles));
             rectangles.clear();
         }
+        Map<String, List<Rectangle<Pixel>>> map = new HashMap<>();
         for (int i = 0; i < names.size(); i++)
-            Thermogram.getByName(names.get(i), thermograms).forbiddenZones = rectangleLists.get(i);
+            map.put(names.get(i), rectangleLists.get(i));
+        return map;
     }
 
     @Override
