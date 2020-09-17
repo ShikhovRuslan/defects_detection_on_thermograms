@@ -273,7 +273,7 @@ public class Thermogram {
     }
 
     /**
-     * Возвращает соответствие между значениями полей {@param name} и {@param forbiddenZones}, считанными из файла
+     * Возвращает соответствие между значениями полей {@link #name} и {@link #forbiddenZones}, считанными из файла
      * {@code filename}, содержащего массив в формате JSON.
      */
     static Map<String, List<Rectangle<Pixel>>> readForbiddenZones(String filename) {
