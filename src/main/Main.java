@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.Math.*;
@@ -352,9 +353,7 @@ public class Main {
                         DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
                                 "/" + thermogram.getName() + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL,
                         ExifParam.RES_Y.getIntValue(), ExifParam.RES_X.getIntValue(), SEPARATOR_RAW, SEPARATOR_REAL,
-                        ExifParam.PLANCK_R1.getValue(), ExifParam.PLANCK_R2.getValue(), ExifParam.PLANCK_O.getValue(),
-                        ExifParam.PLANCK_B.getValue(), ExifParam.PLANCK_F.getValue(), ExifParam.EMISSIVITY.getValue(),
-                        ExifParam.REFLECTED_APPARENT_TEMPERATURE.getValue());
+                        Arrays.copyOfRange(ExifParam.readValues(), 1, ExifParam.readValues().length));
         }
 
         if (args.length == 1 && args[0].equals(Option.DEFECTS.name)) {

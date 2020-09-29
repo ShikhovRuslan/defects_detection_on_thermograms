@@ -172,8 +172,15 @@ public final class Helper {
     /**
      * Конвертирует необработанное температурное значение {@code rawValue} в температуру.
      */
-    public static double rawValueToReal(int rawValue, double planckR1, double planckR2, double planckO, double planckB,
-                                        double planckF, double emissivity, double tRefl) {
+    public static double rawValueToReal(int rawValue, double[] params) {
+        double planckR1 = params[0];
+        double planckR2 = params[1];
+        double planckO = params[2];
+        double planckB = params[3];
+        double planckF = params[4];
+        double emissivity = params[5];
+        double tRefl = params[6];
+
         double rawRefl = planckR1 / (planckR2 * (pow(E, planckB / tRefl) - planckF)) - planckO;
         double rawObj = (rawValue - (1 - emissivity) * rawRefl) / emissivity;
         return planckB / log(planckR1 / (planckR2 * (rawObj + planckO)) + planckF) - 273.15;
@@ -182,12 +189,11 @@ public final class Helper {
     /**
      * Конвертирует таблицу необработанных температурных данных {@code rawTable} в таблицу температур.
      */
-    public static double[][] rawTableToReal(int[][] rawTable, double planckR1, double planckR2, double planckO, double planckB, double planckF,
-                                            double emissivity, double tRefl) {
+    public static double[][] rawTableToReal(int[][] rawTable, double[] params) {
         double[][] realTable = new double[rawTable.length][rawTable[0].length];
         for (int i = 0; i < rawTable.length; i++)
             for (int j = 0; j < rawTable[0].length; j++)
-                realTable[i][j] = rawValueToReal(rawTable[i][j], planckR1, planckR2, planckO, planckB, planckF, emissivity, tRefl);
+                realTable[i][j] = rawValueToReal(rawTable[i][j], params);
         return realTable;
     }
 
@@ -281,10 +287,9 @@ public final class Helper {
      * из файла {@code rawFilename} в формате CSV с разделителем {@code rawSeparator}.
      */
     public static void rawFileToRealFile(String rawFilename, String realFilename, int height, int width,
-                                         char rawSeparator, char realSeparator, double planckR1, double planckR2, double planckO, double planckB, double planckF,
-                                         double emissivity, double tRefl) {
+                                         char rawSeparator, char realSeparator, double[] params) {
         int[][] rawTable = Helper.extractTable(rawFilename, height, width, rawSeparator);
-        double[][] realTable = Helper.rawTableToReal(rawTable, planckR1, planckR2, planckO, planckB, planckF, emissivity, tRefl);
+        double[][] realTable = Helper.rawTableToReal(rawTable, params);
         Helper.writeAsCsv(realTable, realSeparator, realFilename);
     }
 
