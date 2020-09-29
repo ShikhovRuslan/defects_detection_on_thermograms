@@ -33,14 +33,14 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      */
     private final double earthSquare;
 
-    public Polygon(List<T> vertices) {
-        this(vertices, -1, 0);
+    public Polygon(List<T> vertices, double focalLength) {
+        this(vertices, -1, 0, focalLength);
     }
 
-    public Polygon(List<T> vertices, double pixelSquare, double height) {
+    public Polygon(List<T> vertices, double pixelSquare, double height, double focalLength) {
         this.vertices = vertices;
         this.pixelSquare = pixelSquare;
-        this.earthSquare = Thermogram.toEarthSquare(pixelSquare, height);
+        this.earthSquare = Thermogram.toEarthSquare(pixelSquare, height, focalLength);
     }
 
     public List<T> getVertices() {
@@ -50,25 +50,25 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Возвращает список треугольников, из которых состоит текущий многоугольник.
      */
-    public List<Triangle<T>> toTriangles() {
+    public List<Triangle<T>> toTriangles(double focalLength) {
         List<Triangle<T>> triangles = new ArrayList<>();
         for (int k = 1; k < vertices.size() - 1; k++)
-            triangles.add(new Triangle<>(Arrays.asList(vertices.get(0), vertices.get(k), vertices.get(k + 1))));
+            triangles.add(new Triangle<>(Arrays.asList(vertices.get(0), vertices.get(k), vertices.get(k + 1)), focalLength));
         return triangles;
     }
 
     @Override
-    public double square() {
+    public double square(double focalLength) {
         double square = 0;
-        for (Triangle<T> triangle : toTriangles())
-            square += triangle.square();
+        for (Triangle<T> triangle : toTriangles(focalLength))
+            square += triangle.square(focalLength);
         return square;
     }
 
     @Override
-    public boolean contains(T point) {
-        for (Triangle<T> triangle : toTriangles())
-            if (triangle.contains(point))
+    public boolean contains(T point, double focalLength) {
+        for (Triangle<T> triangle : toTriangles(focalLength))
+            if (triangle.contains(point, focalLength))
                 return true;
         return false;
     }
@@ -196,11 +196,11 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Конвертирует многоугольник {@code polygon} из системы координат c'x'y' в систему координат Oxy.
      */
-    public static Polygon<Point> toPointPolygon(Polygon<Pixel> polygon) {
+    public static Polygon<Point> toPointPolygon(Polygon<Pixel> polygon, double focalLength, int resY) {
         List<Point> vertices = new ArrayList<>();
         for (Pixel vertex : polygon.vertices)
-            vertices.add(Point.toPoint(vertex));
-        return new Polygon<>(vertices);
+            vertices.add(Point.toPoint(vertex, resY));
+        return new Polygon<>(vertices, focalLength);
     }
 
     /**
@@ -217,7 +217,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      */
     public static void drawPolygons(List<Polygon<Point>> polygons, Polygon<Point> overlap,
                                     List<Rectangle<Pixel>> forbiddenZones, Color color,
-                                    String pictureName, String newPictureName) {
+                                    String pictureName, String newPictureName, double focalLength, int resY) {
         try {
             BufferedImage image = ImageIO.read(new File(pictureName));
             draw(overlap, image, color);
@@ -225,7 +225,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 draw(polygon, image, color);
             if (forbiddenZones != null)
                 for (Rectangle<Pixel> rectangle : forbiddenZones)
-                    draw(toPointPolygon(Figure.toPolygon(rectangle, 0, 0)), image, color);
+                    draw(toPointPolygon(Figure.toPolygon(rectangle, 0, 0, focalLength), focalLength, resY), image, color);
             ImageIO.write(image, "jpg", new File(newPictureName));
         } catch (IOException e) {
             e.printStackTrace();
@@ -249,7 +249,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         }
     }
 
-    public static void showSquares(List<Polygon<Point>> polygons, double height) {
+    public static void showSquares(List<Polygon<Point>> polygons, double height, double focalLength, int resX, int resY) {
         List<Double> pixelSquares = new ArrayList<>();
         List<Double> earthSquares = new ArrayList<>();
         for (Polygon<Point> polygon : polygons) {
@@ -263,12 +263,12 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         for (Double num : earthSquares)
             totalEarthSquare += num;
         System.out.printf("%n%f  -  %s%n", totalPixelSquare, "суммарная площадь дефектов, кв. п.");
-        System.out.printf("%.2f %%  -  %s%n", 100 * totalPixelSquare / (Main.RES_X * Main.RES_Y),
+        System.out.printf("%.2f %%  -  %s%n", 100 * totalPixelSquare / (resX * resY),
                 "доля суммарной площади дефектов от общей площади");
         System.out.printf("%s%n%s%n", "Площади дефектов, кв. п.:", Arrays.toString(pixelSquares.toArray()));
 
         System.out.printf("%n%f  -  %s%n", totalEarthSquare, "суммарная площадь дефектов, кв. м.");
-        System.out.printf("%.2f %%  -  %s%n", 100 * totalEarthSquare / Thermogram.toEarthSquare(Main.RES_X * Main.RES_Y, height),
+        System.out.printf("%.2f %%  -  %s%n", 100 * totalEarthSquare / Thermogram.toEarthSquare(resX * resY, height, focalLength),
                 "доля суммарной площади дефектов от общей площади");
         System.out.printf("%s%n%s%n", "Площади дефектов, кв. м.:", Arrays.toString(earthSquares.toArray()));
     }
@@ -276,17 +276,17 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Возвращает список многоугольников, построенных на основе прямоугольников из списка {@code rectangles}.
      */
-    public static List<Polygon<Point>> toPolygons(List<Rectangle<Point>> rectangles, Polygon<Pixel> overlap, double height) {
+    public static List<Polygon<Point>> toPolygons(List<Rectangle<Point>> rectangles, Polygon<Pixel> overlap, double height, double focalLength, int resY) {
         List<Polygon<Point>> polygons = new ArrayList<>();
         for (Rectangle<Point> rectangle : rectangles)
-            polygons.add(Figure.toPolygon(rectangle, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(rectangle), overlap), height));
+            polygons.add(Figure.toPolygon(rectangle, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(rectangle, resY), overlap, focalLength), height, focalLength));
         return polygons;
     }
 
     /**
      * Возвращает многоугольник, построенный на точках, являющихся концами отрезков из массива {@code segments}.
      */
-    private static Polygon<Point> createPolygon(Segment[] segments, double squarePixels, double height) throws NullPointerException {
+    private static Polygon<Point> createPolygon(Segment[] segments, double squarePixels, double height, double focalLength) throws NullPointerException {
         Segment[] sides = Segment.order(segments);
         List<Point> points = new ArrayList<>();
         for (Segment side : sides) {
@@ -295,7 +295,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
             if (!points.contains(side.getB()))
                 points.add(side.getB());
         }
-        Polygon<Point> polygon = new Polygon<>(points, squarePixels, height);
+        Polygon<Point> polygon = new Polygon<>(points, squarePixels, height, focalLength);
         removeRedundantVertices(polygon);
         return polygon;
     }
@@ -402,7 +402,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      *
      * @see #areClose(Polygon, Polygon, int)
      */
-    static Polygon<Point> unite(Polygon<Point> first, Polygon<Point> second, int distance, Polygon<Pixel> overlap, double height)
+    static Polygon<Point> unite(Polygon<Point> first, Polygon<Point> second, int distance, Polygon<Pixel> overlap, double height, double focalLength, int resY)
             throws NullPointerException {
         Segment[] segments = perpendicular(first, second, distance);
         Segment perpendicular = segments[0];
@@ -419,9 +419,9 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 polygonalChains[1].length);
         System.arraycopy(new Segment[]{perpendicular, otherBoarder}, 0, allSegments,
                 polygonalChains[0].length + polygonalChains[1].length, 2);
-        double squarePixelsOfConnectingRectangle = Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(vertex0, otherBoarder.getB()), overlap);
+        double squarePixelsOfConnectingRectangle = Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(vertex0, otherBoarder.getB(), resY), overlap, focalLength);
         return createPolygon(allSegments,
-                first.pixelSquare + second.pixelSquare + squarePixelsOfConnectingRectangle, height);
+                first.pixelSquare + second.pixelSquare + squarePixelsOfConnectingRectangle, height, focalLength);
     }
 
     /**
@@ -429,7 +429,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * {@code distance}, многоугольников из списка {@code polygons}.
      */
     private static List<Polygon<Point>> toBiggerPolygons(List<Polygon<Point>> polygons, int distance,
-                                                         Polygon<Pixel> overlap, double height) {
+                                                         Polygon<Pixel> overlap, double height, double focalLength, int resY) {
         List<Polygon<Point>> newPolygons = new ArrayList<>();
         List<Integer> processed = new ArrayList<>();
         try {
@@ -439,12 +439,12 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                     for (j = i + 1; j < polygons.size(); j++)
                         if (!Helper.isIn(processed, j)) {
                             if (areClose(polygons.get(i), polygons.get(j), distance)) {
-                                newPolygons.add(unite(polygons.get(i), polygons.get(j), distance, overlap, height));
+                                newPolygons.add(unite(polygons.get(i), polygons.get(j), distance, overlap, height, focalLength, resY));
                                 processed.add(j);
                                 break;
                             }
                             if (areClose(polygons.get(j), polygons.get(i), distance)) {
-                                newPolygons.add(unite(polygons.get(j), polygons.get(i), distance, overlap, height));
+                                newPolygons.add(unite(polygons.get(j), polygons.get(i), distance, overlap, height, focalLength, resY));
                                 processed.add(j);
                                 break;
                             }
@@ -466,14 +466,14 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * @return список укрупнённых многоугольников
      */
     public static List<Polygon<Point>> enlargeIteratively(List<Polygon<Point>> polygons, int distance,
-                                                          Polygon<Pixel> overlap, double height) {
+                                                          Polygon<Pixel> overlap, double height, double focalLength, int resY) {
         List<Polygon<Point>> newPolygons = null;
         List<Polygon<Point>> prevPolygons;
         int count = -1; // число итераций, приводящих к укрупнению
         List<Integer> sizes = new ArrayList<>(); // размеры первоначального и всех последующих списков многоугольников
         do {
             prevPolygons = count >= 0 ? newPolygons : polygons;
-            newPolygons = toBiggerPolygons(prevPolygons, distance, overlap, height);
+            newPolygons = toBiggerPolygons(prevPolygons, distance, overlap, height, focalLength, resY);
             count++;
             sizes.add(prevPolygons.size());
         } while (newPolygons.size() < prevPolygons.size());

@@ -172,15 +172,8 @@ public final class Helper {
     /**
      * Конвертирует необработанное температурное значение {@code rawValue} в температуру.
      */
-    public static double rawValueToReal(int rawValue) {
-        double planckR1 = ExifParam.PLANCK_R1.getValue();
-        double planckR2 = ExifParam.PLANCK_R2.getValue();
-        double planckO = ExifParam.PLANCK_O.getValue();
-        double planckB = ExifParam.PLANCK_B.getValue();
-        double planckF = ExifParam.PLANCK_F.getValue();
-        double emissivity = ExifParam.EMISSIVITY.getValue();
-        double tRefl = ExifParam.REFLECTED_APPARENT_TEMPERATURE.getValue() + 273.15;
-
+    public static double rawValueToReal(int rawValue, double planckR1, double planckR2, double planckO, double planckB,
+                                        double planckF, double emissivity, double tRefl) {
         double rawRefl = planckR1 / (planckR2 * (pow(E, planckB / tRefl) - planckF)) - planckO;
         double rawObj = (rawValue - (1 - emissivity) * rawRefl) / emissivity;
         return planckB / log(planckR1 / (planckR2 * (rawObj + planckO)) + planckF) - 273.15;
@@ -189,11 +182,12 @@ public final class Helper {
     /**
      * Конвертирует таблицу необработанных температурных данных {@code rawTable} в таблицу температур.
      */
-    public static double[][] rawTableToReal(int[][] rawTable) {
+    public static double[][] rawTableToReal(int[][] rawTable, double planckR1, double planckR2, double planckO, double planckB, double planckF,
+                                            double emissivity, double tRefl) {
         double[][] realTable = new double[rawTable.length][rawTable[0].length];
         for (int i = 0; i < rawTable.length; i++)
             for (int j = 0; j < rawTable[0].length; j++)
-                realTable[i][j] = rawValueToReal(rawTable[i][j]);
+                realTable[i][j] = rawValueToReal(rawTable[i][j], planckR1, planckR2, planckO, planckB, planckF, emissivity, tRefl);
         return realTable;
     }
 
@@ -244,12 +238,12 @@ public final class Helper {
      * Точка ({@code i}, {@code j}) системы координат c'x'y' соответствует позиции ({@code RES_Y-1-j}, {@code i}) в
      * таблице.
      */
-    static void nullifyRectangles(int[][] table, List<Rectangle<Pixel>> rectangles) {
+    static void nullifyRectangles(int[][] table, List<Rectangle<Pixel>> rectangles, int resY) {
         if (rectangles != null)
             for (Rectangle<Pixel> rectangle : rectangles)
                 for (int i = rectangle.getLeft().getI(); i <= rectangle.getRight().getI(); i++)
                     for (int j = rectangle.getLeft().getJ(); j <= rectangle.getRight().getJ(); j++)
-                        table[Main.RES_Y - 1 - j][i] = 0;
+                        table[resY - 1 - j][i] = 0;
     }
 
     /**
@@ -287,9 +281,10 @@ public final class Helper {
      * из файла {@code rawFilename} в формате CSV с разделителем {@code rawSeparator}.
      */
     public static void rawFileToRealFile(String rawFilename, String realFilename, int height, int width,
-                                         char rawSeparator, char realSeparator) {
+                                         char rawSeparator, char realSeparator, double planckR1, double planckR2, double planckO, double planckB, double planckF,
+                                         double emissivity, double tRefl) {
         int[][] rawTable = Helper.extractTable(rawFilename, height, width, rawSeparator);
-        double[][] realTable = Helper.rawTableToReal(rawTable);
+        double[][] realTable = Helper.rawTableToReal(rawTable, planckR1, planckR2, planckO, planckB, planckF, emissivity, tRefl);
         Helper.writeAsCsv(realTable, realSeparator, realFilename);
     }
 

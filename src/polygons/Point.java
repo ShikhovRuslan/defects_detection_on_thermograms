@@ -38,8 +38,8 @@ public class Point extends AbstractPoint {
     /**
      * Конвертирует точку {@code point} из системы координат c'x'y' в систему координат Oxy.
      */
-    public static Point toPoint(Pixel point) {
-        return new Point(Main.RES_Y - 1 - point.getJ(), point.getI());
+    public static Point toPoint(Pixel point, int resY) {
+        return new Point(resY - 1 - point.getJ(), point.getI());
     }
 
     /**
@@ -75,9 +75,9 @@ public class Point extends AbstractPoint {
     /**
      * Определяет, принадлежит ли текущая точка какому-нибудь прямоугольнику из списка {@code rectangles}.
      */
-    public boolean isInRectangles(List<Rectangle<Point>> rectangles) {
+    public boolean isInRectangles(List<Rectangle<Point>> rectangles, double focalLength) {
         for (Rectangle<Point> rectangle : rectangles)
-            if (rectangle.contains(this))
+            if (rectangle.contains(this, focalLength))
                 return true;
         return false;
     }

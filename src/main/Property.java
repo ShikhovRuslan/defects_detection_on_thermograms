@@ -58,7 +58,7 @@ public enum Property {
         return name;
     }
 
-    String getValue() {
+    public String getValue() {
         return value;
     }
 

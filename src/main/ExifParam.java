@@ -3,6 +3,8 @@ package main;
 
 /**
  * Содержит общие для всех термограмм EXIF-параметры, находящиеся в файле {@code SHORT_FILENAME_GLOBAL_PARAMS}.
+ * Фокальное расстояние {@code FOCAL_LENGTH} переводится из миллиметров в метры.
+ * Отражённая температура {@code REFLECTED_APPARENT_TEMPERATURE} переводится из градусов Цельсия в Кельвины.
  */
 public enum ExifParam {
     FOCAL_LENGTH("FocalLength"),
@@ -13,8 +15,8 @@ public enum ExifParam {
     PLANCK_F("PlanckF"),
     EMISSIVITY("Emissivity"),
     REFLECTED_APPARENT_TEMPERATURE("ReflectedApparentTemperature"),
-    RAW_THERMAL_IMAGE_HEIGHT("RawThermalImageHeight"),
-    RAW_THERMAL_IMAGE_WIDTH("RawThermalImageWidth");
+    RES_X("RawThermalImageWidth"),
+    RES_Y("RawThermalImageHeight");
 
     /**
      * Имя параметра.
@@ -27,9 +29,20 @@ public enum ExifParam {
 
     ExifParam(String rawName) {
         this.rawName = rawName;
-        this.value = readValue(
-                Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" +
+
+        switch (rawName) {
+            case "FocalLength":
+                this.value = readValue(Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" +
+                        Main.SHORT_FILENAME_GLOBAL_PARAMS) / 1000;
+                break;
+            case "ReflectedApparentTemperature":
+                this.value = readValue(Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" +
+                        Main.SHORT_FILENAME_GLOBAL_PARAMS) + 273.15;
+                break;
+            default:
+                this.value = readValue(Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" +
                         Main.SHORT_FILENAME_GLOBAL_PARAMS);
+        }
     }
 
     public String getRawName() {
@@ -38,6 +51,10 @@ public enum ExifParam {
 
     public double getValue() {
         return value;
+    }
+
+    public int getIntValue() {
+        return (int) value;
     }
 
     /**
