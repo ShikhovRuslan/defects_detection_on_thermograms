@@ -17,6 +17,7 @@ import static java.lang.Math.abs;
 
 /**
  *
+ *
  * http://www.javenue.info/post/78 - чтение и запись CSV файлов в Java.
  * https://exiftool.org/forum/index.php/topic,4898.msg23972.html#msg23972.
  */
