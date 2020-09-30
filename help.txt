@@ -1,0 +1,23 @@
+ Использование:
+
+ -gp        Извлекает общие для всех термограмм параметры: Focal Length, Planck R1, Planck R2, Planck O, Planck B, 
+            Planck F, emissivity, Reflected Apparent Temperature, Raw Thermal Image Height, Raw Thermal Image Width 
+            - из данных EXIF первой термограммы из папки THERMOGRAMS_DIR в файл .\OUTPUT_SUBDIR\global_params.txt в 
+            формате JSON.
+
+ -ti        Извлекает параметры термограмм из папки THERMOGRAMS_DIR: Relative Altitude, Gimbal Yaw Degree, 
+            GPS Latitude, GPS Longitude - из данных EXIF в файл .\OUTPUT_SUBDIR\thermograms_info.txt в виде массива 
+            JSON.
+
+ -trt       Извлекает из всех термограмм из папки THERMOGRAMS_DIR необработанные температурные данные в файлы в папке 
+            .\RAW_SUBDIR.
+
+ -csv       Для каждой термограммы из папки THERMOGRAMS_DIR конвертирует файл с необработанными температурными данными 
+            из папки .\RAW_SUBDIR в файл с температурами в формате CSV в папке .\OUTPUT_REAL_SUBDIR.
+
+ -d         Для каждой термограммы из файла .\OUTPUT_SUBDIR\thermograms_info.txt создаёт изображение с выделенными 
+            дефектами в папке .\OUTPUT_PICTURES_SUBDIR.
+
+ -h         Отображает справку.
+
+ Без пар.   Отображает справку.

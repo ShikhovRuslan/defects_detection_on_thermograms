@@ -27,15 +27,15 @@ public class Main {
     /**
      *
      */
-    final static String BAT_GLOBAL_PARAMS = "global_params.bat";
+    private final static String BAT_GLOBAL_PARAMS = "global_params.bat";
     /**
      *
      */
-    final static String BAT_THERMOGRAMS_INFO = "thermograms_info.bat";
+    private final static String BAT_THERMOGRAMS_INFO = "thermograms_info.bat";
     /**
      *
      */
-    final static String BAT_THERMOGRAMS_RAW_TEMPERATURES = "thermograms_raw_temperatures.bat";
+    private final static String BAT_THERMOGRAMS_RAW_TEMPERATURES = "thermograms_raw_temperatures.bat";
     /**
      * Краткое имя файла с конфигурационными параметрами.
      */
@@ -192,17 +192,12 @@ public class Main {
     }
 
     private enum Option {
-        CSV("-csv"),
-        THERMOGRAMS_INFO("-ti"),
-        DEFECTS("-d"),
-        THERMOGRAMS_RAW_TEMPERATURES("-trt"),
-        HELP("-help");
-
-        private final String name;
-
-        Option(String name) {
-            this.name = name;
-        }
+        GLOBAL_PARAMS,
+        THERMOGRAMS_INFO,
+        THERMOGRAMS_RAW_TEMPERATURES,
+        CSV,
+        DEFECTS,
+        HELP;
 
         private static void help() {
             try {
@@ -215,18 +210,30 @@ public class Main {
                 e.printStackTrace();
             }
         }
+
+        private static Option getByAlias(String alias) {
+            switch (alias) {
+                case "-gp":
+                    return GLOBAL_PARAMS;
+                case "-ti":
+                    return THERMOGRAMS_INFO;
+                case "-trt":
+                    return THERMOGRAMS_RAW_TEMPERATURES;
+                case "-csv":
+                    return CSV;
+                case "-d":
+                    return DEFECTS;
+            }
+            return HELP;
+        }
     }
 
-    private static void process(Thermogram thermogram, Polygon<Pixel> overlap) throws IOException {
-        String thermogramFilename = "/" + Property.DIR_THERMOGRAMS.getValue().replace('\\', '/') +
-                "/" + thermogram.getName() + EXTENSION;
-        String outputPictureFilename = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_PICTURES.getValue() +
-                "/" + thermogram.getName() + Property.POSTFIX_PROCESSED.getValue() + EXTENSION;
-
+    private static void defects(Thermogram thermogram, Polygon<Pixel> overlap,
+                                String thermogramFilename, String outputPictureFilename, String realFilename,
+                                double focalLength, int resX, int resY) throws IOException {
         System.out.println("=== Thermogram: " + thermogram.getName() + " ===\n");
 
-        double[][] realTable = Helper.extractTable(DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
-                "/" + thermogram.getName() + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL, SEPARATOR_REAL);
+        double[][] realTable = Helper.extractTable(realFilename, SEPARATOR_REAL);
         int[][] binTable = Helper.findIf(realTable, num -> num > T_MIN);
 
         BufferedWriter outputWriter = new BufferedWriter(
@@ -239,23 +246,23 @@ public class Main {
         outputWriter.flush();
         outputWriter.close();
 
-        Helper.nullifyRectangles(binTable, thermogram.getForbiddenZones(), ExifParam.RES_Y.getIntValue());
+        Helper.nullifyRectangles(binTable, thermogram.getForbiddenZones(), resY);
 
-        List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable, ExifParam.FOCAL_LENGTH.getValue());
+        List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable, focalLength);
         ranges.removeIf(range -> range.squarePixels() < MIN_PIXEL_SQUARE);
 
         System.out.println("Overlap: " + overlap);
 
-        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_Y.getIntValue());
+        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength, resY);
         List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap,
-                thermogram.getHeight(), ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_Y.getIntValue());
+                thermogram.getHeight(), focalLength, resY);
 
-        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap, ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_Y.getIntValue()), thermogram.getForbiddenZones(),
-                Color.BLACK, thermogramFilename, outputPictureFilename, ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_Y.getIntValue());
-        Polygon.showSquares(enlargedPolygons, thermogram.getHeight(), ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_X.getIntValue(), ExifParam.RES_Y.getIntValue());
+        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap, focalLength, resY), thermogram.getForbiddenZones(),
+                Color.BLACK, thermogramFilename, outputPictureFilename, focalLength, resY);
+        Polygon.showSquares(enlargedPolygons, thermogram.getHeight(), focalLength, resX, resY);
 
-        String filename = Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
-                "/" + thermogram.getName() + Property.POSTFIX_REAL.getValue() + Main.EXTENSION_REAL;
+        String filename = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
+                "/" + thermogram.getName() + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL;
         Pixel[] pixels;
         for (Polygon<Point> polygon : enlargedPolygons) {
             /*System.out.println(Base.procedureNotNeeded((int) Math.round(Base.realToMatrix(0.7, thermogram.getHeight(),
@@ -264,7 +271,7 @@ public class Main {
                     (int) Math.round(Base.realToMatrix(0.7, thermogram.getHeight(), Main.PIXEL_SIZE)) + " | " +
                     Base.width(Base.toPixelPolygon(polygon)) + " X " +
                     Base.height(Base.toPixelPolygon(polygon)));*/
-            pixels = Base.toPixelPolygon(polygon, ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_Y.getIntValue()).getVertices().toArray(new Pixel[0]);
+            pixels = Base.toPixelPolygon(polygon, focalLength, resY).getVertices().toArray(new Pixel[0]);
 //            System.out.println(Base.sss(Base.realToMatrix(0.7, thermogram.getHeight(),
 //                    Main.PIXEL_SIZE), 48, 4, Main.SEPARATOR_REAL, filename, pixels) + "\n" +
 //                    Base.toPixelPolygon(polygon));
@@ -278,91 +285,64 @@ public class Main {
         innerPixels[0] = new Pixel(228 - 10, 129 - 5);
         innerPixels[1] = new Pixel(231, 129);
         innerPixels[2] = new Pixel(233 + 10, 130 + 5);
-        System.out.println(Base._aaa(innerPixels[0], filename, SEPARATOR_REAL, 0.7, thermogram.getHeight(), ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_Y.getIntValue()));
-        System.out.println(Base._aaa(innerPixels[1], filename, SEPARATOR_REAL, 0.7, thermogram.getHeight(), ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_Y.getIntValue()));
-        System.out.println(Base._aaa(innerPixels[2], filename, SEPARATOR_REAL, 0.7, thermogram.getHeight(), ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_Y.getIntValue()));
+        System.out.println(Base._aaa(innerPixels[0], filename, SEPARATOR_REAL, 0.7, thermogram.getHeight(), focalLength, resY));
+        System.out.println(Base._aaa(innerPixels[1], filename, SEPARATOR_REAL, 0.7, thermogram.getHeight(), focalLength, resY));
+        System.out.println(Base._aaa(innerPixels[2], filename, SEPARATOR_REAL, 0.7, thermogram.getHeight(), focalLength, resY));
 
         System.out.println("\n");
     }
 
-    public static void run(String filename) {
-        try {
-            Runtime.getRuntime().exec("cmd /C cd " + DIR_CURRENT.substring(1) + " && start " + filename);
-        } catch (IOException ioException) {
-            System.out.println(ioException.getMessage());
-        }
-
-//        ProcessBuilder pb = new ProcessBuilder(filename);
-//        pb.directory(new File(DIR_CURRENT));
-//        try {
-//            pb.start();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-        /*Runtime runtime = Runtime.getRuntime();
-        try {
-            Process p1 = runtime.exec("cmd /c start C:\\Users\\shikh\\Documents\\Geo\\1a-folder\\bat_help.bat");
-            InputStream is = p1.getInputStream();
-            int i = 0;
-            while( (i = is.read() ) != -1) {
-                System.out.print((char)i);
-            }
-        } catch(IOException ioException) {
-            System.out.println(ioException.getMessage() );
-        }*/
-//        try (BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\shikh\\Documents\\Geo\\1a-folder\\help.txt"))) {
-//            String line1;
-//            while ((line1 = br.readLine()) != null) {
-//                //System.setOut(new PrintStream(new FileOutputStream("out.txt"), true, "UTF-8"));
-//                System.out.println("---" + line1);
-//                //ProcessBuilder builder2 = new ProcessBuilder("cmd", "/K", "chcp 65001" + " && echo " + line1);
-//                //builder2.redirectErrorStream(true);
-//                //Process p2 = builder2.start();
-//                //BufferedReader r2 = new BufferedReader(new InputStreamReader(p2.getInputStream()));
-//                //String line2;
-//                /*while (true) {
-//                    line2 = r2.readLine();
-//                    if (line2 == null) { break; }
-//                    System.out.println(line2);
-//                }*/
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-    }
-
     public static void main(String[] args) throws IOException {
-        if ((args.length == 1 && args[0].equals(Option.HELP.name)) | args.length != 1)
-            Option.help();
+        Option option = args.length == 1 ? Option.getByAlias(args[0]) : Option.HELP;
 
-        if (args.length == 1 && args[0].equals(Option.THERMOGRAMS_INFO.name))
-            run(BAT_THERMOGRAMS_INFO);
+        switch (option) {
+            case GLOBAL_PARAMS:
+                Helper.run(DIR_CURRENT.substring(1), BAT_GLOBAL_PARAMS);
+                break;
 
-        if (args.length == 1 && args[0].equals(Option.THERMOGRAMS_RAW_TEMPERATURES.name))
-            run(BAT_THERMOGRAMS_RAW_TEMPERATURES);
+            case THERMOGRAMS_INFO:
+                Helper.run(DIR_CURRENT.substring(1), BAT_THERMOGRAMS_INFO);
+                break;
 
-        if (args.length == 1 && args[0].equals(Option.CSV.name)) {
-            Thermogram[] thermograms = Thermogram.readThermograms(
-                    DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO,
-                    DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
-            for (Thermogram thermogram : thermograms)
-                Helper.rawFileToRealFile(DIR_CURRENT + "/" + Property.SUBDIR_RAW.getValue() +
-                                "/" + thermogram.getName() + Property.POSTFIX_RAW.getValue() + EXTENSION_RAW,
-                        DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
-                                "/" + thermogram.getName() + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL,
-                        ExifParam.RES_Y.getIntValue(), ExifParam.RES_X.getIntValue(), SEPARATOR_RAW, SEPARATOR_REAL,
-                        Arrays.copyOfRange(ExifParam.readValues(), 1, ExifParam.readValues().length));
-        }
+            case THERMOGRAMS_RAW_TEMPERATURES:
+                Helper.run(DIR_CURRENT.substring(1), BAT_THERMOGRAMS_RAW_TEMPERATURES);
+                break;
 
-        if (args.length == 1 && args[0].equals(Option.DEFECTS.name)) {
-            Thermogram[] thermograms = Thermogram.readThermograms(
-                    DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO,
-                    DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
-            for (int i = 0; i < thermograms.length; i++)
-                process(thermograms[i],
-                        thermograms[i].getOverlapWith(thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1], ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_X.getIntValue(), ExifParam.RES_Y.getIntValue()));
+            case CSV:
+                File[] files = new File(Property.DIR_THERMOGRAMS.getValue()).listFiles();
+                String[] thermogramsNames = new String[files.length];
+                for (int i = 0; i < files.length; i++)
+                    thermogramsNames[i] = files[i].getName().substring(0, files[i].getName().indexOf('.'));
+                for (String thermogramName : thermogramsNames)
+                    Helper.rawFileToRealFile(DIR_CURRENT + "/" + Property.SUBDIR_RAW.getValue() +
+                                    "/" + thermogramName + Property.POSTFIX_RAW.getValue() + EXTENSION_RAW,
+                            DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
+                                    "/" + thermogramName + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL,
+                            ExifParam.RES_Y.getIntValue(), ExifParam.RES_X.getIntValue(), SEPARATOR_RAW, SEPARATOR_REAL,
+                            Arrays.copyOfRange(ExifParam.readValues(), 1, ExifParam.readValues().length));
+                break;
+
+            case DEFECTS:
+                Thermogram[] thermograms = Thermogram.readThermograms(
+                        DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO,
+                        DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
+                for (int i = 0; i < thermograms.length; i++)
+                    defects(thermograms[i],
+                            thermograms[i].getOverlapWith(thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1],
+                                    ExifParam.FOCAL_LENGTH.getValue(),
+                                    ExifParam.RES_X.getIntValue(),
+                                    ExifParam.RES_Y.getIntValue()),
+                            "/" + Property.DIR_THERMOGRAMS.getValue().replace('\\', '/') +
+                                    "/" + thermograms[i].getName() + EXTENSION,
+                            DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_PICTURES.getValue() +
+                                    "/" + thermograms[i].getName() + Property.POSTFIX_PROCESSED.getValue() + EXTENSION,
+                            DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
+                                    "/" + thermograms[i].getName() + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL,
+                            ExifParam.FOCAL_LENGTH.getValue(), ExifParam.RES_X.getIntValue(), ExifParam.RES_Y.getIntValue());
+                break;
+
+            case HELP:
+                Option.help();
         }
     }
 }

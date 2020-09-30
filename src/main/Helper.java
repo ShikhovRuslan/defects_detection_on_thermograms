@@ -322,4 +322,15 @@ public final class Helper {
                 table[i][j] = Double.parseDouble(allData.get(i)[j]);
         return table;
     }
+
+    /**
+     * Запускает пакетный файл Windows {@code filename}, находящийся в папке {@code dir}.
+     */
+    public static void run(String dir, String filename) {
+        try {
+            Runtime.getRuntime().exec("cmd /C cd " + dir + " && start " + filename);
+        } catch (IOException ioException) {
+            System.out.println(ioException.getMessage());
+        }
+    }
 }
