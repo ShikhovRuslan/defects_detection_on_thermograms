@@ -1,15 +1,21 @@
 package main;
 
+import com.google.gson.*;
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.DMSCoordinate;
 import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
 import static java.lang.Math.*;
+
+import main.Main.Corners;
 
 
 /**
@@ -19,6 +25,10 @@ import static java.lang.Math.*;
  * https://github.com/grumlimited/geocalc
  */
 public class Thermogram {
+    /**
+     * Название термограммы.
+     */
+    private final String name;
     /**
      * Угол поворота оси c'x' относительно оси OX, отсчитываемый против часовой стрелки.
      */
@@ -31,52 +41,25 @@ public class Thermogram {
      * Географические координаты места съёмки.
      */
     private final Point groundNadir;
+    /**
+     * Список прямоугольников, где не нужно искать дефекты.
+     */
+    private final List<Rectangle<Pixel>> forbiddenZones;
 
-    /**
-     * Разрешение матрицы по горизонтали (т. е. по оси c'x').
-     */
-    public final static int RES_X = 640;
-    /**
-     * Разрешение матрицы по вертикали (т. е. по оси c'y').
-     */
-    public final static int RES_Y = 512;
-    /**
-     * Шаг пикселя, м.
-     */
-    public final static double PIXEL_SIZE = 17. / 1000_000;
-    /**
-     * Фокусное расстояние, м.
-     */
-    public final static double FOCAL_LENGTH = 25. / 1000;
-    /**
-     * Средний радиус Земли, м.
-     */
-    public final static double EARTH_RADIUS = 6371.01 * 1000;
-    /**
-     * Абсцисса главной точки снимка в системе координат c'x'y'.
-     */
-    public final static int PRINCIPAL_POINT_X = 310;
-    /**
-     * Ордината главной точки снимка в системе координат c'x'y'.
-     */
-    public final static int PRINCIPAL_POINT_Y = 182;
-    /**
-     * Главная точка снимка в системе координат c'x'y'.
-     */
-    public final static Pixel PRINCIPAL_POINT = new Pixel(PRINCIPAL_POINT_X, PRINCIPAL_POINT_Y);
-    /**
-     * Минимальная температура.
-     */
-    public final static double T_MIN = 30;
-    /**
-     * Минимальная площадь прямоугольника (в кв. пикселях).
-     */
-    public final static int MIN_PIXEL_SQUARE = 25;
-
-    public Thermogram(double yaw, double height, Point groundNadir) {
+    public Thermogram(String name, double yaw, double height, Point groundNadir, List<Rectangle<Pixel>> forbiddenZones) {
+        this.name = name;
         this.yaw = yaw;
         this.height = height;
         this.groundNadir = groundNadir;
+        this.forbiddenZones = forbiddenZones;
+    }
+
+    public Thermogram(String name, double yaw, double height, Point groundNadir) {
+        this(name, yaw, height, groundNadir, null);
+    }
+
+    public String getName() {
+        return name;
     }
 
     public double getYaw() {
@@ -91,85 +74,38 @@ public class Thermogram {
         return groundNadir;
     }
 
-    /**
-     * Углы термограммы в системе координат c'x'y', начиная с верхнего левого угла и заканчивая нижним левым.
-     */
-    public enum Corners {
-        /**
-         * Верхний левый угол термограммы.
-         */
-        C0(0, RES_Y - 1),
-        /**
-         * Верхний правый угол термограммы.
-         */
-        C1(RES_X - 1, RES_Y - 1),
-        /**
-         * Нижний правый угол термограммы.
-         */
-        C2(RES_X - 1, 0),
-        /**
-         * Нижний левый угол термограммы.
-         */
-        C3(0, 0);
-
-        /**
-         * Абсцисса угла термограммы.
-         */
-        private final int i;
-        /**
-         * Ордината угла термограммы.
-         */
-        private final int j;
-
-        Corners(int i, int j) {
-            this.i = i;
-            this.j = j;
-        }
-
-        /**
-         * Конвертирует текущий угол термограммы в точку.
-         */
-        Pixel toPixel() {
-            return new Pixel(i, j);
-        }
-
-        /**
-         * Вычисляет острый угол (в градусах) между отрезком, соединяющим точку {@code point} и текущий угол
-         * термограммы, и прямой, проходящей через точку {@code point} и параллельной оси c'x'.
-         */
-        double angle(Pixel point) {
-            return (180 / PI) * atan(abs(j - point.getJ()) / abs(i - point.getI() + 0.));
-        }
+    public List<Rectangle<Pixel>> getForbiddenZones() {
+        return forbiddenZones;
     }
 
     /**
      * Возвращает величину, обратную к масштабу матрицы, т. е. отношение длины отрезка на местности к длине
      * соответствующего отрезка на матрице камеры.
      */
-    private static double reverseScale(double height) {
-        return height / FOCAL_LENGTH;
+    public static double reverseScale(double height, double focalLength) {
+        return height / focalLength;
     }
 
     /**
      * Вычисляет расстояние в метрах между пикселями {@code a} и {@code b}.
      */
     private static double matrixDistance(Pixel a, Pixel b) {
-        return PIXEL_SIZE * sqrt(pow(a.getI() - b.getI(), 2) + pow(a.getJ() - b.getJ(), 2));
+        return Main.PIXEL_SIZE * sqrt(pow(a.getI() - b.getI(), 2) + pow(a.getJ() - b.getJ(), 2));
     }
 
     /**
      * Вычисляет расстояние в метрах между точками Земли, которые проектируются в пиксели {@code a} и {@code b}.
      */
-    static double earthDistance(Pixel a, Pixel b, double height) {
-        return reverseScale(height) * matrixDistance(a, b);
+    static double earthDistance(Pixel a, Pixel b, double height, double focalLength) {
+        return reverseScale(height, focalLength) * matrixDistance(a, b);
     }
 
     /**
      * Конвертирует площадь в кв. пикселях участка матрицы в площадь в кв. метрах участка Земли, который проектируется
      * на этот участок матрицы.
      */
-    public static double toEarthSquare(double pixelSquare, double height) {
-        return pixelSquare * pow(PIXEL_SIZE * reverseScale(height), 2);
+    public static double toEarthSquare(double pixelSquare, double height, double focalLength) {
+        return pixelSquare * pow(Main.PIXEL_SIZE * reverseScale(height, focalLength), 2);
     }
 
     /**
@@ -187,47 +123,47 @@ public class Thermogram {
     /**
      * Вычисляет географические координаты углов текущей термограммы.
      */
-    Point[] getCorners() {
+    Point[] getCorners(double focalLength) {
         Point[] corners = new Point[4];
         double[] angles = {
-                Corners.C0.angle(PRINCIPAL_POINT) - yaw - 180,
-                -Corners.C1.angle(PRINCIPAL_POINT) - yaw,
-                Corners.C2.angle(PRINCIPAL_POINT) - yaw,
-                -Corners.C3.angle(PRINCIPAL_POINT) - yaw + 180};
+                Corners.C0.angle(Main.PRINCIPAL_POINT) - yaw - 180,
+                -Corners.C1.angle(Main.PRINCIPAL_POINT) - yaw,
+                Corners.C2.angle(Main.PRINCIPAL_POINT) - yaw,
+                -Corners.C3.angle(Main.PRINCIPAL_POINT) - yaw + 180};
         for (int i = 0; i < 4; i++)
             corners[i] = EarthCalc.pointAt(groundNadir, angles[i],
-                    earthDistance(PRINCIPAL_POINT, Corners.values()[i].toPixel(), height));
+                    earthDistance(Main.PRINCIPAL_POINT, Corners.values()[i].toPixel(), height, focalLength));
         return corners;
     }
 
     /**
      * Возвращает пиксельные координаты точки {@code point}, заданной географическими координатами.
      */
-    Pixel toPixel(Point point) {
-        Point centre = getCorners()[3];
+    Pixel toPixel(Point point, double focalLenght) {
+        Point centre = getCorners(focalLenght)[3];
         double earthDistance = EarthCalc.harvesineDistance(point, centre);
         double omega = (PI / 180) * (360 - yaw - EarthCalc.bearing(centre, point));
-        double pixelDistance = earthDistance / reverseScale(height) / PIXEL_SIZE;
+        double pixelDistance = earthDistance / reverseScale(height, focalLenght) / Main.PIXEL_SIZE;
         return new Pixel(pixelDistance * cos(omega), pixelDistance * sin(omega));
     }
 
     /**
      * Определяет принадлежность текущей термограмме точки {@code point}, заданной географическими координатами.
      */
-    private boolean contains(Point point) {
-        Pixel pixel = toPixel(point);
-        return (0 <= pixel.getI() && pixel.getI() < RES_X) && (0 <= pixel.getJ() && pixel.getJ() < RES_Y);
+    private boolean contains(Point point, double focalLength, int resX, int resY) {
+        Pixel pixel = toPixel(point, focalLength);
+        return (0 <= pixel.getI() && pixel.getI() < resX) && (0 <= pixel.getJ() && pixel.getJ() < resY);
     }
 
     /**
      * Возвращает список координат углов термограммы {@code second}, которые принадлежат термограмме {@code first}, в
      * системе пиксельных координат, связанных с текущей термограммой.
      */
-    private List<Pixel> cornersFromOther(Thermogram first, Thermogram second) {
+    private List<Pixel> cornersFromOther(Thermogram first, Thermogram second, double focalLength, int resX, int resY) {
         List<Pixel> vertices = new ArrayList<>();
-        for (Point vertex : second.getCorners())
-            if (first.contains(vertex))
-                vertices.add(toPixel(vertex));
+        for (Point vertex : second.getCorners(focalLength))
+            if (first.contains(vertex, focalLength, resX, resY))
+                vertices.add(toPixel(vertex, focalLength));
         return vertices;
     }
 
@@ -235,19 +171,99 @@ public class Thermogram {
      * Возвращает многоугольник (в системе пиксельных координат, связанных с текущей термограммой), который является
      * пересечением текущей термограммы и термограммы {@code previous}.
      */
-    Polygon<Pixel> getOverlapWith(Thermogram previous) {
+    Polygon<Pixel> getOverlapWith(Thermogram previous, double focalLength, int resX, int resY) {
         List<Pixel> vertices = new ArrayList<>();
-        vertices.addAll(cornersFromOther(this, previous));
-        vertices.addAll(cornersFromOther(previous, this));
+        vertices.addAll(cornersFromOther(this, previous, focalLength, resX, resY));
+        vertices.addAll(cornersFromOther(previous, this, focalLength, resX, resY));
         Pixel intersection;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++) {
                 intersection = Pixel.findIntersection(Corners.values()[i].toPixel(),
                         Corners.values()[i + 1 < 4 ? i + 1 : 0].toPixel(),
-                        toPixel(previous.getCorners()[j]), toPixel(previous.getCorners()[j + 1 < 4 ? j + 1 : 0]));
+                        toPixel(previous.getCorners(focalLength)[j], focalLength), toPixel(previous.getCorners(focalLength)[j + 1 < 4 ? j + 1 : 0], focalLength));
                 if (intersection.getI() != -1)
                     vertices.add(intersection);
             }
-        return new Polygon<>(AbstractPoint.order(vertices));
+        return new Polygon<>(AbstractPoint.order(vertices), focalLength);
+    }
+
+    /**
+     * Возвращает массив термограмм, прочитанных из файла {@code filename1}, содержащего массив в формате JSON.
+     * Все поля, кроме поля {@code forbiddenZones}, прочитываются из файла {@code filename1}, а поле
+     * {@code forbiddenZones} - из файла {@code filename2}, содержащего массив в формате JSON.
+     */
+    static Thermogram[] readThermograms(String filename1, String filename2) {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Thermogram.class, new ThermogramDeserializer())
+                .create();
+        BufferedReader bufferedReader = null;
+        try {
+            bufferedReader = new BufferedReader(new FileReader(filename1));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        Thermogram[] tmpThermograms = gson.fromJson(bufferedReader, Thermogram[].class);
+        Map<String, List<Rectangle<Pixel>>> map = readForbiddenZones(filename2);
+        Thermogram[] thermograms = new Thermogram[tmpThermograms.length];
+        for (int i = 0; i < tmpThermograms.length; i++)
+            thermograms[i] = new Thermogram(tmpThermograms[i].name, tmpThermograms[i].yaw, tmpThermograms[i].height,
+                    tmpThermograms[i].groundNadir, map.get(tmpThermograms[i].name));
+        return thermograms;
+    }
+
+    /**
+     * Возвращает термограмму из массива {@code thermograms}, имя которой совпадает с именем {@code name}.
+     *
+     * @throws IllegalArgumentException если термограмма с указанным именем в указанном массиве отсутствует
+     */
+    static Thermogram getByName(String name, Thermogram[] thermograms) {
+        for (Thermogram thermogram : thermograms)
+            if (thermogram.name.equals(name))
+                return thermogram;
+        throw new IllegalArgumentException("Термограмма с указанным именем в указанном массиве отсутствует.");
+    }
+
+    /**
+     * Возвращает соответствие между значениями полей {@link #name} и {@link #forbiddenZones}, считанными из файла
+     * {@code filename}, содержащего массив в формате JSON.
+     */
+    static Map<String, List<Rectangle<Pixel>>> readForbiddenZones(String filename) {
+        JsonArray arrEntries = null, arrRectangles;
+        JsonObject jEntry, jRectangle, jLeft, jRight;
+
+        List<String> names = new ArrayList<>();
+        List<List<Rectangle<Pixel>>> rectangleLists = new ArrayList<>();
+        List<Rectangle<Pixel>> rectangles = new ArrayList<>();
+
+        Pixel left, right;
+        try {
+            arrEntries = (JsonArray) new JsonParser().parse(new FileReader(filename));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        for (Object objEntry : arrEntries) {
+            jEntry = (JsonObject) objEntry;
+            names.add(jEntry.get("Name").getAsString());
+            arrRectangles = (JsonArray) jEntry.get("ForbiddenZones");
+            for (Object objRectangle : arrRectangles) {
+                jRectangle = (JsonObject) objRectangle;
+                jLeft = (JsonObject) jRectangle.get("Left");
+                jRight = (JsonObject) jRectangle.get("Right");
+                left = new Pixel(jLeft.get("I").getAsInt(), jLeft.get("J").getAsInt());
+                right = new Pixel(jRight.get("I").getAsInt(), jRight.get("J").getAsInt());
+                rectangles.add(new Rectangle<>(left, right));
+            }
+            rectangleLists.add(new ArrayList<>(rectangles));
+            rectangles.clear();
+        }
+        Map<String, List<Rectangle<Pixel>>> map = new HashMap<>();
+        for (int i = 0; i < names.size(); i++)
+            map.put(names.get(i), rectangleLists.get(i));
+        return map;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + new GsonBuilder().setPrettyPrinting().create().toJson(this);
     }
 }

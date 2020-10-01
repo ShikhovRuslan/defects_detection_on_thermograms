@@ -10,14 +10,14 @@ import java.util.List;
  * @param <T> тип вершин
  */
 public class Triangle<T extends AbstractPoint> extends Polygon<T> {
-    public Triangle(List<T> vertices) {
-        super(vertices);
+    public Triangle(List<T> vertices, double focalLength) {
+        super(vertices, focalLength);
         if (vertices.size() != 3)
             throw new IllegalArgumentException("Число вершин в треугольнике не равно 3.");
     }
 
     @Override
-    public boolean contains(T point) {
+    public boolean contains(T point, double focalLength) {
         int[] sgn = new int[3];
         for (int k = 0; k < 3; k++) {
             if (point.isInLine(getVertices().get(k), getVertices().get(k + 1 < 3 ? k + 1 : 0)))
@@ -31,7 +31,7 @@ public class Triangle<T extends AbstractPoint> extends Polygon<T> {
     }
 
     @Override
-    public double square() {
+    public double square(double focalLength) {
         return 0.5 * Math.abs((getVertices().get(2).getI() - getVertices().get(0).getI()) *
                 (getVertices().get(1).getJ() - getVertices().get(0).getJ()) -
                 (getVertices().get(2).getJ() - getVertices().get(0).getJ()) *

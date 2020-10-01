@@ -37,7 +37,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     }
 
     @Override
-    public double square() {
+    public double square(double focalLength) {
         return (right.getI() - left.getI()) * (right.getJ() - left.getJ());
     }
 
@@ -51,12 +51,12 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     /**
      * Возвращает площадь части прямоугольника {@code rectangle}, которая не принадлежит многоугольнику {@code overlap}.
      */
-    public static double squareRectangleWithoutOverlap(Rectangle<Pixel> rectangle, Polygon<Pixel> overlap) {
-        return rectangle.square() - getIntersection(rectangle, overlap).square();
+    public static double squareRectangleWithoutOverlap(Rectangle<Pixel> rectangle, Polygon<Pixel> overlap, double focalLength) {
+        return rectangle.square(focalLength) - getIntersection(rectangle, overlap, focalLength).square(focalLength);
     }
 
     @Override
-    public boolean contains(T point) {
+    public boolean contains(T point, double focalLength) {
         return (left.getI() <= point.getI() && point.getI() <= right.getI()) &&
                 (left.getJ() <= point.getJ() && point.getJ() <= right.getJ());
     }
@@ -65,21 +65,21 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * Возвращает многоугольник, который является пересечением прямоугольника {@code rectangle} и многоугольника
      * {@code polygon}.
      */
-    public static Polygon<Pixel> getIntersection(Rectangle<Pixel> rectangle, Polygon<Pixel> polygon) {
+    public static Polygon<Pixel> getIntersection(Rectangle<Pixel> rectangle, Polygon<Pixel> polygon, double focalLength) {
         List<Pixel> vertices = new ArrayList<>();
-        vertices.addAll(rectangle.verticesFrom(polygon));
-        vertices.addAll(polygon.verticesFrom(Figure.toPolygon(rectangle, -1, 0)));
+        vertices.addAll(rectangle.verticesFrom(polygon, focalLength));
+        vertices.addAll(polygon.verticesFrom(Figure.toPolygon(rectangle, -1, 0, focalLength), focalLength));
         Pixel intersection;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < polygon.getVertices().size(); j++) {
-                intersection = Pixel.findIntersection(Figure.toPolygon(rectangle, -1, 0).getVertices().get(i),
-                        Figure.toPolygon(rectangle, -1, 0).getVertices().get(i + 1 < 4 ? i + 1 : 0),
+                intersection = Pixel.findIntersection(Figure.toPolygon(rectangle, -1, 0, focalLength).getVertices().get(i),
+                        Figure.toPolygon(rectangle, -1, 0, focalLength).getVertices().get(i + 1 < 4 ? i + 1 : 0),
                         polygon.getVertices().get(j),
                         polygon.getVertices().get(j + 1 < polygon.getVertices().size() ? j + 1 : 0));
                 if (intersection.getI() != -1)
                     vertices.add(intersection);
             }
-        return new Polygon<>(AbstractPoint.order(vertices));
+        return new Polygon<>(AbstractPoint.order(vertices), focalLength);
     }
 
     /**
@@ -92,28 +92,28 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     /**
      * Конвертирует прямоугольник {@code rectangle} из системы координат Oxy в систему координат c'x'y'.
      */
-    public static Rectangle<Pixel> toRectangle(Rectangle<Point> rectangle) {
-        return new Rectangle<>(new Pixel(rectangle.left.getJ(), Thermogram.RES_Y - rectangle.right.getI()),
-                new Pixel(rectangle.right.getJ(), Thermogram.RES_Y - rectangle.left.getI()));
+    public static Rectangle<Pixel> toRectangle(Rectangle<Point> rectangle, int resY) {
+        return new Rectangle<>(new Pixel(rectangle.left.getJ(), resY - rectangle.right.getI()),
+                new Pixel(rectangle.right.getJ(), resY - rectangle.left.getI()));
     }
 
     /**
      * Конвертирует прямоугольник {@code rectangle} из системы координат c'x'y' в систему координат Oxy.
      */
-    public static Rectangle<Point> toRectangle2(Rectangle<Pixel> rectangle) {
-        return new Rectangle<>(new Point(Thermogram.RES_Y - rectangle.right.getJ(), rectangle.left.getI()),
-                new Point(Thermogram.RES_Y - rectangle.left.getJ(), rectangle.right.getI()));
+    public static Rectangle<Point> toRectangle2(Rectangle<Pixel> rectangle, int resY) {
+        return new Rectangle<>(new Point(resY - rectangle.right.getJ(), rectangle.left.getI()),
+                new Point(resY - rectangle.left.getJ(), rectangle.right.getI()));
     }
 
     /**
      * Возвращает прямоугольник, чьими противоположными вершинами являются точки {@code p1} и {@code p2}.
      */
-    public static Rectangle<Pixel> toRectangle(Point p1, Point p2) {
+    public static Rectangle<Pixel> toRectangle(Point p1, Point p2, int resY) {
         int i1 = Math.min(p1.getI(), p2.getI());
         int i2 = Math.max(p1.getI(), p2.getI());
         int j1 = Math.min(p1.getJ(), p2.getJ());
         int j2 = Math.max(p1.getJ(), p2.getJ());
-        return toRectangle(new Rectangle<>(new Point(i1, j1), new Point(i2, j2)));
+        return toRectangle(new Rectangle<>(new Point(i1, j1), new Point(i2, j2)), resY);
     }
 
     /**
@@ -122,9 +122,9 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * {@code rectangles}.
      */
     private static boolean verticalSegmentIntersectsRectangles(int i1, int i2, int j,
-                                                               List<Rectangle<Point>> rectangles) {
+                                                               List<Rectangle<Point>> rectangles, double focalLength) {
         for (int k = Math.min(i1, i2); k <= Math.max(i1, i2); k++)
-            if (new Point(k, j).isInRectangles(rectangles))
+            if (new Point(k, j).isInRectangles(rectangles, focalLength))
                 return true;
         return false;
     }
@@ -145,7 +145,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * Возвращает прямоугольник, чья верхняя (относительно термограммы) левая вершина примерно совпадает с точкой
      * {@code point}, на основании таблицы {@code table} и списка уже построенных прямоугольников {@code rectangles}.
      */
-    private static Rectangle<Point> makeRectangle(int[][] table, Point point, List<Rectangle<Point>> rectangles) {
+    private static Rectangle<Point> makeRectangle(int[][] table, Point point, List<Rectangle<Point>> rectangles, double focalLength) {
         int x = point.getI(), y = point.getJ();
         boolean incrementX, incrementY;
         do {
@@ -160,7 +160,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
             if (y + 1 < table[0].length &&
                     amountOfOnes(new Rectangle<>(point, new Point(x, y + 1)), table) -
                             amountOfOnes(new Rectangle<>(point, new Point(x, y)), table) > (x - point.getI() + 1) / 2 &&
-                    !Rectangle.verticalSegmentIntersectsRectangles(point.getI(), x, y + 1, rectangles)) {
+                    !Rectangle.verticalSegmentIntersectsRectangles(point.getI(), x, y + 1, rectangles, focalLength)) {
                 y++;
                 incrementY = true;
             }
@@ -179,13 +179,13 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     /**
      * Возвращает список прямоугольников, созданных на основании таблицы {@code table}.
      */
-    public static List<Rectangle<Point>> findRectangles(int[][] table) {
+    public static List<Rectangle<Point>> findRectangles(int[][] table, double focalLength) {
         List<Rectangle<Point>> rectangles = new ArrayList<>();
         Rectangle<Point> rectangle;
         for (int i = 0; i < table.length; i++)
             for (int j = 0; j < table[0].length; j++)
-                if (table[i][j] == 1 && !(new Point(i, j).isInRectangles(rectangles))) {
-                    rectangle = makeRectangle(table, new Point(i, j), rectangles);
+                if (table[i][j] == 1 && !(new Point(i, j).isInRectangles(rectangles, focalLength))) {
+                    rectangle = makeRectangle(table, new Point(i, j), rectangles, focalLength);
                     if (!rectangle.isSegment())
                         rectangles.add(rectangle);
                 }
