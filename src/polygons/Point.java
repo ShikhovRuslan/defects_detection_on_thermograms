@@ -1,77 +1,84 @@
 package polygons;
 
+import main.*;
 
-public class Point {
-    private int x;
-    private int y;
+import java.util.List;
 
-    public Point(int x, int y) {
-        this.x = x;
-        this.y = y;
+
+/**
+ * Используется для хранения координат точек в системе координат Oxy.
+ */
+public class Point extends AbstractPoint {
+    public Point(int i, int j) {
+        super(i, j);
     }
 
-    int getX() {
-        return x;
-    }
-
-    int getY() {
-        return y;
+    @Override
+    public Point create(int i, int j) {
+        return new Point(i, j);
     }
 
     /**
-     * Возвращает расстояние от текущей точки до линии {@param line}.
+     * Возвращает расстояние от текущей точки до отрезка {@code segment}.
      *
-     * @throws IllegalArgumentException если текущая точка не может быть спроектирована на внутренность линии или линия
-     *                                  не является ни горизонтальной, ни вертикальной
+     * @throws IllegalArgumentException если текущая точка не может быть спроектирована на внутренность отрезка или
+     *                                  отрезок не является ни горизонтальным, ни вертикальным
      */
-    int distance(Line line) {
-        if (projectableTo(line)) {
-            if (line.isHorizontal())
-                return Math.abs(x - line.getA().getX());
-            if (line.isVertical())
-                return Math.abs(y - line.getA().getY());
+    public int distance(Segment segment) {
+        if (projectableTo(segment)) {
+            if (segment.isHorizontal())
+                return Math.abs(getI() - segment.getA().getI());
+            if (segment.isVertical())
+                return Math.abs(getJ() - segment.getA().getJ());
         }
-        throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность линии, или " +
-                "линия не является ни горизонтальной, ни вертикальной.");
+        throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность отрезка, или " +
+                "отрезок не является ни горизонтальным, ни вертикальным.");
     }
 
     /**
-     * Определяет возможность проектирования текущей точки на внутренность линии {@param line}.
-     *
-     * @throws IllegalArgumentException если линия не является ни горизонтальной, ни вертикальной
+     * Конвертирует точку {@code point} из системы координат c'x'y' в систему координат Oxy.
      */
-    boolean projectableTo(Line line) {
-        if (line.isHorizontal())
-            return y > Math.min(line.getA().getY(), line.getB().getY()) && y < Math.max(line.getA().getY(), line.getB().getY());
-        if (line.isVertical())
-            return x > Math.min(line.getA().getX(), line.getB().getX()) && x < Math.max(line.getA().getX(), line.getB().getX());
-        throw new IllegalArgumentException("Линия не является ни горизонтальной, ни вертикальной.");
+    public static Point toPoint(Pixel point) {
+        return new Point(Thermogram.RES_Y - 1 - point.getJ(), point.getI());
     }
 
     /**
-     * Возвращает проекцию текущей точки на линию {@param line}.
+     * Определяет возможность проектирования текущей точки на внутренность отрезка {@code segment}.
      *
-     * @throws IllegalArgumentException если текущую точку нельзя спроектировать на линию или линия не является ни
-     *                                  горизонтальной, ни вертикальной
+     * @throws IllegalArgumentException если отрезок не является ни горизонтальным, ни вертикальным
      */
-    Point project(Line line) {
-        if (line.isHorizontal() && (projectableTo(line) || y == line.getA().y || y == line.getB().y))
-            return new Point(line.getA().getX(), y);
-        if (line.isVertical() && (projectableTo(line) || x == line.getA().x || x == line.getB().x))
-            return new Point(x, line.getA().getY());
-        throw new IllegalArgumentException("Текущую точку нельзя спроектировать на линию, или линия не является ни " +
-                "горизонтальной, ни вертикальной.");
+    public boolean projectableTo(Segment segment) {
+        if (segment.isHorizontal())
+            return getJ() > Math.min(segment.getA().getJ(), segment.getB().getJ()) &&
+                    getJ() < Math.max(segment.getA().getJ(), segment.getB().getJ());
+        if (segment.isVertical())
+            return getI() > Math.min(segment.getA().getI(), segment.getB().getI()) &&
+                    getI() < Math.max(segment.getA().getI(), segment.getB().getI());
+        throw new IllegalArgumentException("Отрезок не является ни горизонтальным, ни вертикальным.");
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof Point))
-            return false;
-        return x == ((Point) obj).getX() && y == ((Point) obj).getY();
+    /**
+     * Возвращает проекцию текущей точки на отрезок {@code segment}.
+     *
+     * @throws IllegalArgumentException если текущую точку нельзя спроектировать на отрезок или отрезок не является ни
+     *                                  горизонтальным, ни вертикальным
+     */
+    public Point project(Segment segment) {
+        if (segment.isHorizontal() && (projectableTo(segment) || getJ() == segment.getA().getJ() || getJ() == segment.getB().getJ()))
+            return new Point(segment.getA().getI(), getJ());
+        if (segment.isVertical() && (projectableTo(segment) || getI() == segment.getA().getI() || getI() == segment.getB().getI()))
+            return new Point(getI(), segment.getA().getJ());
+        throw new IllegalArgumentException("Текущую точку нельзя спроектировать на отрезок, или отрезок не является " +
+                "ни горизонтальным, ни вертикальным.");
     }
 
-    @Override
-    public String toString() {
-        return "(" + x + ", " + y + ")";
+    /**
+     * Определяет, принадлежит ли текущая точка какому-нибудь прямоугольнику из списка {@code rectangles}.
+     */
+    public boolean isInRectangles(List<Rectangle<Point>> rectangles) {
+        for (Rectangle<Point> rectangle : rectangles)
+            if (rectangle.contains(this))
+                return true;
+        return false;
     }
 }
