@@ -1,8 +1,4 @@
 .gradle
-<<<<<<< HEAD
-build
-manifest.mf
-=======
 .idea
 build
 gradle
@@ -10,4 +6,3 @@ out
 gradlew
 gradlew.bat
 run_in_new_window.bat
->>>>>>> refs/remotes/origin/master
