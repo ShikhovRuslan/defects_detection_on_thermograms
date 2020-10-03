@@ -5,4 +5,5 @@ gradle
 out
 gradlew
 gradlew.bat
+geo.iml
 run_in_new_window.bat
