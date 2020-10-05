@@ -1,6 +1,6 @@
 #!/bin/bash
 # Извлекает параметры термограмм из папки THERMOGRAMS_DIR: Relative Altitude, Gimbal Yaw Degree,
-# GPS Latitude, GPS Longitude - из данных EXIF в файл .\OUTPUT_SUBDIR\thermograms_info.txt в виде массива JSON.
+# GPS Latitude, GPS Longitude - из данных EXIF в файл ./OUTPUT_SUBDIR/thermograms_info.txt в виде массива JSON.
 
 THERMOGRAMS_DIR=$(grep "^THERMOGRAMS_DIR" config.txt | cut -d'=' -f 2 | sed 's/^ //')
 

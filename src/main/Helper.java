@@ -18,6 +18,24 @@ import static java.lang.Math.*;
 
 
 public final class Helper {
+    /**
+     * Операционные системы.
+     */
+    public enum Os {
+        WINDOWS("Windows"),
+        LINUX("Linux");
+
+        private final String name;
+
+        Os(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
     private Helper() {
     }
 
@@ -324,13 +342,29 @@ public final class Helper {
     }
 
     /**
-     * Запускает пакетный файл Windows {@code filename}, находящийся в папке {@code dir}.
+     * Запускает пакетный файл Windows или bash-скрипт Linux {@code scriptname}, находящийся в папке {@code dir}, из
+     * рабочей директории {@code dir}.
+     * <p>
+     * {@param params} необязательный список параметров командной строки для скрипта
      */
-    public static void run(String dir, String filename) {
+    public static void run(String dir, String scriptname, String os, String... params) {
+        String command = "";
+        if (os.equals(Os.WINDOWS.name))
+            command = "cmd /C cd " + dir + " && start " + scriptname;
+        if (os.equals(Os.LINUX.name))
+            command = "/bin/bash " + scriptname;
+        for (String param : params)
+            command += " " + param;
+
         try {
-            Runtime.getRuntime().exec("cmd /C cd " + dir + " && start " + filename);
-        } catch (IOException ioException) {
-            System.out.println(ioException.getMessage());
+            if (os.equals(Os.WINDOWS.name)) {
+                Runtime.getRuntime().exec(command).waitFor();
+            }
+            if (os.equals(Os.LINUX.name)) {
+                Runtime.getRuntime().exec(command, null, new File(dir)).waitFor();
+            }
+        } catch (IOException | InterruptedException e) {
+            System.out.println(e.getMessage());
         }
     }
 }

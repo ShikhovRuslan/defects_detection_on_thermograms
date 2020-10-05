@@ -1,5 +1,5 @@
 #!/bin/bash
-# Извлекает из всех термограмм из папки THERMOGRAMS_DIR необработанные температурные данные в файлы в папке .\RAW_SUBDIR.
+# Извлекает из всех термограмм из папки THERMOGRAMS_DIR необработанные температурные данные в файлы в папке ./RAW_SUBDIR.
 
 THERMOGRAMS_DIR=$(grep "^THERMOGRAMS_DIR" config.txt | cut -d'=' -f 2 | sed 's/^ //')
 
