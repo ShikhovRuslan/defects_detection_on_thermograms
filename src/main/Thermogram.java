@@ -15,8 +15,6 @@ import java.util.*;
 
 import static java.lang.Math.*;
 
-import main.Main.Corners;
-
 
 /**
  * С Землёй связана неподвижная система OXYZ координат. Ось OX направлена на север, ось OY - на запад, а ось OZ - вверх.
