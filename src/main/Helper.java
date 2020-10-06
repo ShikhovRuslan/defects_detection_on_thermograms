@@ -350,19 +350,14 @@ public final class Helper {
     public static void run(String dir, String scriptname, String os, String... params) {
         String command = "";
         if (os.equals(Os.WINDOWS.name))
-            command = "cmd /C cd " + dir + " && start " + scriptname;
+            command = "cmd /C start " + scriptname;
         if (os.equals(Os.LINUX.name))
             command = "/bin/bash " + scriptname;
         for (String param : params)
             command += " " + param;
 
         try {
-            if (os.equals(Os.WINDOWS.name)) {
-                Runtime.getRuntime().exec(command).waitFor();
-            }
-            if (os.equals(Os.LINUX.name)) {
-                Runtime.getRuntime().exec(command, null, new File(dir)).waitFor();
-            }
+            Runtime.getRuntime().exec(command, null, new File(dir)).waitFor();
         } catch (IOException | InterruptedException e) {
             System.out.println(e.getMessage());
         }

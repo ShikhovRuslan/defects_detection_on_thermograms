@@ -9,7 +9,7 @@ for /f "tokens=2 delims==" %%i in ('findstr "^EXIFTOOL" config.txt') do set EXIF
 set EXIFTOOL=%EXIFTOOL:~1%
 
 for /f "tokens=2 delims==" %%i in ('findstr "^SED" config.txt') do set SED=%%i
-set SED=%SED:~1%
+set SED="%SED:~1%"
 
 for /f "tokens=2 delims==" %%i in ('findstr "^POSTFIX_RAW" config.txt') do set POSTFIX_RAW=%%i
 set POSTFIX_RAW=%POSTFIX_RAW:~1%
@@ -22,7 +22,7 @@ set OUTPUT_FILE=%2\%OUTPUT_FILE%%POSTFIX_RAW%
 
 convert %OUTPUT_FILE%.png -compress none %OUTPUT_FILE%.pgm
 
-"%SED%" -i 1,3d %OUTPUT_FILE%.pgm
+%SED% -i 1,3d %OUTPUT_FILE%.pgm
 
 del %OUTPUT_FILE%.png
 del .\sed*.
