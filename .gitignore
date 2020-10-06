@@ -5,8 +5,5 @@ gradle
 out
 gradlew
 gradlew.bat
-<<<<<<< HEAD
-=======
 geo.iml
->>>>>>> refs/remotes/origin/master
 run_in_new_window.bat
