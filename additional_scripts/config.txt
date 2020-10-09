@@ -2,7 +2,7 @@ EXIFTOOL                     = perl C:\Windows\exiftool.pl
 SED                          = C:\Program Files (x86)\GnuWin32\bin\sed.exe
 
    Папка с термограммами.
-THERMOGRAMS_DIR	             = C:\Users\shikh\Documents\Geo\Thermograms2
+THERMOGRAMS_DIR	             = /home/ruslan/geo/Thermograms2
 
    Подпапка папки с программой, куда сохраняются вспомогательные файлы.
 OUTPUT_SUBDIR                = output
