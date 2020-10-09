@@ -1,4 +1,4 @@
- Использование:
+ Использование: java -jar geo.jar [-gp | -ti | -trt | -csv | -d]
 
  -gp        Извлекает общие для всех термограмм параметры: Focal Length, Planck R1, Planck R2, Planck O, Planck B, 
             Planck F, emissivity, Reflected Apparent Temperature, Raw Thermal Image Height, Raw Thermal Image Width 
@@ -17,7 +17,5 @@
 
  -d         Для каждой термограммы из файла .\OUTPUT_SUBDIR\thermograms_info.txt создаёт изображение с выделенными 
             дефектами в папке .\OUTPUT_PICTURES_SUBDIR.
-
- -h         Отображает справку.
 
  Без пар.   Отображает справку.

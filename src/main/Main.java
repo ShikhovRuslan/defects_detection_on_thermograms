@@ -136,21 +136,6 @@ public class Main {
 
 
     static {
-        String dirCurrent = "";
-        try {
-            dirCurrent = Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-        DIR_CURRENT = dirCurrent.substring(0, dirCurrent.lastIndexOf('/'));
-
-        PIXEL_SIZE = Property.PIXEL_SIZE.getDoubleValue() / 1000_000;
-        PRINCIPAL_POINT_X = Property.PRINCIPAL_POINT_X.getIntValue();
-        PRINCIPAL_POINT_Y = Property.PRINCIPAL_POINT_Y.getIntValue();
-        PRINCIPAL_POINT = new Pixel(PRINCIPAL_POINT_X, PRINCIPAL_POINT_Y);
-        T_MIN = Property.T_MIN.getDoubleValue();
-        SQUARE_MIN = Property.SQUARE_MIN.getDoubleValue();
-
         if (System.getProperty("os.name").contains(Helper.Os.WINDOWS.getName())) {
             OS = Helper.Os.WINDOWS.getName();
             SCRIPT_EXTENSION = ".bat";
@@ -161,6 +146,21 @@ public class Main {
             OS = "";
             SCRIPT_EXTENSION = "";
         }
+
+        String dirCurrent = "";
+        try {
+            dirCurrent = Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        DIR_CURRENT = dirCurrent.substring(OS.equals(Helper.Os.WINDOWS.getName()) ? 1 : 0, dirCurrent.lastIndexOf('/'));
+
+        PIXEL_SIZE = Property.PIXEL_SIZE.getDoubleValue() / 1000_000;
+        PRINCIPAL_POINT_X = Property.PRINCIPAL_POINT_X.getIntValue();
+        PRINCIPAL_POINT_Y = Property.PRINCIPAL_POINT_Y.getIntValue();
+        PRINCIPAL_POINT = new Pixel(PRINCIPAL_POINT_X, PRINCIPAL_POINT_Y);
+        T_MIN = Property.T_MIN.getDoubleValue();
+        SQUARE_MIN = Property.SQUARE_MIN.getDoubleValue();
     }
 
 
@@ -174,9 +174,7 @@ public class Main {
 
         private static void help() {
             try {
-                BufferedReader reader = Files.newBufferedReader(Paths.get(
-                        (OS.equals(Helper.Os.WINDOWS.getName()) ? DIR_CURRENT.substring(1) : DIR_CURRENT) + "/" +
-                                SHORT_FILENAME_HELP));
+                BufferedReader reader = Files.newBufferedReader(Paths.get(DIR_CURRENT + "/" + SHORT_FILENAME_HELP));
                 String line;
                 while ((line = reader.readLine()) != null)
                     System.out.println(line);
@@ -272,18 +270,15 @@ public class Main {
 
         switch (option) {
             case GLOBAL_PARAMS:
-                Helper.run(OS.equals(Helper.Os.WINDOWS.getName()) ? DIR_CURRENT.substring(1) : DIR_CURRENT,
-                        SCRIPT_GLOBAL_PARAMS + SCRIPT_EXTENSION, OS);
+                Helper.run(DIR_CURRENT, SCRIPT_GLOBAL_PARAMS + SCRIPT_EXTENSION, OS);
                 break;
 
             case THERMOGRAMS_INFO:
-                Helper.run(OS.equals(Helper.Os.WINDOWS.getName()) ? DIR_CURRENT.substring(1) : DIR_CURRENT,
-                        SCRIPT_THERMOGRAMS_INFO + SCRIPT_EXTENSION, OS);
+                Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_INFO + SCRIPT_EXTENSION, OS);
                 break;
 
             case THERMOGRAMS_RAW_TEMPERATURES:
-                Helper.run(OS.equals(Helper.Os.WINDOWS.getName()) ? DIR_CURRENT.substring(1) : DIR_CURRENT,
-                        SCRIPT_THERMOGRAMS_RAW_TEMPERATURES + SCRIPT_EXTENSION, OS);
+                Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_RAW_TEMPERATURES + SCRIPT_EXTENSION, OS);
                 break;
 
             case CSV:
@@ -310,7 +305,7 @@ public class Main {
                                     ExifParam.FOCAL_LENGTH.getValue(),
                                     ExifParam.RES_X.getIntValue(),
                                     ExifParam.RES_Y.getIntValue()),
-                            "/" + Property.DIR_THERMOGRAMS.getValue().replace('\\', '/') +
+                            Property.DIR_THERMOGRAMS.getValue().replace('\\', '/') +
                                     "/" + thermograms[i].getName() + EXTENSION,
                             DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_PICTURES.getValue() +
                                     "/" + thermograms[i].getName() + Property.POSTFIX_PROCESSED.getValue() + EXTENSION,
