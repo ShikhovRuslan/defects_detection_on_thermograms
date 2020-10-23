@@ -9,18 +9,17 @@ THERMOGRAMS_DIR=$(grep "^THERMOGRAMS_DIR" config.txt | cut -d'=' -f 2 | sed 's/^
 OUTPUT_SUBDIR=$(grep "^OUTPUT_SUBDIR" config.txt | cut -d'=' -f 2 | sed 's/^ //')
 
 
-for file in $THERMOGRAMS_DIR; do
-  echo $THERMOGRAMS_DIR
-  for file in $THERMOGRAMS_DIR/*; do
-    FIRST_THERMOGRAM=$file
-    break 1
-  done
+for file in "$THERMOGRAMS_DIR"/*; do
+  FIRST_THERMOGRAM=$file
+  break 1
 done
 OUTPUT_FILE=$OUTPUT_SUBDIR/global_params.txt
-TAGS="-EXIF:FocalLength -FLIR:PlanckR1 -FLIR:PlanckR2 -FLIR:PlanckO -FLIR:PlanckB -FLIR:PlanckF -FLIR:emissivity -FLIR:ReflectedApparentTemperature -FLIR:RawThermalImageHeight -FLIR:RawThermalImageWidth"
+TAGS_1="-EXIF:FocalLength -FLIR:PlanckR1 -FLIR:PlanckR2 -FLIR:PlanckO -FLIR:PlanckB -FLIR:PlanckF -FLIR:emissivity"
+TAGS_2="-FLIR:ReflectedApparentTemperature -FLIR:RawThermalImageHeight -FLIR:RawThermalImageWidth"
+TAGS="$TAGS_1 $TAGS_2"
 
-exiftool -j -n $TAGS -r $FIRST_THERMOGRAM -w+! %0f$OUTPUT_FILE
+exiftool -j -n $TAGS -r "$FIRST_THERMOGRAM" -w+! %0f"$OUTPUT_FILE"
 
-sed "s/[][]//g" $OUTPUT_FILE -i
+sed "s/[][]//g" "$OUTPUT_FILE" -i
 
 rm -f ./sed*.

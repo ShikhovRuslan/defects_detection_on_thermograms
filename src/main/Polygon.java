@@ -206,7 +206,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Рисует многоугольник {@code polygon}.
      */
-    private static void draw(Polygon<Point> polygon, BufferedImage image, Color color) {
+    public static void draw(Polygon<Point> polygon, BufferedImage image, Color color) {
         Segment[] sides = getSides(polygon);
         for (Segment side : sides)
             side.draw(image, color);

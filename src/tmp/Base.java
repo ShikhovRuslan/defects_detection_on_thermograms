@@ -4,17 +4,20 @@ import main.*;
 import polygons.Point;
 import polygons.Segment;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.lang.Math.*;
+
 
 public class Base {
     public static Segment getSegment(Pixel centre, double angle, double length, int resY) {
-        Pixel a = new Pixel(centre.getI() + 0.5 * length * Math.sin(angle),
-                centre.getJ() + 0.5 * length * Math.cos(angle));
-        Pixel b = new Pixel(centre.getI() - 0.5 * length * Math.sin(angle),
-                centre.getJ() - 0.5 * length * Math.cos(angle));
+        Pixel a = new Pixel(centre.getI() + 0.5 * length * sin(angle),
+                centre.getJ() + 0.5 * length * cos(angle));
+        Pixel b = new Pixel(centre.getI() - 0.5 * length * sin(angle),
+                centre.getJ() - 0.5 * length * cos(angle));
         return new Segment(Point.toPoint(a, resY), Point.toPoint(b, resY));
     }
 
@@ -30,9 +33,9 @@ public class Base {
                 n++;
             else {
                 if (table[i][j] < 0)
-                sum += table[i][j];
+                    sum += table[i][j];
                 else
-                    sum+=0;
+                    sum += 0;
             }
         }
         return sum / (Math.max(s.getA().getI(), s.getB().getI()) - Math.min(s.getA().getI(), s.getB().getI()) + 1 - n);
@@ -56,23 +59,17 @@ public class Base {
         return (k / (n + 0.)) * 180;
     }
 
-    public static Rectangle<Pixel> boundingRectangle(Polygon<Pixel> polygon) {
-        int[] i = dffd(polygon, Pixel::getI);
-        int[] j = dffd(polygon, Pixel::getJ);
-        return new Rectangle<>(new Pixel(i[1], j[1]), new Pixel(i[0], j[0]));
-    }
-
     public static double[] angles(Pixel v1, Pixel v2, double diameter, int n, double coef, char separator, String filename, int resX, int resY) {
         double a1 = f(diameter, v1, n, coef, separator, filename, resX, resY);
         double a2 = f(diameter, v2, n, coef, separator, filename, resX, resY);
         double gamma = -1000;
         if (v1.getJ() == v2.getJ())
             if (a1 > 90 && a2 < 90 || a1 < 90 && a2 > 90)
-                gamma = 180 - Math.abs(a1 - a2);
+                gamma = 180 - abs(a1 - a2);
             else
-                gamma = Math.abs(a1 - a2);
+                gamma = abs(a1 - a2);
         if (v1.getI() == v2.getI())
-            gamma = Math.abs(a1 - a2);
+            gamma = abs(a1 - a2);
         return new double[]{a1, a2, gamma};
     }
 
@@ -94,8 +91,7 @@ public class Base {
                 b = 90 + (a1 + a2 < 180 ? a1 + a2 : -a1 - a2) / 2;
             if (a1 > 90 && a2 > 90 || a1 < 90 && a2 < 90)
                 b = (a1 + a2) / 2;
-        }
-        else
+        } else
             b = (a1 + a2) / 2;
         System.out.println("a1 = " + a1 + ", a2 = " + a2 + ", b = " + b);
         return b;
@@ -150,8 +146,10 @@ public class Base {
         return newVals;
     }
 
-    public static double realToMatrix(double distance, double height, double pixelSize, double focalLength) {
-        return distance / Thermogram.reverseScale(height, focalLength) / pixelSize;
+    public static boolean procedureNotNeeded(int diameterPixel, Polygon<Pixel> polygon) {
+        double coef = 1.33;
+        return width(polygon) >= diameterPixel && width(polygon) <= diameterPixel * coef && height(polygon) > diameterPixel ||
+                height(polygon) >= diameterPixel && height(polygon) <= diameterPixel * coef && width(polygon) > diameterPixel;
     }
 
     public static double sss(double diameter, int n, double coef, char separator, String filename, int resX, int resY, Pixel... pixels) {
@@ -159,6 +157,28 @@ public class Base {
         for (Pixel pixel : pixels)
             sum += f(diameter, pixel, n, coef, separator, filename, resX, resY);
         return sum / pixels.length;
+    }
+
+    public static Rectangle<Pixel> boundingRectangle(Polygon<Pixel> polygon) {
+        int[] i = dffd(polygon, Pixel::getI);
+        int[] j = dffd(polygon, Pixel::getJ);
+        return new Rectangle<>(new Pixel(i[1], j[1]), new Pixel(i[0], j[0]));
+    }
+
+    public static double realToMatrix(double distance, double height, double pixelSize, double focalLength) {
+        return distance / Thermogram.reverseScale(height, focalLength) / pixelSize;
+    }
+
+    public static int[] getMinAndMax(Pixel[] pixels, List<Integer> indices, Function<Pixel, Integer> f) {
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (int i : indices) {
+            if (f.apply(pixels[i]) < min)
+                min = f.apply(pixels[i]);
+            if (f.apply(pixels[i]) > max)
+                max = f.apply(pixels[i]);
+        }
+        return new int[]{min, max};
     }
 
     public static int[] dffd(Polygon<Pixel> polygon, Function<Pixel, Integer> s) {
@@ -183,12 +203,6 @@ public class Base {
         return j[0] - j[1] + 1;
     }
 
-    public static boolean procedureNotNeeded(int diameterPixel, Polygon<Pixel> polygon) {
-        double coef = 1.33;
-        return width(polygon) >= diameterPixel && width(polygon) <= diameterPixel * coef && height(polygon) > diameterPixel ||
-                height(polygon) >= diameterPixel && height(polygon) <= diameterPixel * coef && width(polygon) > diameterPixel;
-    }
-
     public static Pixel toPixel(Point point, int resY) {
         return new Pixel(point.getJ(), resY - 1 - point.getI());
     }
@@ -200,30 +214,79 @@ public class Base {
         return new Polygon<>(vertices, focalLength);
     }
 
-    public static Pixel _aaa(Pixel pixel, String filename, char separator, double diameter, double height, double focalLength, int resY) {
-        double[][] table = Helper.extractTable(filename, separator);
-        int pixelDiameter = (int) Math.round(realToMatrix(diameter, height, Main.PIXEL_SIZE, focalLength));
-        int length = (int) Math.round(1.5 * pixelDiameter);
-        List<Pixel> arr = new ArrayList<>();
-        System.out.println(length);
-//        for(int j = pixel.getJ() + 1; j <= pixel.getJ() + length - 1; j++) {
-//            System.out.println(table[Main.RES_Y - 1 - (j - 1)][pixel.getI()]);
-//            if(table[Main.RES_Y - 1 - (j - 1)][pixel.getI()] - table[Main.RES_Y - 1 - j][pixel.getI()] >= 1.5){
-//                arr.add(new Pixel(pixel.getI(), j));
-//            }
-//        }
-        for(int j = pixel.getJ() - 1; j >= pixel.getJ() - length + 1; j--) {
-            System.out.println(table[resY - 1 - (j - 1)][pixel.getI()]);
-            if(table[resY - 1 - j][pixel.getI()] - table[resY - 1 - (j - 1)][pixel.getI()] >= 1.5){
-                arr.add(new Pixel(pixel.getI(), j));
-            }
-        }
-        if(arr.size()>0)
-            return arr.get(arr.size() - 1);
-        else {
-            System.out.println("---");
-            return new Pixel(-1, -1);
-        }
+    public static Pixel middle(Rectangle<Pixel> rectangle) {
+        return new Pixel((rectangle.getLeft().getI() + rectangle.getRight().getI()) / 2,
+                (rectangle.getLeft().getJ() + rectangle.getRight().getJ()) / 2);
+    }
+
+    public static boolean include(Rectangle<Pixel> rectangle, Rectangle<Pixel> big) {
+        //return rectangle.getLeft().getI() >= big.getLeft().getI() && rectangle.getLeft().getJ() >= big.getLeft().getJ() &&
+        //       rectangle.getRight().getI() <= big.getRight().getI() && rectangle.getRight().getJ() <= big.getRight().getJ();
+        int leftIDiff = rectangle.getLeft().getI() - big.getLeft().getI();
+        int leftJDiff = rectangle.getLeft().getJ() - big.getLeft().getJ();
+        int rightIDiff = -rectangle.getRight().getI() + big.getRight().getI();
+        int rightJDiff = -rectangle.getRight().getJ() + big.getRight().getJ();
+
+        int maxDiff = 3;
+
+        return leftIDiff >= -maxDiff && leftJDiff >= -maxDiff && rightIDiff >= -maxDiff && rightJDiff >= -maxDiff;
+    }
+
+    public static Object[] findJump(Pixel start, double angle, double length, double tempDiff, String filename,
+                                    char separator, double height, double pixelSize, double focalLength,
+                                    int resX, int resY) {
+
+        double[][] realTable = Helper.extractTable(filename, separator);
+        List<Pixel> jumps = new ArrayList<>();
+        List<Double> temperatures = new ArrayList<>();
+        int pI = start.getI();
+        int pJ = start.getJ();
+
+        int iInc = (int) Math.round(realToMatrix(length * sin(angle * PI / 180), height, pixelSize, focalLength));
+        int jInc = (int) Math.round(realToMatrix(length * cos(angle * PI / 180), height, pixelSize, focalLength));
+
+        int iIncSign = (int) signum(iInc);
+        int jIncSign = (int) signum(jInc);
+
+        Pixel end = new Pixel(
+                pI + iInc >= 0 && pI + iInc < resX ? pI + iInc : (pI + iInc < 0 ? 0 : resX - 1),
+                pJ + jInc >= 0 && pJ + jInc < resY ? pJ + jInc : (pJ + jInc < 0 ? 0 : resY - 1));
+
+        int eI = end.getI();
+        int eJ = end.getJ();
+
+        int jPrev = -1, iPrev = -1;
+        if (iIncSign != 0 || jIncSign != 0) {
+            if (abs(eI - pI) >= abs(eJ - pJ))
+                for (int i = pI + iIncSign; iIncSign > 0 ? i <= eI : i >= eI; i = i + iIncSign) {
+                    int j = (int) round((pJ + jIncSign) +
+                            (i - (pI + iIncSign) + 0.) * (eJ - (pJ + jIncSign)) / (eI - (pI + iIncSign)));
+                    temperatures.add(realTable[resY - 1 - j][i]);
+                    if (i != pI + iIncSign &&
+                            abs(realTable[resY - 1 - j][i] - realTable[resY - 1 - jPrev][i - iIncSign]) >= tempDiff)
+                        jumps.add(new Pixel(i, j));
+                    jPrev = j;
+                }
+            else
+                for (int j = pJ + jIncSign; jIncSign > 0 ? j <= eJ : j >= eJ; j = j + jIncSign) {
+                    int i = (int) round((pI + iIncSign) +
+                            (j - (pJ + jIncSign) + 0.) * (eI - (pI + iIncSign)) / (eJ - (pJ + jIncSign)));
+                    temperatures.add(realTable[resY - 1 - j][i]);
+                    if (j != pJ + jIncSign &&
+                            abs(realTable[resY - 1 - j][i] - realTable[resY - 1 - (j - jIncSign)][iPrev]) >= tempDiff)
+                        jumps.add(new Pixel(i, j));
+                    iPrev = i;
+                }
+            if (jumps.size() == 0) return new Object[]{new Pixel(-1, -1), 0., angle};
+        } else return new Object[]{new Pixel(-2, -2), 0., angle};
+
+        double averageEndTemperature = 0;
+        int n = 2;
+        for (int i = 0; i < min(n, temperatures.size()); i++)
+            averageEndTemperature += temperatures.get(temperatures.size() - 1 - i);
+        averageEndTemperature = averageEndTemperature / min(n, temperatures.size());
+
+        return new Object[]{jumps.get(jumps.size() - 1), averageEndTemperature, angle};
     }
 
     public static void main(String[] args) {
@@ -231,7 +294,7 @@ public class Base {
         double coef = 4;
         double diameter = 0.7;
         double height = 152;
-        double focalLength = 25./1000;
+        double focalLength = 25. / 1000;
         int resY = 512;
         int resX = 640;
         String filename;
