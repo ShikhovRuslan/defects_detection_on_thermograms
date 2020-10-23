@@ -15,7 +15,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import static java.lang.Math.*;
 import static java.lang.Math.abs;
@@ -208,8 +207,8 @@ public class Main {
 
 
     private static Polygon<Pixel> slopingDefect(Rectangle<Pixel> rectangle, double angle) {
-        int[] rangeI = Base.dffd(Figure.toPolygon(rectangle, 0, 0, 0), Pixel::getI);
-        int[] rangeJ = Base.dffd(Figure.toPolygon(rectangle, 0, 0, 0), Pixel::getJ);
+        int[] rangeI = Base.findMaxAndMin(Figure.toPolygon(rectangle, 0, 0, 0), Pixel::getI);
+        int[] rangeJ = Base.findMaxAndMin(Figure.toPolygon(rectangle, 0, 0, 0), Pixel::getJ);
         Pixel v1 = new Pixel(rangeI[1], rangeJ[1]);
         Pixel v2 = new Pixel(rangeI[0], rangeJ[1]);
         Pixel v3 = new Pixel(rangeI[0], rangeJ[0]);
@@ -734,19 +733,34 @@ public class Main {
         Pixel v4 = polygon.getVertices().get(3);
         Pixel v1_ = null, v2_ = null, v3_ = null, v4_ = null;
 
-        if (angle < PI / 2 && pow(v1.getI() - v2.getI(), 2) + pow(v1.getJ() - v2.getJ(), 2) < diam * diam) {
+        if (angle<PI/2 & pow(v1.getI() - v2.getI(), 2) + pow(v1.getJ() - v2.getJ(), 2) < diam * diam) {
             int diff = (int) round((diam - sqrt(pow(v1.getI() - v2.getI(), 2) + pow(v1.getJ() - v2.getJ(), 2))) / 2);
             v1_ = new Pixel(v1.getI() - diff * sin(angle), v1.getJ() + diff * cos(angle));
             v4_ = new Pixel(v4.getI() - diff * sin(angle), v4.getJ() + diff * cos(angle));
             v2_ = new Pixel(v2.getI() + diff * sin(angle), v2.getJ() - diff * cos(angle));
             v3_ = new Pixel(v3.getI() + diff * sin(angle), v3.getJ() - diff * cos(angle));
+
+            List<Pixel> vert = new ArrayList<>();
+            vert.add(v1_);
+            vert.add(v2_);
+            vert.add(v3_);
+            vert.add(v4_);
+            return new Polygon<>(vert, 0, 0, 0);
+        } else if(angle>=PI/2 & pow(v2.getI() - v3.getI(), 2) + pow(v2.getJ() - v3.getJ(), 2) < diam * diam) {
+            int diff = (int) round((diam - sqrt(pow(v2.getI() - v3.getI(), 2) + pow(v2.getJ() - v3.getJ(), 2))) / 2);
+            v1_ = new Pixel(v2.getI() - diff * sin(angle), v2.getJ() + diff * cos(angle));
+            v4_ = new Pixel(v1.getI() - diff * sin(angle), v1.getJ() + diff * cos(angle));
+            v2_ = new Pixel(v3.getI() + diff * sin(angle), v3.getJ() - diff * cos(angle));
+            v3_ = new Pixel(v4.getI() + diff * sin(angle), v4.getJ() - diff * cos(angle));
+
+            List<Pixel> vert = new ArrayList<>();
+            vert.add(v1_);
+            vert.add(v2_);
+            vert.add(v3_);
+            vert.add(v4_);
+            return new Polygon<>(vert, 0, 0, 0);
         }
-        List<Pixel> vert = new ArrayList<>();
-        vert.add(v1_);
-        vert.add(v2_);
-        vert.add(v3_);
-        vert.add(v4_);
-        return new Polygon<>(vert, 0, 0, 0);
+        return polygon;
     }
 
     private static void defects(Thermogram thermogram, Polygon<Pixel> overlap,
@@ -834,21 +848,26 @@ public class Main {
         List<Polygon<Pixel>> slopingDefects = new ArrayList<>();
         if (aRes.size() > 0)
             for (int i = 0; i < bList.size(); i++)
-                slopingDefects.add(slopingDefect(bList.get(i), aRes.get(i)));
+                slopingDefects.add(slopingDefect(bList.get(i), aRes.get(i) + (aRes.get(i) >= 90 ? -90 : 0)));
 
+            int diam = (int) round(Base.realToMatrix(0.7, thermogram.getHeight(), pixelSize, focalLength));
         try {
             BufferedImage image = ImageIO.read(new File(thermogramFilename));
-            for (Polygon<Pixel> slopingDefect : slopingDefects) {
-                int[] a = Base.dffd(slopingDefect, Pixel::getI);
-                int[] b = Base.dffd(slopingDefect, Pixel::getJ);
+            for (int i = 0; i < slopingDefects.size(); i++) {
+                Polygon<Pixel> p = widen(slopingDefects.get(i), diam, aRes.get(i));
+                System.out.println("\nbefore widen():\n" + slopingDefects.get(i));
+                System.out.println("after widen():\n" + p + "\n");
+                int[] a = Base.findMaxAndMin(p, Pixel::getI);
+                int[] b = Base.findMaxAndMin(p, Pixel::getJ);
                 if (a[1] >= 0 && b[1] >= 0 && a[0] < 640 && b[0] < 512)
-                    Polygon.draw(Polygon.toPointPolygon(slopingDefect, focalLength, resY), image, Color.BLACK);
+                    Polygon.draw(Polygon.toPointPolygon(p, focalLength, resY), image, Color.BLACK);
             }
             ImageIO.write(image, "jpg", new File(DIR_CURRENT + "/out_sloping/" + thermogram.getName() + "_sl.jpg"));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+        /*
         List<Rectangle<Pixel>> bList2 = new ArrayList<>();
         bList2.add(new Rectangle<>(new Pixel(50, 50), new Pixel(70, 90)));
         bList2.add(new Rectangle<>(new Pixel(50 + 200, 50), new Pixel(70 + 200, 90)));
@@ -867,7 +886,7 @@ public class Main {
             ImageIO.write(image, "jpg", new File(DIR_CURRENT + "/out_sloping/" + thermogram.getName() + "_sl2.jpg"));
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     public static void main(String[] args) throws IOException {

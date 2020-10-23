@@ -4,7 +4,6 @@ import main.*;
 import polygons.Point;
 import polygons.Segment;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -160,8 +159,8 @@ public class Base {
     }
 
     public static Rectangle<Pixel> boundingRectangle(Polygon<Pixel> polygon) {
-        int[] i = dffd(polygon, Pixel::getI);
-        int[] j = dffd(polygon, Pixel::getJ);
+        int[] i = findMaxAndMin(polygon, Pixel::getI);
+        int[] j = findMaxAndMin(polygon, Pixel::getJ);
         return new Rectangle<>(new Pixel(i[1], j[1]), new Pixel(i[0], j[0]));
     }
 
@@ -181,25 +180,25 @@ public class Base {
         return new int[]{min, max};
     }
 
-    public static int[] dffd(Polygon<Pixel> polygon, Function<Pixel, Integer> s) {
+    public static int[] findMaxAndMin(Polygon<Pixel> polygon, Function<Pixel, Integer> f) {
         int max = -1;
         int min = 1000;
         for (Pixel vertex : polygon.getVertices()) {
-            if (s.apply(vertex) > max)
-                max = s.apply(vertex);
-            if (s.apply(vertex) < min)
-                min = s.apply(vertex);
+            if (f.apply(vertex) > max)
+                max = f.apply(vertex);
+            if (f.apply(vertex) < min)
+                min = f.apply(vertex);
         }
         return new int[]{max, min};
     }
 
     public static int width(Polygon<Pixel> polygon) {
-        int[] i = dffd(polygon, Pixel::getI);
+        int[] i = findMaxAndMin(polygon, Pixel::getI);
         return i[0] - i[1] + 1;
     }
 
     public static int height(Polygon<Pixel> polygon) {
-        int[] j = dffd(polygon, Pixel::getJ);
+        int[] j = findMaxAndMin(polygon, Pixel::getJ);
         return j[0] - j[1] + 1;
     }
 
