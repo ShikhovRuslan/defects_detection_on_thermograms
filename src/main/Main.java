@@ -733,7 +733,7 @@ public class Main {
         Pixel v4 = polygon.getVertices().get(3);
         Pixel v1_ = null, v2_ = null, v3_ = null, v4_ = null;
 
-        if (angle<PI/2 & pow(v1.getI() - v2.getI(), 2) + pow(v1.getJ() - v2.getJ(), 2) < diam * diam) {
+        if (angle < PI / 2 & pow(v1.getI() - v2.getI(), 2) + pow(v1.getJ() - v2.getJ(), 2) < diam * diam) {
             int diff = (int) round((diam - sqrt(pow(v1.getI() - v2.getI(), 2) + pow(v1.getJ() - v2.getJ(), 2))) / 2);
             v1_ = new Pixel(v1.getI() - diff * sin(angle), v1.getJ() + diff * cos(angle));
             v4_ = new Pixel(v4.getI() - diff * sin(angle), v4.getJ() + diff * cos(angle));
@@ -746,7 +746,7 @@ public class Main {
             vert.add(v3_);
             vert.add(v4_);
             return new Polygon<>(vert, 0, 0, 0);
-        } else if(angle>=PI/2 & pow(v2.getI() - v3.getI(), 2) + pow(v2.getJ() - v3.getJ(), 2) < diam * diam) {
+        } else if (angle >= PI / 2 & pow(v2.getI() - v3.getI(), 2) + pow(v2.getJ() - v3.getJ(), 2) < diam * diam) {
             int diff = (int) round((diam - sqrt(pow(v2.getI() - v3.getI(), 2) + pow(v2.getJ() - v3.getJ(), 2))) / 2);
             v1_ = new Pixel(v2.getI() - diff * sin(angle), v2.getJ() + diff * cos(angle));
             v4_ = new Pixel(v1.getI() - diff * sin(angle), v1.getJ() + diff * cos(angle));
@@ -850,7 +850,7 @@ public class Main {
             for (int i = 0; i < bList.size(); i++)
                 slopingDefects.add(slopingDefect(bList.get(i), aRes.get(i) + (aRes.get(i) >= 90 ? -90 : 0)));
 
-            int diam = (int) round(Base.realToMatrix(0.7, thermogram.getHeight(), pixelSize, focalLength));
+        int diam = (int) round(Base.realToMatrix(0.7, thermogram.getHeight(), pixelSize, focalLength));
         try {
             BufferedImage image = ImageIO.read(new File(thermogramFilename));
             for (int i = 0; i < slopingDefects.size(); i++) {
