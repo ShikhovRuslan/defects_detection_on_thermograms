@@ -2,6 +2,7 @@ package main;
 
 import java.util.List;
 import java.util.OptionalDouble;
+import java.util.function.Function;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -43,6 +44,30 @@ public abstract class AbstractPoint {
      * Создаёт точку с координатами ({@code i}, {@code j}).
      */
     public abstract AbstractPoint create(int i, int j);
+
+    /**
+     * Создаёт точку с координатами, являющимися округлениями чисел {@code iD}, {@code jD}.
+     */
+    public AbstractPoint create(double iD, double jD) {
+        return create((int) Math.round(iD), (int) Math.round(jD));
+    }
+
+    /**
+     * Вычисляет минимальный и максимальный числа среди чисел, полученных в результате применения функции {@code f} к
+     * точкам массива {@code points} с индексами из списка {@code indices}. Этот список должен содержать только
+     * существующие индексы.
+     */
+    public static <T extends AbstractPoint> int[] findMinAndMax(T[] points, List<Integer> indices, Function<T, Integer> f) {
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (int i : indices) {
+            if (f.apply(points[i]) < min)
+                min = f.apply(points[i]);
+            if (f.apply(points[i]) > max)
+                max = f.apply(points[i]);
+        }
+        return new int[]{min, max};
+    }
 
     /**
      * Определяет принадлежность текущей точки отрезку с концами {@code p1} и {@code p2}.

@@ -175,6 +175,19 @@ public final class Helper {
     }
 
     /**
+     * Записывает строку {@code str} в конец файла с названием {@code filename}.
+     */
+    public static void write(String filename, String str) {
+        try {
+            FileWriter writer = new FileWriter(filename, true);
+            writer.write(str + "\n");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * @param filename файл в формате JSON
      */
     public static JsonObject getJsonObject(String filename) {

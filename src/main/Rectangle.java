@@ -36,9 +36,33 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
         return right;
     }
 
+    /**
+     * Определяет "почти" принадлежность текущего прямоугольника прямоугольнику {@code big}. Конкретнее, выдаёт
+     * {@code true}, если первый принадлежит второму или если первый слегка выходит за рамки второго, но при этом
+     * проекции векторов, соединяющих left-вершину прямоугольника {@code big} с аналогичной вершиной текущего
+     * прямоугольника и right-вершину текущего прямоугольника с аналогичной вершиной прямоугольника {@code big} на
+     * координатные оси не должны быть меньше положительной величины {@code maxDiff}.
+     */
+    public boolean isIn(Rectangle<T> big, int maxDiff) {
+        int leftIDiff = left.getI() - big.left.getI();
+        int leftJDiff = left.getJ() - big.left.getJ();
+        int rightIDiff = -right.getI() + big.right.getI();
+        int rightJDiff = -right.getJ() + big.right.getJ();
+
+        return leftIDiff >= -maxDiff & leftJDiff >= -maxDiff & rightIDiff >= -maxDiff & rightJDiff >= -maxDiff;
+    }
+
     @Override
     public double square(double focalLength) {
         return (right.getI() - left.getI()) * (right.getJ() - left.getJ());
+    }
+
+    /**
+     * Вычисляет середину текущего прямоугольника.
+     */
+    public T middle() {
+        //return (T) left.create((left.getI() + right.getI()) / 2., (left.getJ() + right.getJ()) / 2);
+        return (T) left.create((left.getI() + right.getI()) / 2, (left.getJ() + right.getJ()) / 2);
     }
 
     /**

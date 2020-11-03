@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 
 
 /**
@@ -45,6 +46,26 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     public List<T> getVertices() {
         return vertices;
+    }
+
+    /**
+     * Создаёт окаймляющий прямоугольник для текущего многоугольника.
+     */
+    public Rectangle<T> boundingRectangle() {
+        int[] i = findMinAndMax(T::getI);
+        int[] j = findMinAndMax(T::getJ);
+        return new Rectangle<>((T) vertices.get(0).create(i[0], j[0]), (T) vertices.get(0).create(i[1], j[1]));
+    }
+
+    /**
+     * Вычисляет минимальный и максимальный числа среди чисел, полученных в результате применения функции {@code f} ко
+     * всем вершинам текущего многоугольника.
+     */
+    public int[] findMinAndMax(Function<T, Integer> f) {
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < vertices.size(); i++)
+            indices.add(i);
+        return AbstractPoint.findMinAndMax((T[]) vertices.toArray(new AbstractPoint[0]), indices, f);
     }
 
     /**
@@ -200,6 +221,16 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         List<Point> vertices = new ArrayList<>();
         for (Pixel vertex : polygon.vertices)
             vertices.add(Point.toPoint(vertex, resY));
+        return new Polygon<>(vertices, focalLength);
+    }
+
+    /**
+     * Конвертирует многоугольник {@code polygon} из системы координат Oxy в систему координат c'x'y'.
+     */
+    public static Polygon<Pixel> toPixelPolygon(Polygon<Point> polygon, double focalLength, int resY) {
+        List<Pixel> vertices = new ArrayList<>();
+        for (Point vertex : polygon.vertices)
+            vertices.add(vertex.toPixel(resY));
         return new Polygon<>(vertices, focalLength);
     }
 

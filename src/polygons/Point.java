@@ -19,6 +19,13 @@ public class Point extends AbstractPoint {
     }
 
     /**
+     * Конвертирует текущую точку из системы координат Oxy в систему координат c'x'y'.
+     */
+    public Pixel toPixel(int resY) {
+        return new Pixel(getJ(), resY - 1 - getI());
+    }
+
+    /**
      * Возвращает расстояние от текущей точки до отрезка {@code segment}.
      *
      * @throws IllegalArgumentException если текущая точка не может быть спроектирована на внутренность отрезка или
