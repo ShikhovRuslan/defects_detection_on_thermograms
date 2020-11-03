@@ -70,6 +70,19 @@ public abstract class AbstractPoint {
     }
 
     /**
+     * Возвращает ординату точки, которая имеет абсциссу {@code i} и лежит на прямой, проходящей через точки {@code a} и
+     * {@code b}.
+     *
+     * @throws IllegalArgumentException если прямая, проходящая через указанные точки, вертикальна
+     */
+    public static <T extends AbstractPoint> double linearFunction(int i, T a, T b) {
+        if (a.getI() != b.getI())
+            return a.getJ() + (i - a.getI()) * (b.getJ() - a.getJ() + 0.) / (b.getI() - a.getI());
+        else
+            throw new IllegalArgumentException("Прямая, проходящая через точки " + a + " и " + b + ", вертикальна.");
+    }
+
+    /**
      * Определяет принадлежность текущей точки отрезку с концами {@code p1} и {@code p2}.
      */
     public <T extends AbstractPoint> boolean isInLine(T p1, T p2) {

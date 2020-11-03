@@ -77,6 +77,14 @@ public class Thermogram {
     }
 
     /**
+     * Конвертирует земное расстояние в метрах {@code earthDistance} в соответствующее ему расстояние на матрице,
+     * выраженное числом пикселей.
+     */
+    public static double earthToDiscreteMatrix(double earthDistance, double height, double pixelSize, double focalLength) {
+        return earthDistance / reverseScale(height, focalLength) / pixelSize;
+    }
+
+    /**
      * Возвращает величину, обратную к масштабу матрицы, т. е. отношение длины отрезка на местности к длине
      * соответствующего отрезка на матрице камеры.
      */

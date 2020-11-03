@@ -234,50 +234,111 @@ public class Main {
         return new Polygon<>(vertices, 0);
     }
 
-    /*private static List<Pixel> findMiddlesOfBigs(Thermogram thermogram, double[][] realTable, int resY,
-                                                 double focalLength, Polygon<Pixel> overlap,
-                                                 List<Polygon<Point>> enlargedPolygons) {
-        // Определение укрупнённых псевдодефектов
-        int[][] binTable2 = Helper.findIf(realTable, num -> num > 0);
+    /**
+     * Выдаёт пиксель, который расположен на отрезке, соединяющим пиксель {@code start} и пиксель, находящийся на
+     * расстоянии, эквивалентном земному расстоянию {@code length}, и угловом расстоянии {@code angle} от пикселя
+     * {@code start}, температура которого отличается от температуры предыдущего пикселя не менее, чем на
+     * {@code tempDiff} гр. Ц. Если таких пикселей несколько, то выдаётся пиксель, который наиболее удалён от пикселя
+     * {@code start}. Сам пиксель {@code start} отрезку не принадлежит.
+     * <p>
+     * Выдаёт средннюю температуру {@code n} пикселей, которые находятся в конце упомянутого выше отрезка. (Это
+     * количество может быть уменьшено, если число пикселей в отрезке меньше {@code n}.)
+     * <p>
+     * Неинформативные случаи:
+     * - длина отрезка равна 0, т. е. пиксель {@code start} совпадает с другим концом этого отрезка (в этом случае
+     * выдаётся пиксель {@code (-2,-2)} и нулевая температура),
+     * - длина отрезка >0, но на нём нет температурного контраста, т. е. пиксель, чьё вычисление описано в начале,
+     * отсутствует (в этом случае выдаётся пиксель {@code (-1,-1)} и нулевая температура).
+     *
+     * @param angle    угол (в град.), отсчитываемый от положительного направления оси c'y' по часовой стрелке,
+     *                 принадлежащий промежутку {@code (-180,180]}
+     * @param length   земная длина (в м.) рассматриваемого отрезка
+     * @param tempDiff разность температур (в гр. Ц.) между соседними пикселями, при превышении которой запоминается
+     *                 пиксель
+     * @param n        максимальное число пикселей, по которым рассчитывается средняя температура
+     */
+    public static Object[] findJump(Pixel start, double angle, double length, double tempDiff, int n, String filename,
+                                    char separator, double height, double pixelSize, double focalLength,
+                                    int resX, int resY) {
 
-        Helper.nullifyRectangles(binTable2, thermogram.getForbiddenZones(), resY);
+        double[][] realTable = Helper.extractTable(filename, separator);
+        List<Pixel> jumps = new ArrayList<>();
+        List<Double> temperatures = new ArrayList<>();
+        int sI = start.getI();
+        int sJ = start.getJ();
 
-        List<Rectangle<Point>> ranges2 = Rectangle.findRectangles(binTable2, focalLength);
-        ranges2.removeIf(range -> range.squarePixels() < MIN_PIXEL_SQUARE);
+        int iInc = (int) Math.round(Thermogram.earthToDiscreteMatrix(length * sin(angle * PI / 180), height, pixelSize, focalLength));
+        int jInc = (int) Math.round(Thermogram.earthToDiscreteMatrix(length * cos(angle * PI / 180), height, pixelSize, focalLength));
 
-        List<Polygon<Point>> polygons2 = Polygon.toPolygons(ranges2, overlap, thermogram.getHeight(), focalLength, resY);
-        List<Polygon<Point>> enlargedPolygons2 = new ArrayList<>();
-        try {
-            enlargedPolygons2 = Polygon.enlargeIteratively(polygons2, 5, overlap,
-                    thermogram.getHeight(), focalLength, resY);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Проблема с upperEnd()");
+        int iIncSign = (int) signum(iInc);
+        int jIncSign = (int) signum(jInc);
+
+        Pixel end = new Pixel(
+                sI + iInc >= 0 && sI + iInc < resX ? sI + iInc : (sI + iInc < 0 ? 0 : resX - 1),
+                sJ + jInc >= 0 && sJ + jInc < resY ? sJ + jInc : (sJ + jInc < 0 ? 0 : resY - 1));
+
+        int eI = end.getI();
+        int eJ = end.getJ();
+
+        int jPrev = -1;
+
+        if (start.equals(end)) return new Object[]{new Pixel(-2, -2), 0.};
+
+        // Случай start=end рассмотрен выше, поэтому здесь start!=end и, следовательно, хотя бы один из инкрементов
+        // отличен от 0.
+
+        // Если проекция отрезка, соединяющего точки start и end, на ось c'x' меньше проекции на ось c'y', то
+        // рассматриваем отрезок, симметричный упомянутому отрезку, относительно прямой j=i.
+        boolean inversion = false;
+        if (abs(eI - sI) < abs(eJ - sJ)) {
+            inversion = true;
+            int t;
+
+            t = sI;
+            sI = sJ;
+            sJ = t;
+
+            t = eI;
+            eI = eJ;
+            eJ = t;
+
+            t = iIncSign;
+            iIncSign = jIncSign;
+            jIncSign = t;
         }
 
-        List<Rectangle<Pixel>> rp2 = new ArrayList<>();
-        for (Polygon<Point> polygon : enlargedPolygons2)
-            rp2.add(Base.boundingRectangle(Base.toPixelPolygon(polygon, focalLength, resY)));
+        // Здесь |eI-sI|>=|eJ-sJ|. Следовательно, iIncSign!=0 и sI!=eI (иначе start=end). Значит, хотя бы одна итерация
+        // состоится (и тем самым, список temperatures окажется непустым).
+        for (int i = sI + iIncSign; iIncSign > 0 ? i <= eI : i >= eI; i = i + iIncSign) {
+            int j = (int) round(AbstractPoint.linearFunction(i,
+                    new Pixel(sI + iIncSign, sJ + jIncSign), new Pixel(eI, eJ)));
 
-        List<Rectangle<Pixel>> rp = new ArrayList<>();
-        for (Polygon<Point> polygon : enlargedPolygons)
-            rp.add(Base.boundingRectangle(Base.toPixelPolygon(polygon, focalLength, resY)));
+            double currTemp, prevTemp = -1000;
+            if (!inversion) {
+                currTemp = realTable[resY - 1 - j][i];
+                if (i != sI + iIncSign)
+                    prevTemp = realTable[resY - 1 - jPrev][i - iIncSign];
+            } else {
+                currTemp = realTable[resY - 1 - i][j];
+                if (i != sI + iIncSign)
+                    prevTemp = realTable[resY - 1 - (i - iIncSign)][jPrev];
+            }
 
-        //Rectangle<Pixel> rectangle = rp.get(rp.size() - 1);
-        List<Rectangle<Pixel>> bigs = new ArrayList<>();
-        for (Rectangle<Pixel> initial : rp)
-            for (Rectangle<Pixel> big : rp2)
-                if (Base.include(initial, big)) {
-                    if (big.squarePixels() > 5 * initial.squarePixels())
-                        bigs.add(big);
-                    else
-                        bigs.add(initial);
-                    break;
-                }
-        List<Pixel> middlesOfBigs = new ArrayList<>();
-        for (Rectangle<Pixel> big : bigs)
-            middlesOfBigs.add(Base.middle(big));
-        return middlesOfBigs;
-    }*/
+            temperatures.add(currTemp);
+            if (i != sI + iIncSign && abs(currTemp - prevTemp) >= tempDiff)
+                jumps.add(!inversion ? new Pixel(i, j) : new Pixel(j, i));
+            jPrev = j;
+        }
+
+        if (jumps.size() == 0) return new Object[]{new Pixel(-1, -1), 0.};
+
+        double avEndTemp = 0;
+        for (int i = 0; i < min(n, temperatures.size()); i++)
+            avEndTemp += temperatures.get(temperatures.size() - 1 - i);
+        avEndTemp = avEndTemp / min(n, temperatures.size());
+
+        return new Object[]{jumps.get(jumps.size() - 1), avEndTemp};
+    }
 
     /**
      * Конвертирует таблицу с реальными температурами {@code realTable} в список укрупнённых многоугольников.
@@ -510,7 +571,7 @@ public class Main {
             range2Corr.clear();
 
             for (int i = 0; i < l; i++) {
-                jumps[i] = Base.findJump(pixel, angles[i], coef * diameter, tempJump, filename, separatorReal,
+                jumps[i] = findJump(pixel, angles[i], coef * diameter, tempJump, 2, filename, separatorReal,
                         thermogram.getHeight(), pixelSize, focalLength, resX, resY);
                 jumpPixel[i] = (Pixel) jumps[i][0];
                 avEndTemp[i] = (double) jumps[i][1];
