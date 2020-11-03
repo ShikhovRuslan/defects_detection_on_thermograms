@@ -175,6 +175,20 @@ public final class Helper {
     }
 
     /**
+     * Возвращает индекс первого вхождения максимального элемента в массиве {@code nums}.
+     */
+    public static int findIndexOfMax(double[] nums) {
+        double max = Double.NEGATIVE_INFINITY;
+        int indexMax = -1;
+        for (int i = 0; i < nums.length; i++)
+            if (nums[i] > max) {
+                indexMax = i;
+                max = nums[indexMax];
+            }
+        return indexMax;
+    }
+
+    /**
      * Записывает строку {@code str} в конец файла с названием {@code filename}.
      */
     public static void write(String filename, String str) {

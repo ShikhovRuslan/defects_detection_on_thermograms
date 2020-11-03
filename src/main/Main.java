@@ -328,56 +328,50 @@ public class Main {
         return middlesOfPseudoDefects;
     }
 
+    /**
+     * Если сдвиг невозможен, то возвращает пиксель {@code (-10,-10)}.
+     */
     private static Pixel shiftPixel(Pixel pixel, int[][] right, int[][] left, double[] avEndTemp,
                                     List<Integer> permittedAnglesIndices, int half, int resX, int resY,
                                     String filenameOutput) {
 
         double[] diff = new double[half];
-        double[] avL = new double[half];
         double[] avR = new double[half];
+        double[] avL = new double[half];
         int[] numberOfRightExcludedIndices = new int[half];
         int[] numberOfLeftExcludedIndices = new int[half];
 
         for (int i = 0; i < half; i++) {
             for (int j = 0; j < half - 1; j++) {
-                if (permittedAnglesIndices.contains(left[i][j]))
-                    avL[i] += avEndTemp[left[i][j]];
-                else
-                    numberOfLeftExcludedIndices[i]++;
                 if (permittedAnglesIndices.contains(right[i][j]))
                     avR[i] += avEndTemp[right[i][j]];
                 else
                     numberOfRightExcludedIndices[i]++;
+                if (permittedAnglesIndices.contains(left[i][j]))
+                    avL[i] += avEndTemp[left[i][j]];
+                else
+                    numberOfLeftExcludedIndices[i]++;
             }
 
-            try {
-                if (numberOfLeftExcludedIndices[i] == 3)
-                    Helper.write(filenameOutput, "numberOfLeftExcludedIndices[" + i + "] = " + (half - 1));
-                else
-                    avL[i] /= 3 - numberOfLeftExcludedIndices[i];
-                if (numberOfRightExcludedIndices[i] == 3)
-                    Helper.write(filenameOutput, "numberOfRightExcludedIndices[" + i + "] = " + (half - 1));
-                else
-                    avR[i] /= 3 - numberOfRightExcludedIndices[i];
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
+            if (numberOfRightExcludedIndices[i] == half - 1)
+                Helper.write(filenameOutput, "numberOfRightExcludedIndices[" + i + "] = " + (half - 1));
+            else
+                avR[i] /= (half - 1) - numberOfRightExcludedIndices[i];
+            if (numberOfLeftExcludedIndices[i] == half - 1)
+                Helper.write(filenameOutput, "numberOfLeftExcludedIndices[" + i + "] = " + (half - 1));
+            else
+                avL[i] /= (half - 1) - numberOfLeftExcludedIndices[i];
 
             diff[i] = abs(avL[i] - avR[i]);
         }
 
-        double max = -1;
-        int indexMax = -1;
-        for (int k = 0; k < half; k++)
-            if (diff[k] > max) {
-                indexMax = k;
-                max = diff[indexMax];
-            }
-        int iIncrement = 2, jIncrement = 2;
+        int indexMax = Helper.findIndexOfMax(diff);
 
         Helper.write(filenameOutput, "---   indexMax=" + indexMax + "   avR[indexMax] > avL[indexMax] ?  " + (avR[indexMax] > avL[indexMax]));
         Helper.write(filenameOutput, pixel.toString());
 
+        // group - номер полуинтеравала (начиная с 0), содержащего indexMax, среди всех 4-x полуинтервалов, включающих
+        // левую границу, длины half/4, образующих промежуток [0,half).
         int group = 0;
         if (indexMax >= half / 4)
             group++;
@@ -386,30 +380,33 @@ public class Main {
         if (indexMax >= 3 * half / 4)
             group++;
 
-        //int shiftToRight = avR[indexMax] > avL[indexMax] ? 1 : -1;
-        int shiftToRight = avR[indexMax] > avL[indexMax] ? -1 : 1;
+        // Положительный shift означает сдвиг в область правых индексов, а отрицательный - в область левых.
+        // Сдвигаемся в область холодной температуры.
+        int shift = avR[indexMax] > avL[indexMax] ? -1 : 1;
+        int iIncrement = 2, jIncrement = 2;
         switch (group) {
             case 0:
-                iIncrement = shiftToRight;
+                iIncrement = shift;
                 jIncrement = 0;
                 break;
             case 1:
-                iIncrement = shiftToRight;
-                jIncrement = -shiftToRight;
+                iIncrement = shift;
+                jIncrement = -shift;
                 break;
             case 2:
                 iIncrement = 0;
-                jIncrement = -shiftToRight;
+                jIncrement = -shift;
                 break;
             case 3:
-                iIncrement = -shiftToRight;
-                jIncrement = -shiftToRight;
+                iIncrement = -shift;
+                jIncrement = -shift;
                 break;
         }
 
-        if (pixel.getI() + iIncrement >= 0 && pixel.getI() + iIncrement < resX &&
-                pixel.getJ() + jIncrement >= 0 && pixel.getJ() + jIncrement < resY) {
-            return new Pixel(pixel.getI() + iIncrement, pixel.getJ() + jIncrement);
+        Pixel shiftedPixel = new Pixel(pixel.getI() + iIncrement, pixel.getJ() + jIncrement);
+        if (shiftedPixel.getI() >= 0 && shiftedPixel.getI() < resX &&
+                shiftedPixel.getJ() >= 0 && shiftedPixel.getJ() < resY) {
+            return shiftedPixel;
         } else return new Pixel(-10, -10);
     }
 
