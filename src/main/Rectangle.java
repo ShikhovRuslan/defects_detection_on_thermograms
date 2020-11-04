@@ -1,9 +1,13 @@
 package main;
 
 import polygons.Point;
+import polygons.Segment;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import static java.lang.Math.*;
 
 
 /**
@@ -34,6 +38,36 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
 
     public T getRight() {
         return right;
+    }
+
+    /**
+     * Возвращает многоугольник, являющийся прямоугольником, описанным около прямоугольника {@code rectangle}, со
+     * сторонами, наклонёнными под углами {@code angle} и {@code angle+90}.
+     * <p>
+     * Вершины в возвращаемом многоугольнике упорядочены против часовой стрелки, начиная с:
+     * - левой вершины (при {@code angle} из {@code (0,90)}),
+     * - левой верхней вершины (при {@code angle = 0}),
+     * - левой нижней вершины (при {@code angle = 90}).
+     *
+     * @param angle угол (в град.), отсчитываемый от положительного направления оси c'x' против часовой стрелки,
+     *              принадлежащий промежутку {@code [0,90]}
+     */
+    public static Polygon<Pixel> slopeRectangle(Rectangle<Pixel> rectangle, double angle, int resY) {
+        Polygon<Pixel> polygon = Figure.toPolygon(rectangle, 0, 0, 0);
+        List<Pixel> vertices = polygon.getVertices();
+        Segment[] sides = Polygon.getSides(Polygon.toPointPolygon(polygon, 0, resY));
+        double a = angle * PI / 180;
+
+        Pixel v0 = new Pixel(vertices.get(0).getI() - sides[3].length() * cos(a) * sin(a),
+                vertices.get(0).getJ() + sides[3].length() * cos(a) * cos(a));
+        Pixel v1 = new Pixel(vertices.get(1).getI() - sides[0].length() * cos(a) * cos(a),
+                vertices.get(1).getJ() - sides[0].length() * cos(a) * sin(a));
+        Pixel v2 = new Pixel(vertices.get(2).getI() + sides[1].length() * cos(a) * sin(a),
+                vertices.get(2).getJ() - sides[1].length() * cos(a) * cos(a));
+        Pixel v3 = new Pixel(vertices.get(3).getI() + sides[2].length() * cos(a) * cos(a),
+                vertices.get(3).getJ() + sides[2].length() * cos(a) * sin(a));
+
+        return new Polygon<>(Arrays.asList(v0, v1, v2, v3), 0);
     }
 
     /**

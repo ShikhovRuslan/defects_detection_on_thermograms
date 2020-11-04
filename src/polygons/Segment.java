@@ -35,6 +35,17 @@ public class Segment {
     }
 
     /**
+     * Вычисляет длину текущего отрезка.
+     *
+     * @throws IllegalArgumentException если текущий отрезок ни горизонтален, ни вертикален
+     */
+    public int length() {
+        if (isHorizontal()) return Math.abs(a.getJ() - b.getJ());
+        if (isVertical()) return Math.abs(a.getI() - b.getI());
+        throw new IllegalArgumentException("Текущий отрезок ни горизонтален, ни вертикален.");
+    }
+
+    /**
      * Определяет, является ли текущий отрезок горизонтальным.
      */
     public boolean isHorizontal() {

@@ -14,6 +14,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.lang.Math.*;
+
 
 /**
  * Содержит многоугольник, который задаётся списком упорядоченных вершин.
@@ -46,6 +48,22 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     public List<T> getVertices() {
         return vertices;
+    }
+
+    /**
+     * Вычисляет высоту текущего многоугольника.
+     */
+    public int height() {
+        int[] j = findMinAndMax(T::getJ);
+        return j[1] - j[0] + 1;
+    }
+
+    /**
+     * Вычисляет ширину текущего многоугольника.
+     */
+    public int width() {
+        int[] i = findMinAndMax(T::getI);
+        return i[1] - i[0] + 1;
     }
 
     /**
@@ -97,7 +115,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Возвращает список сторон многоугольника {@code polygon}, соединяя последовательно его вершины.
      */
-    private static Segment[] getSides(Polygon<Point> polygon) {
+    public static Segment[] getSides(Polygon<Point> polygon) {
         Segment[] sides = new Segment[polygon.vertices.size()];
         for (int i = 0; i < polygon.vertices.size(); i++)
             sides[i] = new Segment(polygon.vertices.get(i),
@@ -261,6 +279,48 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Выдаёт многоугольник, являющийся прямоугольником, который строится на основе текущего многоугольника путём
+     * расширения пары противоположных сторон (отличной от другой пары сторон, которые наклонены под углом
+     * {@code angle}) до длины {@code length}. Если длина этих сторон не меньше {@code length}, то выдаёт многоугольник,
+     * построенный на вершинах текущего многоугольника.
+     * <p>
+     * Предположения:
+     * - текущий многоугольник является прямоугольником,
+     * - вершины упорядочены против часовой стрелки,
+     * - начальной является левая вершина в случае угла {@code angle}, отличного от {@code 0} и {@code 90}, и левая
+     * верхняя вершина, в противном случае.
+     *
+     * @param angle угол (в град.), отсчитываемый от положительного направления оси c'x' против часовой стрелки,
+     *              принадлежащий промежутку {@code [0,180)}
+     */
+    public Polygon<T> widen(double length, double angle) {
+        angle *= PI / 180;
+        T[] v = (T[]) new ArrayList<>(vertices).toArray(new AbstractPoint[0]);
+
+        double sideToWiden = angle < PI / 2 ?
+                sqrt(pow(v[0].getI() - v[1].getI(), 2) + pow(v[0].getJ() - v[1].getJ(), 2)) :
+                sqrt(pow(v[1].getI() - v[2].getI(), 2) + pow(v[1].getJ() - v[2].getJ(), 2));
+
+        double diff = (length - sideToWiden) / 2;
+
+        if (sideToWiden < length) {
+            if (angle < PI / 2) {
+                v[0] = (T) v[0].create(v[0].getI() - diff * sin(angle), v[0].getJ() + diff * cos(angle));
+                v[3] = (T) v[3].create(v[3].getI() - diff * sin(angle), v[3].getJ() + diff * cos(angle));
+                v[1] = (T) v[1].create(v[1].getI() + diff * sin(angle), v[1].getJ() - diff * cos(angle));
+                v[2] = (T) v[2].create(v[2].getI() + diff * sin(angle), v[2].getJ() - diff * cos(angle));
+            } else {
+                v[0] = (T) v[0].create(v[0].getI() - diff * sin(angle), v[0].getJ() + diff * cos(angle));
+                v[3] = (T) v[3].create(v[3].getI() + diff * sin(angle), v[3].getJ() - diff * cos(angle));
+                v[1] = (T) v[1].create(v[1].getI() - diff * sin(angle), v[1].getJ() + diff * cos(angle));
+                v[2] = (T) v[2].create(v[2].getI() + diff * sin(angle), v[2].getJ() - diff * cos(angle));
+            }
+        }
+
+        return new Polygon<>(Arrays.asList(v.clone()), 0, 0, 0);
     }
 
     /**
