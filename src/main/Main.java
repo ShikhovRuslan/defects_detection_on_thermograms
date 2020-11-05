@@ -282,8 +282,7 @@ public class Main {
         // Здесь |eI-sI|>=|eJ-sJ|. Следовательно, iIncSign!=0 и sI!=eI (иначе start=end). Значит, хотя бы одна итерация
         // состоится (и тем самым, список temperatures окажется непустым).
         for (int i = sI + iIncSign; iIncSign > 0 ? i <= eI : i >= eI; i = i + iIncSign) {
-            int j = (int) round(AbstractPoint.linearFunction(i,
-                    new Pixel(sI + iIncSign, sJ + jIncSign), new Pixel(eI, eJ)));
+            int j = (int) round(AbstractPoint.linearFunction(i, new Pixel(sI, sJ), new Pixel(eI, eJ)));
 
             double currTemp, prevTemp = -1000;
             if (!inversion) {
@@ -302,14 +301,12 @@ public class Main {
             jPrev = j;
         }
 
-        if (jumps.size() == 0) return new Object[]{new Pixel(-1, -1), 0.};
-
         double avEndTemp = 0;
         for (int i = 0; i < min(n, temperatures.size()); i++)
             avEndTemp += temperatures.get(temperatures.size() - 1 - i);
         avEndTemp = avEndTemp / min(n, temperatures.size());
 
-        return new Object[]{jumps.get(jumps.size() - 1), avEndTemp};
+        return new Object[]{jumps.size() > 0 ? jumps.get(jumps.size() - 1) : new Pixel(-1, -1), avEndTemp};
     }
 
     /**
@@ -365,7 +362,7 @@ public class Main {
      * Если сдвиг невозможен, то возвращает пиксель {@code (-10,-10)}.
      */
     private static Pixel shiftPixel(Pixel pixel, int[][] right, int[][] left, double[] avEndTemp,
-                                    List<Integer> permittedAnglesIndices, int half, int resX, int resY,
+                                    List<Integer> permittedAnglesIndicesWrtTemp, int half, int resX, int resY,
                                     String filenameOutput) {
 
         double[] diff = new double[half];
@@ -373,32 +370,32 @@ public class Main {
         double[] avL = new double[half];
         int[] numberOfRightExcludedIndices = new int[half];
         int[] numberOfLeftExcludedIndices = new int[half];
+        List<Integer> permittedDiameters = new ArrayList<>();
 
         for (int i = 0; i < half; i++) {
             for (int j = 0; j < half - 1; j++) {
-                if (permittedAnglesIndices.contains(right[i][j]))
+                if (permittedAnglesIndicesWrtTemp.contains(right[i][j]))
                     avR[i] += avEndTemp[right[i][j]];
                 else
                     numberOfRightExcludedIndices[i]++;
-                if (permittedAnglesIndices.contains(left[i][j]))
+                if (permittedAnglesIndicesWrtTemp.contains(left[i][j]))
                     avL[i] += avEndTemp[left[i][j]];
                 else
                     numberOfLeftExcludedIndices[i]++;
             }
 
-            if (numberOfRightExcludedIndices[i] == half - 1)
-                Helper.write(filenameOutput, "numberOfRightExcludedIndices[" + i + "] = " + (half - 1));
-            else
+            if (numberOfRightExcludedIndices[i] < half - 1 && numberOfLeftExcludedIndices[i] < half - 1) {
+                permittedDiameters.add(i);
                 avR[i] /= (half - 1) - numberOfRightExcludedIndices[i];
-            if (numberOfLeftExcludedIndices[i] == half - 1)
-                Helper.write(filenameOutput, "numberOfLeftExcludedIndices[" + i + "] = " + (half - 1));
-            else
                 avL[i] /= (half - 1) - numberOfLeftExcludedIndices[i];
+            }
 
             diff[i] = abs(avL[i] - avR[i]);
         }
 
-        int indexMax = Helper.findIndexOfMax(diff);
+        if (permittedDiameters.size() == 0) return new Pixel(-10, -10);
+
+        int indexMax = Helper.findIndexOfMax(diff, permittedDiameters);
 
         Helper.write(filenameOutput, "---   indexMax=" + indexMax + "   avR[indexMax] > avL[indexMax] ?  " + (avR[indexMax] > avL[indexMax]));
         Helper.write(filenameOutput, pixel.toString());
@@ -414,8 +411,8 @@ public class Main {
             group++;
 
         // Положительный shift означает сдвиг в область правых индексов, а отрицательный - в область левых.
-        // Сдвигаемся в область холодной температуры.
-        int shift = avR[indexMax] > avL[indexMax] ? -1 : 1;
+        // Сдвигаемся в область тёплой температуры.
+        int shift = avR[indexMax] > avL[indexMax] ? 1 : -1;
         int iIncrement = 2, jIncrement = 2;
         switch (group) {
             case 0:
@@ -556,6 +553,8 @@ public class Main {
 
             List<Integer> excludedAnglesIndices = new ArrayList<>();
             List<Integer> permittedAnglesIndices = new ArrayList<>();
+            List<Integer> excludedAnglesIndicesWrtTemp = new ArrayList<>();
+            List<Integer> permittedAnglesIndicesWrtTemp = new ArrayList<>();
 
             range1Corr.clear();
             range2Corr.clear();
@@ -569,6 +568,10 @@ public class Main {
                     excludedAnglesIndices.add(i);
                 else
                     permittedAnglesIndices.add(i);
+                if (jumpPixel[i].equals(new Pixel(-2, -2)))
+                    excludedAnglesIndicesWrtTemp.add(i);
+                else
+                    permittedAnglesIndicesWrtTemp.add(i);
             }
 
             try {
@@ -778,7 +781,8 @@ public class Main {
 
                     Helper.write(filenameOutput, "--- сдвиг и уменьшение coef ---\n");
                     coef *= dec;
-                    pixel = shiftPixel(pixel, right, left, avEndTemp, permittedAnglesIndices, half, resX, resY, filenameOutput);
+                    pixel = shiftPixel(pixel, right, left, avEndTemp, permittedAnglesIndicesWrtTemp, half, resX, resY,
+                            filenameOutput);
                 } else {
                     Helper.write(filenameOutput, "--- индексы i1 и i2 хорошо различимы ---\n");
                     break;

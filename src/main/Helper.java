@@ -175,12 +175,14 @@ public final class Helper {
     }
 
     /**
-     * Возвращает индекс первого вхождения максимального элемента в массиве {@code nums}.
+     * Возвращает индекс первого вхождения максимального элемента среди элементов массива {@code nums} с индексами из
+     * списка {@code indices}.
+     * Этот список должен состоять из индексов данного массива. Если список пуст, то возвращает {@code -1}.
      */
-    public static int findIndexOfMax(double[] nums) {
+    public static int findIndexOfMax(double[] nums, List<Integer> indices) {
         double max = Double.NEGATIVE_INFINITY;
         int indexMax = -1;
-        for (int i = 0; i < nums.length; i++)
+        for (int i : indices)
             if (nums[i] > max) {
                 indexMax = i;
                 max = nums[indexMax];
