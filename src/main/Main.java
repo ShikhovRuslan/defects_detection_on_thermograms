@@ -450,18 +450,23 @@ public class Main {
         double pixelDiameter = Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize, focalLength);
         Helper.write(filenameOutput, "       ===  " + thermogram.getName() + "  ===\n");
 
-        // Многоугольник polygon является отчётливо вертикальным (относительно термограммы).
-        if (pixelDiameter - 2 <= polygon1.width() && polygon1.width() <= 2 * pixelDiameter + 2 &&
-                polygon1.height() > polygon1.width() * 2) {
-            Helper.write(filenameOutput, "Многоугольник " + num + " " + polygon1 + " является длинным => 90");
-            return 90;
-        }
+        int w = polygon1.width();
+        int h = polygon1.height();
+        double d = pixelDiameter;
+
+        int eps1 = 2;
+        int eps2 = 4;
 
         // Многоугольник polygon является отчётливо горизонтальным (относительно термограммы).
-        if (pixelDiameter - 2 <= polygon1.height() && polygon1.height() <= 2 * pixelDiameter + 2 &&
-                polygon1.width() > polygon1.height() * 2) {
+        if (w >= d + eps2 && ((d - eps1 <= h && h <= d) || (h > d && w > h))) {
             Helper.write(filenameOutput, "Многоугольник " + num + " " + polygon1 + " является длинным => 0");
             return 0;
+        }
+
+        // Многоугольник polygon является отчётливо вертикальным (относительно термограммы).
+        if (h >= d + eps2 && ((d - eps1 <= w && w <= d) || (w > d && h > w))) {
+            Helper.write(filenameOutput, "Многоугольник " + num + " " + polygon1 + " является длинным => 90");
+            return 90;
         }
 
         double[] angles = new double[l];
@@ -699,9 +704,9 @@ public class Main {
             else if (range1Corr.size() < 2 & range2Corr.size() < 2)
                 pipeAngle = 90;
             else {
-                double w = (inclination1 + inclination2) / 2;
-                pipeAngle = w + (inclination1 * inclination2 < 0 && abs(inclination1) + abs(inclination2) > 90 ?
-                        (w <= 0 ? 90 : -90) : 0);
+                double v = (inclination1 + inclination2) / 2;
+                pipeAngle = v + (inclination1 * inclination2 < 0 && abs(inclination1) + abs(inclination2) > 90 ?
+                        (v <= 0 ? 90 : -90) : 0);
             }
             pipeAngleOld = pipeAngle + (pipeAngle < 0 ? 180 : 0);
 
