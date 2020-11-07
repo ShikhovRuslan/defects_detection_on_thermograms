@@ -165,6 +165,22 @@ public final class Helper {
     }
 
     /**
+     * Сравнивает числа {@code a} и {@code b}; если оба равны {@link Double#NaN}, то возвращает {@code true}.
+     */
+    public static boolean compare(Double a, Double b) {
+        return a.equals(b) || a.isNaN() && b.isNaN();
+    }
+
+    /**
+     * Определяет, является ли угол между прямыми с углами наклона {@code angle1} и {@code angle2} не больше значения
+     * {@code eps} град. Углы наклона (в град.) отсчитываются от положительного направления оси c'x' против часовой
+     * стрелки и принадлежат промежутку {@code [0,180)}.
+     */
+    public static boolean close(double angle1, double angle2, double eps) {
+        return abs(angle1 - angle2) <= eps || abs(angle1 - angle2) >= 180 - eps;
+    }
+
+    /**
      * Определяет принадлежность значения {@code val0} списку {@code list}.
      */
     public static boolean isIn(List<Integer> list, int val0) {

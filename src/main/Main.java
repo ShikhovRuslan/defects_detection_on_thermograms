@@ -220,7 +220,7 @@ public class Main {
      * - длина отрезка равна 0, т. е. пиксель {@code start} совпадает с другим концом этого отрезка (в этом случае
      * выдаётся пиксель {@code (-2,-2)} и нулевая температура),
      * - длина отрезка >0, но на нём нет температурного контраста, т. е. пиксель, чьё вычисление описано в начале,
-     * отсутствует (в этом случае выдаётся пиксель {@code (-1,-1)} и нулевая температура).
+     * отсутствует (в этом случае выдаётся пиксель {@code (-1,-1)}).
      *
      * @param angle    угол (в град.), отсчитываемый от положительного направления оси c'y' по часовой стрелке,
      *                 принадлежащий промежутку {@code (-180,180]}
@@ -362,23 +362,23 @@ public class Main {
      * Если сдвиг невозможен, то возвращает пиксель {@code (-10,-10)}.
      */
     private static Pixel shiftPixel(Pixel pixel, int[][] right, int[][] left, double[] avEndTemp,
-                                    List<Integer> permittedAnglesIndicesWrtTemp, int half, int resX, int resY,
-                                    String filenameOutput) {
+                                    List<Integer> anglesWithNoAvEndTemp, int resX, int resY) {
 
+        int half = right.length;
         double[] diff = new double[half];
         double[] avR = new double[half];
         double[] avL = new double[half];
         int[] numberOfRightExcludedIndices = new int[half];
         int[] numberOfLeftExcludedIndices = new int[half];
-        List<Integer> permittedDiameters = new ArrayList<>();
+        var permittedDiameters = new ArrayList<Integer>();
 
         for (int i = 0; i < half; i++) {
             for (int j = 0; j < half - 1; j++) {
-                if (permittedAnglesIndicesWrtTemp.contains(right[i][j]))
+                if (!anglesWithNoAvEndTemp.contains(right[i][j]))
                     avR[i] += avEndTemp[right[i][j]];
                 else
                     numberOfRightExcludedIndices[i]++;
-                if (permittedAnglesIndicesWrtTemp.contains(left[i][j]))
+                if (!anglesWithNoAvEndTemp.contains(left[i][j]))
                     avL[i] += avEndTemp[left[i][j]];
                 else
                     numberOfLeftExcludedIndices[i]++;
@@ -396,9 +396,6 @@ public class Main {
         if (permittedDiameters.size() == 0) return new Pixel(-10, -10);
 
         int indexMax = Helper.findIndexOfMax(diff, permittedDiameters);
-
-        Helper.write(filenameOutput, "---   indexMax=" + indexMax + "   avR[indexMax] > avL[indexMax] ?  " + (avR[indexMax] > avL[indexMax]));
-        Helper.write(filenameOutput, pixel.toString());
 
         // group - номер полуинтеравала (начиная с 0), содержащего indexMax, среди всех 4-x полуинтервалов, включающих
         // левую границу, длины half/4, образующих промежуток [0,half).
@@ -436,6 +433,7 @@ public class Main {
         Pixel shiftedPixel = new Pixel(pixel.getI() + iIncrement, pixel.getJ() + jIncrement);
         if (shiftedPixel.getI() >= 0 && shiftedPixel.getI() < resX &&
                 shiftedPixel.getJ() >= 0 && shiftedPixel.getJ() < resY) {
+
             return shiftedPixel;
         } else return new Pixel(-10, -10);
     }
@@ -447,25 +445,24 @@ public class Main {
                                         int resX, int resY) {
 
         Polygon<Pixel> polygon1 = Polygon.toPixelPolygon(polygon, focalLength, resY);
-        double pixelDiameter = Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize, focalLength);
-        Helper.write(filenameOutput, "       ===  " + thermogram.getName() + "  ===\n");
-
+        double d = Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize, focalLength);
         int w = polygon1.width();
         int h = polygon1.height();
-        double d = pixelDiameter;
+        Helper.write(filenameOutput, "       ===  " + thermogram.getName() + ",  polygon " + num + "  ===\n");
+        Helper.write(filenameOutput, "Polygon (" + w + "x" + h + "): " + polygon1 + ".\n");
 
         int eps1 = 2;
         int eps2 = 4;
 
         // Многоугольник polygon является отчётливо горизонтальным (относительно термограммы).
         if (w >= d + eps2 && ((d - eps1 <= h && h <= d) || (h > d && w > h))) {
-            Helper.write(filenameOutput, "Многоугольник " + num + " " + polygon1 + " является длинным => 0");
+            Helper.write(filenameOutput, "Многоугольник является отчётливо горизонтальным => pipeAngle=0.\n\n\n");
             return 0;
         }
 
         // Многоугольник polygon является отчётливо вертикальным (относительно термограммы).
         if (h >= d + eps2 && ((d - eps1 <= w && w <= d) || (w > d && h > w))) {
-            Helper.write(filenameOutput, "Многоугольник " + num + " " + polygon1 + " является длинным => 90");
+            Helper.write(filenameOutput, "Многоугольник является отчётливо вертикальным => pipeAngle=90.\n\n\n");
             return 90;
         }
 
@@ -473,10 +470,6 @@ public class Main {
         // 0, 45, 90, 135, 180, -135, -90, -45 (при l=8)
         for (int i = 0; i < l; i++)
             angles[i] = i * 360. / l - (i * 360 / l <= 180 ? 0 : 360);
-
-        double pipeAngle = -1000;
-
-        int n = 8; // число частей, на которые делим круг
 
         // Круг разделён на 8 частей координатными осями и биссектрисами координатных четвертей. Полученные точки
         // пересечения нумеруются от 0, начиная с верхней точки, по часовой стрелке. Круг также разделён на l углов;
@@ -489,25 +482,24 @@ public class Main {
         // точках, угол между которыми равен 135).
         // С этими почти-диаметрами связаны углы наклона прямых, образующих углы 22.5 с составляющими их радиусами.
         //
-        // Углы наклона отсчитываются от положительного направления оси абсцисс против часовой стрелки и принадлежат
+        // Углы наклона отсчитываются от положительного направления оси c'x' против часовой стрелки и принадлежат
         // промежутку (-90,90].
-        int q = l / n; // число углов, приходящихся на 1/n часть круга
-        int s = l / 2; // разность номеров диаметрально противоположных углов
+        int n = 8;        // число частей, на которые делим круг
+        int q = l / n;    // число углов, приходящихся на 1/n часть круга
+        int half = l / 2; // разность номеров диаметрально противоположных углов
         Point[] diameters = new Point[n / 2];
         double[] diameterAngles = new double[n / 2];
         for (int i = 0; i < n / 2; i++) {
-            diameters[i] = new Point(i * q, i * q + s);
+            diameters[i] = new Point(i * q, i * q + half);
             diameterAngles[i] = 90 - 45 * i;
         }
         Point[] almostDiameters = new Point[n];
         double[] almostDiameterAngles = new double[n];
         for (int i = 0; i < n; i++) {
-            almostDiameters[i] = new Point(i * q, (i + 1) * q + s - ((i + 1) * q + s < l ? 0 : l));
+            almostDiameters[i] = new Point(i * q, (i + 1) * q + half - ((i + 1) * q + half < l ? 0 : l));
             double tmp = (90 + 45) / 2. - 45 * i;
             almostDiameterAngles[i] = tmp + (tmp <= -90 ? 180 : 0);
         }
-        Helper.write(filenameOutput, Arrays.toString(diameterAngles));
-        Helper.write(filenameOutput, Arrays.toString(almostDiameterAngles) + "\n");
 
         // Рассматривается half диаметров, чьи углы наклона, отсчитываемые относительно положительного направления оси
         // c'y' по часовой стрелке, изменяются от angles[0] до angles[half-1].
@@ -515,34 +507,32 @@ public class Main {
         // Для 0-го диаметра right[0][] - множество индексов углов из массива angles, лежащих справа от этого диаметра,
         // а left[0][] - слева. При увеличении номера диаметра, диаметр поворачивается по часовой стрелке, и вслед за
         // ним также поворачиваются эти множества индексов.
-        int half = l / 2;
         int[][] right = new int[half][half - 1];
         int[][] left = new int[half][half - 1];
-        int[][] forbiddenDirections = new int[half][2];
-        for (int i = 0; i < half; i++) {
+        for (int i = 0; i < half; i++)
             for (int j = 0; j < half - 1; j++) {
                 right[i][j] = i + j + 1;
                 left[i][j] = right[i][j] + half - (right[i][j] + half < l ? 0 : l);
             }
-            forbiddenDirections[i][0] = i;
-            forbiddenDirections[i][1] = i + half;
-        }
 
         Object[][] jumps = new Object[l][];
         Pixel[] jumpPixel = new Pixel[l];
         double[] avEndTemp = new double[l];
-
-        List<Integer> range1Corr = new ArrayList<>();
-        List<Integer> range2Corr = new ArrayList<>();
+        var anglesWithNoJumpPixel = new ArrayList<Integer>();
 
         int iter = 0;
         int i1 = -1, i2 = -1;
+        double pipeAngle = -1000;
+
+        Helper.write(filenameOutput, "");
+
         while (iter < maxIter) {
             if (pixel.equals(new Pixel(-10, -10))) {
-                Helper.write(filenameOutput, "--- сдвиг pixel невозможен ---");
+                Helper.write(filenameOutput, "--- Сдвиг pixel невозможен. ---\n");
                 break;
             }
             iter++;
+            Helper.write(filenameOutput, "            === iter:  " + iter + " ===\n");
 
             double inclination1, inclination2;
             double inclination1Old, inclination2Old;
@@ -550,19 +540,12 @@ public class Main {
 
             double tMax1 = -1000;
             double tMax2 = -1000;
-            double aMax1;
-            double aMax2;
 
-            List<Integer> range1 = new ArrayList<>();
-            List<Integer> range2 = new ArrayList<>();
+            var range1 = new ArrayList<Integer>();
+            var range2 = new ArrayList<Integer>();
 
-            List<Integer> excludedAnglesIndices = new ArrayList<>();
-            List<Integer> permittedAnglesIndices = new ArrayList<>();
-            List<Integer> excludedAnglesIndicesWrtTemp = new ArrayList<>();
-            List<Integer> permittedAnglesIndicesWrtTemp = new ArrayList<>();
-
-            range1Corr.clear();
-            range2Corr.clear();
+            anglesWithNoJumpPixel.clear();
+            var anglesWithNoAvEndTemp = new ArrayList<Integer>();
 
             for (int i = 0; i < l; i++) {
                 jumps[i] = findJump(pixel, angles[i], coef * diameter, tempJump, 2, filename, separatorReal,
@@ -570,42 +553,42 @@ public class Main {
                 jumpPixel[i] = (Pixel) jumps[i][0];
                 avEndTemp[i] = (double) jumps[i][1];
                 if (jumpPixel[i].equals(new Pixel(-1, -1)) || jumpPixel[i].equals(new Pixel(-2, -2)))
-                    excludedAnglesIndices.add(i);
-                else
-                    permittedAnglesIndices.add(i);
+                    anglesWithNoJumpPixel.add(i);
                 if (jumpPixel[i].equals(new Pixel(-2, -2)))
-                    excludedAnglesIndicesWrtTemp.add(i);
-                else
-                    permittedAnglesIndicesWrtTemp.add(i);
+                    anglesWithNoAvEndTemp.add(i);
             }
 
-            try {
-                if (permittedAnglesIndices.size() >= 2) {
-                    for (int i : permittedAnglesIndices)
-                        if (avEndTemp[i] > tMax1) {
-                            i1 = i;
-                            tMax1 = avEndTemp[i1];
-                        }
-                    for (int i : permittedAnglesIndices)
-                        if (avEndTemp[i] > tMax2 && i != i1) {
-                            i2 = i;
-                            tMax2 = avEndTemp[i2];
-                        }
-                } else
-                    throw new Exception("permittedAnglesIndices.size()<2");
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
+            if (anglesWithNoAvEndTemp.size() <= l - 2) {
+                for (int i = 0; i < l; i++)
+                    if (!anglesWithNoAvEndTemp.contains(i) && avEndTemp[i] > tMax1) {
+                        i1 = i;
+                        tMax1 = avEndTemp[i1];
+                    }
+                for (int i = 0; i < l; i++)
+                    if (!anglesWithNoAvEndTemp.contains(i) && avEndTemp[i] > tMax2 && i != i1) {
+                        i2 = i;
+                        tMax2 = avEndTemp[i2];
+                    }
+                // Упорядочиваем i1 и i2, чтобы стало i1<i2. Эти индексы могут быть соседними.
+                int tmp = i1;
+                i1 = min(i1, i2);
+                i2 = max(tmp, i2);
+            } else {
+                if (iter > 1) {
+                    Helper.write(filenameOutput, "Значения i1, i2 остаются с предыдущей итерации, т. к. не могут " +
+                            "быть корректно вычислены из-за того, что anglesWithNoAvEndTemp.size>l-2." + "\n");
+                } else {
+                    i1 = 0;
+                    i2 = half;
+                    Helper.write(filenameOutput, "В качестве значений i1, i2 берутся " + i1 + ", " + i2 + ", " +
+                            "т. к. не могут быть корректно вычислены из-за того, что anglesWithNoAvEndTemp.size>l-2, " +
+                            "и итерация 1-я." + "\n");
+                }
             }
 
-            aMax1 = angles[i1];
-            aMax2 = angles[i2];
+            Helper.write(filenameOutput, "aMaxs:   " + angles[i1] + "   " + angles[i2] + "\n");
 
-            // Упорядочиваем i1 и i2, чтобы стало i1<i2. Эти индексы могут быть соседними.
-            int tmp = i1;
-            i1 = min(i1, i2);
-            i2 = max(tmp, i2);
-
-            // Разделяем все индексы углов, за исключением индексов i1 и i2, на две равные части: range1 и range2.
+            // Разделяем все индексы углов, за исключением индексов i1 и i2, на две (непустые) части: range1 и range2.
 
             // i1 и i2 - не соседние.
             // range1 - индексы между i1 и i2, range2 - индексы между i2 и i1.
@@ -632,32 +615,19 @@ public class Main {
                         range2.add(k);
                 }
 
-            Helper.write(filenameOutput, "      === iter:  " + iter + " ===\n");
-            Helper.write(filenameOutput, "   aMaxs:   " + aMax1 + "   " + aMax2 + "\n");
             Helper.write(filenameOutput, "ranges:   " + Arrays.toString(range1.toArray()) + "   " +
                     Arrays.toString(range2.toArray()) + "\n");
 
-            var sr1 = new SimpleRegression();
-            var sr2 = new SimpleRegression();
+            var range1Corr = new ArrayList<>(range1);
+            var range2Corr = new ArrayList<>(range2);
 
-            range1Corr = new ArrayList<>(range1);
-            range2Corr = new ArrayList<>(range2);
-            boolean range1Changed = range1Corr.removeAll(excludedAnglesIndices);
-            boolean range2Changed = range2Corr.removeAll(excludedAnglesIndices);
-
-            if (range1Changed)
+            if (range1Corr.removeAll(anglesWithNoJumpPixel))
                 Helper.write(filenameOutput, "range1Corr:   " + range1Corr);
-            if (range2Changed)
+            if (range2Corr.removeAll(anglesWithNoJumpPixel))
                 Helper.write(filenameOutput, "range2Corr:   " + range2Corr);
 
-            try {
-                if (range1Corr.size() == 0)
-                    throw new Exception("range1Corr.size()=0");
-                if (range2Corr.size() == 0)
-                    throw new Exception("range2Corr.size()=0");
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
+            var sr1 = new SimpleRegression();
+            var sr2 = new SimpleRegression();
 
             for (int i : range1Corr)
                 sr1.addData(jumpPixel[i].getI(), jumpPixel[i].getJ());
@@ -667,10 +637,12 @@ public class Main {
             Helper.write(filenameOutput, "slopes:   " + sr1.getSlope() + "   " + sr2.getSlope() + "\n");
 
             // inclination1 (inclination2) - угол наклона прямой, аппроксимирующей точки массива jumpPixel, чьи индексы
-            // прнадлежат списку range1Corr (range2Corr). Сначала принадлежит интервалу (-90,90), потом добавляется
-            // значение 90 для случая, когда точки из того или иного диапазона расположены примерно по вертикали.
+            // прнадлежат списку range1Corr (range2Corr). Сначала принадлежит интервалу (-90,90) или равен NaN, потом
+            // добавляется значение 90 для случая, когда точки из того или иного диапазона расположены примерно по
+            // вертикали.
             inclination1 = atan(sr1.getSlope()) * 180 / PI;
             inclination2 = atan(sr2.getSlope()) * 180 / PI;
+
             inclination1Old = inclination1;
             inclination2Old = inclination2;
 
@@ -690,6 +662,13 @@ public class Main {
                         jumpPixel[range2Corr.get(0)].getI() == jumpPixel[range2Corr.get(range2Corr.size() - 1)].getI() ?
                         90 : inclination2);
 
+            if (Helper.compare(inclination1, inclination1Old) && Helper.compare(inclination2, inclination2Old))
+                Helper.write(filenameOutput, "inclinations:   " + inclination1 + "   " + inclination2 + "\n");
+            else {
+                Helper.write(filenameOutput, "inclinations (initial):   " + inclination1Old + "   " + inclination2Old);
+                Helper.write(filenameOutput, "inclinations (after change):   " + inclination1 + "   " + inclination2 + "\n");
+            }
+
             // pipeAngle - угол наклона биссектрисы острого угла между прямыми, чьи углы наклона равны inclination1 и
             // inclination2, относительно положительного направления оси c'x', отсчитываемый против часовой стрелки.
             // (Если эти прямые перпендикулярны, то берётся биссектриса, которая ближе всего к оси c'x'. Если же эти
@@ -697,13 +676,14 @@ public class Main {
             //
             // Сначала принадлежит промежутку (-90,90].
             // Трактуется как угол наклона трубы.
-            if (range1Corr.size() < 2 & range2Corr.size() > 1)
+            if (range1Corr.size() < 2 && range2Corr.size() > 1)
                 pipeAngle = inclination2;
-            else if (range2Corr.size() < 2 & range1Corr.size() > 1)
+            else if (range2Corr.size() < 2 && range1Corr.size() > 1)
                 pipeAngle = inclination1;
-            else if (range1Corr.size() < 2 & range2Corr.size() < 2)
-                pipeAngle = 90;
-            else {
+            else if (range1Corr.size() < 2) {
+                pipeAngle = 90; // Эту ситуацию можно обрабатывать более точно, например, сдвигом или изм. длины.
+                Helper.write(filenameOutput, "В качестве pipeAngle берётся 90, т. к. range1Corr.size,range2Corr.size<2.\n");
+            } else {
                 double v = (inclination1 + inclination2) / 2;
                 pipeAngle = v + (inclination1 * inclination2 < 0 && abs(inclination1) + abs(inclination2) > 90 ?
                         (v <= 0 ? 90 : -90) : 0);
@@ -716,93 +696,91 @@ public class Main {
             // Теперь pipeAngle принадлежит промежутку [0,180).
             pipeAngle = pipeAngle + (pipeAngle < 0 ? 180 : 0);
 
-            if (inclination1 == inclination1Old & inclination2 == inclination2Old)
-                Helper.write(filenameOutput, "inclinations:   " + inclination1 + "   " + inclination2 + "\n");
-            else {
-                Helper.write(filenameOutput, "inclinations (initial):   " + inclination1Old + "   " + inclination2Old);
-                Helper.write(filenameOutput, "inclinations (after change):   " + inclination1 + "   " + inclination2 + "\n");
-            }
-
             if (pipeAngle == pipeAngleOld) {
                 Helper.write(filenameOutput, "============================");
                 Helper.write(filenameOutput, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle)");
             } else {
-                Helper.write(filenameOutput, (round(pipeAngleOld * 100) / 100.) + "   (pipeAngle (initial))");
+                Helper.write(filenameOutput, "    " + (round(pipeAngleOld * 100) / 100.) + "   (pipeAngle (initial))");
                 Helper.write(filenameOutput, "============================");
                 Helper.write(filenameOutput, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle (after change))");
             }
             Helper.write(filenameOutput, "============================\n");
 
+            String standardDirection = "";
+            double standardAngle = -1000;
+            String standardDirectionName = "";
+
             int dInd = -1, aDInd = -1;
             for (int i = 0; i < n / 2; i++)
                 if (new Point(i1, i2).equals(diameters[i])) {
                     dInd = i;
+                    standardDirection = diameters[dInd].getI() + "-" + diameters[dInd].getJ();
+                    standardAngle = diameterAngles[dInd];
+                    standardDirectionName = "diameter";
                     break;
                 }
             if (dInd == -1)
                 for (int i = 0; i < n; i++)
                     if (new Point(i1, i2).equals(almostDiameters[i]) || new Point(i2, i1).equals(almostDiameters[i])) {
                         aDInd = i;
+                        standardDirection = almostDiameters[aDInd].getI() + "-" + almostDiameters[aDInd].getJ();
+                        standardAngle = almostDiameterAngles[aDInd];
+                        standardDirectionName = "almostDiameter";
                         break;
                     }
 
-            boolean isCloseToDiameter = false, isCloseToAlmostDiameter = false;
-            if (dInd != -1)
-                // Определяет, отстоит ли прямая с углом наклона pipeAngle от прямой с углом наклона
-                // diameterAngles[dInd] не более, чем на eps.
-                isCloseToDiameter = abs(pipeAngle - diameterAngles[dInd]) <= eps ||
-                        abs(pipeAngle - (diameterAngles[dInd] + 180)) <= eps;
-            if (aDInd != -1)
-                // Определяет, отстоит ли прямая с углом наклона pipeAngle от прямой с углом наклона
-                // almostDiameterAngles[aDInd] не более, чем на eps.
-                isCloseToAlmostDiameter = abs(pipeAngle - almostDiameterAngles[aDInd]) <= eps ||
-                        abs(pipeAngle - (almostDiameterAngles[aDInd] + 180)) <= eps;
+            // Определяет, отстоит ли прямая с углом наклона pipeAngle от прямой с углом наклона standardAngle не более,
+            // чем на eps.
+            boolean isCloseToStandardDirection = Helper.close(pipeAngle, standardAngle + (standardAngle < 0 ? 180 : 0), eps);
+
             // Значения i1, i2 соответствуют эталонному направлению (диаметру или почти-диаметру), но угол pipeAngle
             // сильно отличается от эталонного угла.
-            if ((dInd != -1 && !isCloseToDiameter) || (aDInd != -1 && !isCloseToAlmostDiameter)) {
+            if ((dInd != -1 || aDInd != -1) && !isCloseToStandardDirection) {
                 if (iter < maxIter) {
                     coef *= dec;
-                    if (dInd != -1)
-                        System.out.println(dInd + "   d=" + diameters[dInd] + "  " + diameterAngles[dInd] + "  " + pipeAngle);
-                    if (aDInd != -1)
-                        System.out.println(aDInd + "   ad=" + almostDiameters[aDInd] + "  " + almostDiameterAngles[aDInd] + "  " + pipeAngle);
-                    Helper.write(filenameOutput, "--- уменьшение coef ---\n");
+                    Helper.write(filenameOutput, "Эталонное направление:   " + standardDirection +
+                            " (" + standardDirectionName + "),   эталонный угол:   " + standardAngle + ",   " +
+                            "pipeAngle:   " + (round(pipeAngle * 100) / 100.) + ".");
+                    Helper.write(filenameOutput, "--- Уменьшение coef, т. к. pipeAngle не соответствует " +
+                            "эталонному углу. ---\n\n");
                 } else {
-                    if (dInd != -1) {
-                        Helper.write(filenameOutput, "--- итерации исчерпаны, берём эталонный угол d[" + dInd + "]=" + diameterAngles[dInd]);
-                        pipeAngle = diameterAngles[dInd] + (diameterAngles[dInd] < 0 ? 180 : 0);
-                    }
-                    if (aDInd != -1) {
-                        Helper.write(filenameOutput, "--- итерации исчерпаны, берём эталонный угол ad[" + aDInd + "]=" + almostDiameterAngles[aDInd]);
-                        pipeAngle = almostDiameterAngles[aDInd] + (almostDiameterAngles[aDInd] < 0 ? 180 : 0);
-                    }
+                    pipeAngle = standardAngle + (standardAngle < 0 ? 180 : 0);
+                    Helper.write(filenameOutput, "--- Итерации исчерпаны, в качестве pipeAngle берём угол, " +
+                            "соответствующий эталонному направлению " + standardDirection +
+                            " (" + standardDirectionName + "):   " + standardAngle + ".\n\n");
                 }
             }
             // Эталонное направление не найдено или, в противном случае, угол pipeAngle корректен.
-            else
-                // i1 и i2 - соседние или отличаются на 2.
+            else {
+                // i1 и i2 - соседние или отличаются на 2 (это при l=8 равносильно отсутствию эталонного направления).
                 if ((abs(i1 - i2) == 1 || (i1 == 0 && i2 == l - 1)) ||
                         (abs(i1 - i2) == 2 || (i1 == 0 && i2 == l - 2) || (i1 == 1 && i2 == l - 1))) {
 
-                    Helper.write(filenameOutput, "--- сдвиг и уменьшение coef ---\n");
+                    Helper.write(filenameOutput, "Эталонное направление отсутствует.");
+                    Helper.write(filenameOutput, "--- Cдвиг и уменьшение coef. ---");
                     coef *= dec;
-                    pixel = shiftPixel(pixel, right, left, avEndTemp, permittedAnglesIndicesWrtTemp, half, resX, resY,
-                            filenameOutput);
-                } else {
-                    Helper.write(filenameOutput, "--- индексы i1 и i2 хорошо различимы ---\n");
+                    Pixel shiftedPixel = shiftPixel(pixel, right, left, avEndTemp, anglesWithNoAvEndTemp, resX, resY);
+                    Helper.write(filenameOutput, pixel + "  ->  " + shiftedPixel + "\n\n");
+                    pixel = shiftedPixel;
+                }
+                // i1 и i2 - отличаются более чем на 2 (это при l=8 равносильно наличию эталонного направления).
+                else {
+                    Helper.write(filenameOutput, "Эталонное направление:   " + standardDirection +
+                            " (" + standardDirectionName + "),   эталонный угол:   " + standardAngle + ",   " +
+                            "pipeAngle:   " + (round(pipeAngle * 100) / 100.) + ".");
+                    Helper.write(filenameOutput, "--- Прекращение итераций, т. к. pipeAngle соответствует " +
+                            "эталонному углу. ---\n\n");
                     break;
                 }
+            }
         }
-
-        if (range1Corr.size() < 2 && range2Corr.size() < 2)
-            Helper.write(filenameOutput, "Многоугольник " + num + " " + polygon1 + ": range1Corr.size(),range2Corr.size()<2");
 
         try {
             BufferedImage image = ImageIO.read(new File(outputPictureFilename));
             for (int i = 0; i < l; i++) {
                 Helper.write(filenameOutput, String.format("%1$6s", angles[i]) + "  " +
                         String.format("%1$5s", round(avEndTemp[i] * 10) / 10.) + "  " + jumpPixel[i]);
-                if (!jumpPixel[i].equals(new Pixel(-1, -1)) && !jumpPixel[i].equals(new Pixel(-2, -2)))
+                if (!anglesWithNoJumpPixel.contains(i))
                     new Segment(pixel.toPoint(resY), jumpPixel[i].toPoint(resY)).draw(image, Color.BLACK);
             }
             ImageIO.write(image, "jpg", new File(outputPictureFilename));
@@ -810,7 +788,7 @@ public class Main {
             e.printStackTrace();
         }
 
-        Helper.write(filenameOutput, "\n");
+        Helper.write(filenameOutput, "\n\n");
         return pipeAngle;
     }
 
@@ -874,7 +852,7 @@ public class Main {
 
         List<Double> aRes = new ArrayList<>();
         for (int i = 0; i < middles.size(); i++)
-            aRes.add(findPipeAngle(middles.get(i), enlargedPolygons.get(i), i, thermogram, 0.7, 2,
+            aRes.add(findPipeAngle(middles.get(i), enlargedPolygons.get(i), i + 1, thermogram, 0.7, 2,
                     2, 8, 0.9, 20, 10, filename, outputPictureFilename,
                     DIR_CURRENT + "/angles2.txt", separatorReal, pixelSize, focalLength, resX, resY));
 
