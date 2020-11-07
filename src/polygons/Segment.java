@@ -1,6 +1,7 @@
 package polygons;
 
 import main.Helper;
+import main.Rectangle;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -135,14 +136,19 @@ public class Segment {
         int minI = Math.min(a.getI(), b.getI());
         int maxJ = Math.max(a.getJ(), b.getJ());
         int minJ = Math.min(a.getJ(), b.getJ());
+
+        var rectangleImage = new Rectangle<>(new Point(0, 0), new Point(image.getWidth() - 1, image.getHeight() - 1));
+
         if (isHorizontal()) {
-            for (int i = minJ; i <= maxJ; i++)
-                image.setRGB(i, a.getI(), color.getRGB());
+            for (int j = minJ; j <= maxJ; j++)
+                if (rectangleImage.contains(new Point(j, a.getI()), 0))
+                    image.setRGB(j, a.getI(), color.getRGB());
             return;
         }
         if (isVertical()) {
             for (int i = minI; i <= maxI; i++)
-                image.setRGB(a.getJ(), i, color.getRGB());
+                if (rectangleImage.contains(new Point(a.getJ(), i), 0))
+                    image.setRGB(a.getJ(), i, color.getRGB());
             return;
         }
         // y=A*x+B - уравнение прямой, проходящей через концы текущего отрезка.
@@ -151,7 +157,10 @@ public class Segment {
         double p; // точка, пробегающая отрезок [minI, maxI]
         for (int i = 0; i <= Math.max(maxI - minI, maxJ - minJ); i++) {
             p = minI + i * (maxI - minI + 0.) / Math.max(maxI - minI, maxJ - minJ);
-            image.setRGB((int) Math.round(A * p + B), (int) Math.round(p), color.getRGB());
+            int x = (int) Math.round(A * p + B);
+            int y = (int) Math.round(p);
+            if (rectangleImage.contains(new Point(x, y), 0))
+                image.setRGB(x, y, color.getRGB());
         }
     }
 

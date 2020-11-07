@@ -335,25 +335,25 @@ public class Main {
         List<Polygon<Point>> enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMin,
                 minPixelSquare, distance, overlap, focalLength, resY);
 
-        List<Rectangle<Pixel>> boundingRectangles2 = new ArrayList<>();
-        for (Polygon<Point> polygon : enlargedPolygons2)
-            boundingRectangles2.add(Polygon.toPixelPolygon(polygon, focalLength, resY).boundingRectangle());
+        var boundingRectangles = new ArrayList<Rectangle<Pixel>>();
+        for (Polygon<Point> p : enlargedPolygons)
+            boundingRectangles.add(Polygon.toPixelPolygon(p, focalLength, resY).boundingRectangle());
 
-        List<Rectangle<Pixel>> boundingRectangles = new ArrayList<>();
-        for (Polygon<Point> polygon : enlargedPolygons)
-            boundingRectangles.add(Polygon.toPixelPolygon(polygon, focalLength, resY).boundingRectangle());
+        var boundingRectangles2 = new ArrayList<Rectangle<Pixel>>();
+        for (Polygon<Point> p : enlargedPolygons2)
+            boundingRectangles2.add(Polygon.toPixelPolygon(p, focalLength, resY).boundingRectangle());
 
-        List<Pixel> middlesOfPseudoDefects = new ArrayList<>();
-        for (Rectangle<Pixel> br : boundingRectangles)
+        var middlesOfPseudoDefects = new ArrayList<Pixel>();
+        for (Rectangle<Pixel> br : boundingRectangles) {
+            boolean added = false;
             for (Rectangle<Pixel> br2 : boundingRectangles2)
                 if (br.isIn(br2, maxDiff)) {
                     middlesOfPseudoDefects.add((br2.squarePixels() > k * br.squarePixels() ? br2 : br).middle());
+                    added = true;
                     break;
                 }
-
-        if (enlargedPolygons.size() != middlesOfPseudoDefects.size())
-            throw new IllegalArgumentException("Для какого-то дефекта отсутствует точка, по которой вычисляется " +
-                    "направление трубы.");
+            if (!added) middlesOfPseudoDefects.add(br.middle());
+        }
 
         return middlesOfPseudoDefects;
     }
@@ -792,7 +792,7 @@ public class Main {
         return pipeAngle;
     }
 
-    private static void defects(Thermogram thermogram, Polygon<Pixel> overlap,
+    private static void defects(Thermogram thermogram, Polygon<Pixel> overlap, double diameter,
                                 String thermogramFilename, String outputPictureFilename, String realFilename,
                                 char separatorReal, double pixelSize, double focalLength, int resX, int resY) throws IOException {
         System.out.println("=== Thermogram: " + thermogram.getName() + " ===\n");
@@ -815,107 +815,56 @@ public class Main {
                 Color.BLACK, thermogramFilename, outputPictureFilename, focalLength, resY);
         Polygon.showSquares(enlargedPolygons, thermogram.getHeight(), focalLength, resX, resY);
 
-        String filename = DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
-                "/" + thermogram.getName() + Property.POSTFIX_REAL.getValue() + EXTENSION_REAL;
-        Pixel[] pixels;
-        for (Polygon<Point> polygon : enlargedPolygons) {
-            System.out.println(Base.toPixelPolygon(polygon, focalLength, resY));
-            /*System.out.println(Base.procedureNotNeeded((int) Math.round(Base.realToMatrix(0.7, thermogram.getHeight(),
-                    Main.PIXEL_SIZE)), Base.toPixelPolygon(polygon)) + "  " +
-                    Base.toPixelPolygon(polygon) + "  " +
-                    (int) Math.round(Base.realToMatrix(0.7, thermogram.getHeight(), Main.PIXEL_SIZE)) + " | " +
-                    Base.width(Base.toPixelPolygon(polygon)) + " X " +
-                    Base.height(Base.toPixelPolygon(polygon)));*/
-            pixels = Base.toPixelPolygon(polygon, focalLength, resY).getVertices().toArray(new Pixel[0]);
-//            System.out.println(Base.sss(Base.realToMatrix(0.7, thermogram.getHeight(),
-//                    Main.PIXEL_SIZE), 48, 4, Main.SEPARATOR_REAL, filename, pixels) + "\n" +
-//                    Base.toPixelPolygon(polygon));
-            /*double a = Base.vert(Base.boundingRectangle(Base.toPixelPolygon(polygon)),
-                    Base.realToMatrix(0.7, thermogram.getHeight(),
-                    Main.PIXEL_SIZE), 48, 3, Main.SEPARATOR_REAL, filename);
-            System.out.println("a = " + a);*/
-            //System.out.println(Base.toPixelPolygon(polygon));
-        }
-        Pixel[] innerPixels = new Pixel[3];
-        //innerPixels[0] = new Pixel(228 - 10, 129 - 5);
-        //innerPixels[1] = new Pixel(231, 129);
-        //innerPixels[2] = new Pixel(233 + 10, 130 + 5);
-        //Pixel p = new Pixel(378, 321);
-        //Pixel p = new Pixel(375,281);
-        //Pixel p = new Pixel(364, 188);
-        //Pixel p = new Pixel(230, 125);
+        List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, resY, 0, MIN_PIXEL_SQUARE,
+                5, focalLength, overlap, enlargedPolygons, 3, 5);
 
-
-        //Pixel p = new Pixel(209 + 2, 70 + 10);
-        List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, resY, 0, MIN_PIXEL_SQUARE, 5, focalLength, overlap, enlargedPolygons, 3, 5);
-        //Pixel p = middles.get(middles.size() - 1);
-
-        List<Double> aRes = new ArrayList<>();
-        for (int i = 0; i < middles.size(); i++)
-            aRes.add(findPipeAngle(middles.get(i), enlargedPolygons.get(i), i + 1, thermogram, 0.7, 2,
-                    2, 8, 0.9, 20, 10, filename, outputPictureFilename,
+        var pipeAngles = new ArrayList<Double>();
+        for (int i = 0; i < enlargedPolygons.size(); i++)
+            pipeAngles.add(findPipeAngle(middles.get(i), enlargedPolygons.get(i), i + 1, thermogram, diameter,
+                    2, 2, 8, 0.9, 20, 10, realFilename, outputPictureFilename,
                     DIR_CURRENT + "/angles2.txt", separatorReal, pixelSize, focalLength, resX, resY));
 
-        //System.out.println("\nУглы наклона трубы:\n" + aRes + "\n");
-        List<Double> res = new ArrayList<>();
-        for (double v : aRes)
-            res.add(round(v * 100) / 100.);
-        System.out.println("\nУглы наклона трубы:\n" + res + "\n");
-
-        try {
-            String filename0 = DIR_CURRENT + "/angles.txt";
-            FileWriter fw = new FileWriter(filename0, true);
-            fw.write(thermogram.getName() + "   " + res + "\n\n");
-            fw.close();
-        } catch (IOException ioe) {
-            System.err.println("IOException: " + ioe.getMessage());
+        var roundedPipeAngles = new ArrayList<String>();
+        for (double v : pipeAngles) {
+            String s = round(v * 100) / 100. + "";
+            s = !s.contains(".") ? s : s.replaceAll("0*$", "").replaceAll("\\.$", "");
+            roundedPipeAngles.add(s);
         }
 
-        List<Rectangle<Pixel>> bList = new ArrayList<>();
-        for (Polygon<Point> p0 : enlargedPolygons)
-            bList.add(Base.boundingRectangle(Base.toPixelPolygon(p0, focalLength, resY)));
-        List<Polygon<Pixel>> slopingDefects = new ArrayList<>();
-        if (aRes.size() > 0)
-            for (int i = 0; i < bList.size(); i++)
-                slopingDefects.add(Rectangle.slopeRectangle(bList.get(i), aRes.get(i) + (aRes.get(i) >= 90 ? -90 : 0), resY));
+        try {
+            FileWriter writer = new FileWriter(DIR_CURRENT + "/angles.txt", true);
+            writer.write(thermogram.getName() + "   " + roundedPipeAngles + "\n\n");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        int diam = (int) round(Base.realToMatrix(0.7, thermogram.getHeight(), pixelSize, focalLength));
+        int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize,
+                focalLength));
+
+        var boundingDefects = new ArrayList<Rectangle<Pixel>>();
+        var slopingDefects = new ArrayList<Polygon<Pixel>>();
+        var widenedDefects = new ArrayList<Polygon<Pixel>>();
+
+        for (int i = 0; i < enlargedPolygons.size(); i++) {
+            Rectangle<Pixel> bd = Polygon.toPixelPolygon(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
+            Polygon<Pixel> sd = Rectangle.slopeRectangle(bd,
+                    pipeAngles.get(i) + (pipeAngles.get(i) >= 90 ? -90 : 0), resY);
+            Polygon<Pixel> wd = sd.widen(diameterPixel, pipeAngles.get(i));
+
+            boundingDefects.add(bd);
+            slopingDefects.add(sd);
+            widenedDefects.add(wd);
+        }
+
         try {
             BufferedImage image = ImageIO.read(new File(thermogramFilename));
-            for (int i = 0; i < slopingDefects.size(); i++) {
-                Polygon<Pixel> p = slopingDefects.get(i).widen(diam, aRes.get(i));
-                System.out.println("\nbefore widen():\n" + slopingDefects.get(i));
-                System.out.println("after widen():\n" + p + "\n");
-                int[] a = Base.findMaxAndMin(p, Pixel::getI);
-                int[] b = Base.findMaxAndMin(p, Pixel::getJ);
-                if (a[1] >= 0 && b[1] >= 0 && a[0] < 640 && b[0] < 512)
-                    Polygon.draw(Polygon.toPointPolygon(p, focalLength, resY), image, Color.BLACK);
-            }
+            for (Polygon<Pixel> wd : widenedDefects)
+                Polygon.draw(Polygon.toPointPolygon(wd, focalLength, resY), image, Color.BLACK);
             ImageIO.write(image, "jpg", new File(DIR_CURRENT + "/out_sloping/" + thermogram.getName() + "_sl.jpg"));
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        /*
-        List<Rectangle<Pixel>> bList2 = new ArrayList<>();
-        bList2.add(new Rectangle<>(new Pixel(50, 50), new Pixel(70, 90)));
-        bList2.add(new Rectangle<>(new Pixel(50 + 200, 50), new Pixel(70 + 200, 90)));
-        List<Double> aRes2 = new ArrayList<>();
-        aRes2.add(30.);
-        aRes2.add(170.);
-        List<Polygon<Pixel>> slopingDefects2 = new ArrayList<>();
-        for (int i = 0; i < bList2.size(); i++)
-            slopingDefects2.add(slopingDefect(bList2.get(i), aRes2.get(i) < 90 ? aRes2.get(i) : aRes2.get(i) - 90));
-        try {
-            BufferedImage image = ImageIO.read(new File(thermogramFilename));
-            for (Rectangle<Pixel> slopingDefect : bList2)
-                Polygon.draw(Polygon.toPointPolygon(Figure.toPolygon(slopingDefect, 0, 0, 0), focalLength, resY), image, Color.BLACK);
-            for (Polygon<Pixel> slopingDefect : slopingDefects2)
-                Polygon.draw(Polygon.toPointPolygon(slopingDefect, focalLength, resY), image, Color.BLACK);
-            ImageIO.write(image, "jpg", new File(DIR_CURRENT + "/out_sloping/" + thermogram.getName() + "_sl2.jpg"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
     }
 
     public static void main(String[] args) throws IOException {
@@ -952,13 +901,14 @@ public class Main {
                 Thermogram[] thermograms = Thermogram.readThermograms(
                         DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO,
                         DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
+                double diameter = 0.7;
                 for (int i = 0; i < thermograms.length; i++)
                     defects(thermograms[i],
                             thermograms[i].getOverlapWith(thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1],
                                     ExifParam.FOCAL_LENGTH.getValue(),
                                     ExifParam.RES_X.getIntValue(),
                                     ExifParam.RES_Y.getIntValue()),
-                            Property.DIR_THERMOGRAMS.getValue().replace('\\', '/') +
+                            diameter, Property.DIR_THERMOGRAMS.getValue().replace('\\', '/') +
                                     "/" + thermograms[i].getName() + EXTENSION,
                             DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_PICTURES.getValue() +
                                     "/" + thermograms[i].getName() + Property.POSTFIX_PROCESSED.getValue() + EXTENSION,
