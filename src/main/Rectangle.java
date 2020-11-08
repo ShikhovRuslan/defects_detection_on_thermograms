@@ -32,6 +32,23 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
         this.right = right;
     }
 
+    /**
+     * Преобразует текущий прямоугольник в многоугольник, создавая список его вершин, которые упорядочены против часовой
+     * стрелки, начиная с нижней левой вершины.
+     */
+    public Polygon<T> toPolygon(double squareRectangleWithoutOverlap, double height, double focalLength) {
+        List<T> vertices = new ArrayList<>();
+        vertices.add(left);
+        vertices.add((T) left.create(right.getI(), left.getJ()));
+        vertices.add(right);
+        vertices.add((T) right.create(left.getI(), right.getJ()));
+        return new Polygon<>(vertices, squareRectangleWithoutOverlap, height, focalLength);
+    }
+
+    public Polygon<T> toPolygon() {
+        return toPolygon(-1, -1, -1);
+    }
+
     public T getLeft() {
         return left;
     }
@@ -53,7 +70,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      *              принадлежащий промежутку {@code [0,90]}
      */
     public static Polygon<Pixel> slopeRectangle(Rectangle<Pixel> rectangle, double angle, int resY) {
-        Polygon<Pixel> polygon = Figure.toPolygon(rectangle, 0, 0, 0);
+        Polygon<Pixel> polygon = rectangle.toPolygon(0, 0, 0);
         List<Pixel> vertices = polygon.getVertices();
         Segment[] sides = Polygon.getSides(Polygon.toPointPolygon(polygon, 0, resY));
         double a = angle * PI / 180;
@@ -107,10 +124,10 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     }
 
     /**
-     * Возвращает площадь части прямоугольника {@code rectangle}, которая не принадлежит многоугольнику {@code overlap}.
+     * Возвращает площадь части многоугольника {@code polygon}, которая не принадлежит многоугольнику {@code overlap}.
      */
-    public static double squareRectangleWithoutOverlap(Rectangle<Pixel> rectangle, Polygon<Pixel> overlap, double focalLength) {
-        return rectangle.square(focalLength) - getIntersection(rectangle, overlap, focalLength).square(focalLength);
+    public static double squarePolygonWithoutOverlap(Polygon<Pixel> polygon, Polygon<Pixel> overlap, double focalLength) {
+        return polygon.square(focalLength) - getIntersection(polygon, overlap, focalLength).square(focalLength);
     }
 
     @Override
@@ -120,21 +137,26 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     }
 
     /**
-     * Возвращает многоугольник, который является пересечением прямоугольника {@code rectangle} и многоугольника
-     * {@code polygon}.
+     * Возвращает многоугольник, который является пересечением многоугольников {@code polygon1} и {@code polygon2}.
      */
-    public static Polygon<Pixel> getIntersection(Rectangle<Pixel> rectangle, Polygon<Pixel> polygon, double focalLength) {
+    public static Polygon<Pixel> getIntersection(Polygon<Pixel> polygon1, Polygon<Pixel> polygon2, double focalLength) {
+        List<Pixel> v1 = polygon1.getVertices();
+        List<Pixel> v2 = polygon2.getVertices();
+
         List<Pixel> vertices = new ArrayList<>();
-        vertices.addAll(rectangle.verticesFrom(polygon, focalLength));
-        vertices.addAll(polygon.verticesFrom(Figure.toPolygon(rectangle, -1, 0, focalLength), focalLength));
+
+        vertices.addAll(polygon1.verticesFrom(polygon2, focalLength));
+        vertices.addAll(polygon2.verticesFrom(polygon1, focalLength));
+
         Pixel intersection;
-        for (int i = 0; i < 4; i++)
-            for (int j = 0; j < polygon.getVertices().size(); j++) {
-                intersection = Pixel.findIntersection(Figure.toPolygon(rectangle, -1, 0, focalLength).getVertices().get(i),
-                        Figure.toPolygon(rectangle, -1, 0, focalLength).getVertices().get(i + 1 < 4 ? i + 1 : 0),
-                        polygon.getVertices().get(j),
-                        polygon.getVertices().get(j + 1 < polygon.getVertices().size() ? j + 1 : 0));
-                if (intersection.getI() != -1)
+        for (int i = 0; i < v1.size(); i++)
+            for (int j = 0; j < v2.size(); j++) {
+                intersection = Pixel.findIntersection(
+                        v1.get(i),
+                        v1.get(i + 1 < v1.size() ? i + 1 : 0),
+                        v2.get(j),
+                        v2.get(j + 1 < v2.size() ? j + 1 : 0));
+                if (!intersection.equals(new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE)))
                     vertices.add(intersection);
             }
         return new Polygon<>(AbstractPoint.order(vertices), focalLength);

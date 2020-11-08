@@ -274,7 +274,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 draw(polygon, image, color);
             if (forbiddenZones != null)
                 for (Rectangle<Pixel> rectangle : forbiddenZones)
-                    draw(toPointPolygon(Figure.toPolygon(rectangle, 0, 0, focalLength), focalLength, resY), image, color);
+                    draw(toPointPolygon(rectangle.toPolygon(0, 0, focalLength), focalLength, resY), image, color);
             ImageIO.write(image, "jpg", new File(newPictureName));
         } catch (IOException e) {
             e.printStackTrace();
@@ -370,7 +370,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     public static List<Polygon<Point>> toPolygons(List<Rectangle<Point>> rectangles, Polygon<Pixel> overlap, double height, double focalLength, int resY) {
         List<Polygon<Point>> polygons = new ArrayList<>();
         for (Rectangle<Point> rectangle : rectangles)
-            polygons.add(Figure.toPolygon(rectangle, Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(rectangle, resY), overlap, focalLength), height, focalLength));
+            polygons.add(rectangle.toPolygon(Rectangle.squarePolygonWithoutOverlap(Rectangle.toRectangle(rectangle, resY).toPolygon(0, 0, 0), overlap, focalLength), height, focalLength));
         return polygons;
     }
 
@@ -510,7 +510,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 polygonalChains[1].length);
         System.arraycopy(new Segment[]{perpendicular, otherBoarder}, 0, allSegments,
                 polygonalChains[0].length + polygonalChains[1].length, 2);
-        double squarePixelsOfConnectingRectangle = Rectangle.squareRectangleWithoutOverlap(Rectangle.toRectangle(vertex0, otherBoarder.getB(), resY), overlap, focalLength);
+        double squarePixelsOfConnectingRectangle = Rectangle.squarePolygonWithoutOverlap(Rectangle.toRectangle(vertex0, otherBoarder.getB(), resY).toPolygon(0, 0, 0), overlap, focalLength);
         return createPolygon(allSegments,
                 first.pixelSquare + second.pixelSquare + squarePixelsOfConnectingRectangle, height, focalLength);
     }

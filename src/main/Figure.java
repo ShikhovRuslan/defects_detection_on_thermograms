@@ -20,19 +20,6 @@ public interface Figure<T extends AbstractPoint> {
     }
 
     /**
-     * Преобразует прямоугольник {@code rectangle} в многоугольник, создавая список его вершин, которые упорядочены
-     * против часовой стрелки.
-     */
-    static <T extends AbstractPoint> Polygon<T> toPolygon(Rectangle<T> rectangle, double squareRectangleWithoutOverlap, double height, double focalLength) {
-        List<T> vertices = new ArrayList<>();
-        vertices.add(rectangle.getLeft());
-        vertices.add((T) rectangle.getLeft().create(rectangle.getRight().getI(), rectangle.getLeft().getJ()));
-        vertices.add(rectangle.getRight());
-        vertices.add((T) rectangle.getLeft().create(rectangle.getLeft().getI(), rectangle.getRight().getJ()));
-        return new Polygon<>(vertices, squareRectangleWithoutOverlap, height, focalLength);
-    }
-
-    /**
      * Определяет принадлежность точки {@code point} текущей фигуре.
      */
     boolean contains(T point, double focalLength);

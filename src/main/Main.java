@@ -3,7 +3,6 @@ package main;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import polygons.Point;
 import polygons.Segment;
-import tmp.Base;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -448,21 +447,21 @@ public class Main {
         double d = Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize, focalLength);
         int w = polygon1.width();
         int h = polygon1.height();
-        Helper.write(filenameOutput, "       ===  " + thermogram.getName() + ",  polygon " + num + "  ===\n");
-        Helper.write(filenameOutput, "Polygon (" + w + "x" + h + "): " + polygon1 + ".\n");
+        Helper.log(filenameOutput, "       ===  " + thermogram.getName() + ",  polygon " + num + "  ===\n");
+        Helper.log(filenameOutput, "Polygon (" + w + "x" + h + "): " + polygon1 + ".\n");
 
         int eps1 = 2;
         int eps2 = 4;
 
         // Многоугольник polygon является отчётливо горизонтальным (относительно термограммы).
         if (w >= d + eps2 && ((d - eps1 <= h && h <= d) || (h > d && w > h))) {
-            Helper.write(filenameOutput, "Многоугольник является отчётливо горизонтальным => pipeAngle=0.\n\n\n");
+            Helper.log(filenameOutput, "Многоугольник является отчётливо горизонтальным => pipeAngle=0.\n\n\n");
             return 0;
         }
 
         // Многоугольник polygon является отчётливо вертикальным (относительно термограммы).
         if (h >= d + eps2 && ((d - eps1 <= w && w <= d) || (w > d && h > w))) {
-            Helper.write(filenameOutput, "Многоугольник является отчётливо вертикальным => pipeAngle=90.\n\n\n");
+            Helper.log(filenameOutput, "Многоугольник является отчётливо вертикальным => pipeAngle=90.\n\n\n");
             return 90;
         }
 
@@ -524,15 +523,15 @@ public class Main {
         int i1 = -1, i2 = -1;
         double pipeAngle = -1000;
 
-        Helper.write(filenameOutput, "");
+        Helper.log(filenameOutput, "");
 
         while (iter < maxIter) {
             if (pixel.equals(new Pixel(-10, -10))) {
-                Helper.write(filenameOutput, "--- Сдвиг pixel невозможен. ---\n");
+                Helper.log(filenameOutput, "--- Сдвиг pixel невозможен. ---\n");
                 break;
             }
             iter++;
-            Helper.write(filenameOutput, "            === iter:  " + iter + " ===\n");
+            Helper.log(filenameOutput, "            === iter:  " + iter + " ===\n");
 
             double inclination1, inclination2;
             double inclination1Old, inclination2Old;
@@ -575,18 +574,18 @@ public class Main {
                 i2 = max(tmp, i2);
             } else {
                 if (iter > 1) {
-                    Helper.write(filenameOutput, "Значения i1, i2 остаются с предыдущей итерации, т. к. не могут " +
+                    Helper.log(filenameOutput, "Значения i1, i2 остаются с предыдущей итерации, т. к. не могут " +
                             "быть корректно вычислены из-за того, что anglesWithNoAvEndTemp.size>l-2." + "\n");
                 } else {
                     i1 = 0;
                     i2 = half;
-                    Helper.write(filenameOutput, "В качестве значений i1, i2 берутся " + i1 + ", " + i2 + ", " +
+                    Helper.log(filenameOutput, "В качестве значений i1, i2 берутся " + i1 + ", " + i2 + ", " +
                             "т. к. не могут быть корректно вычислены из-за того, что anglesWithNoAvEndTemp.size>l-2, " +
                             "и итерация 1-я." + "\n");
                 }
             }
 
-            Helper.write(filenameOutput, "aMaxs:   " + angles[i1] + "   " + angles[i2] + "\n");
+            Helper.log(filenameOutput, "aMaxs:   " + angles[i1] + "   " + angles[i2] + "\n");
 
             // Разделяем все индексы углов, за исключением индексов i1 и i2, на две (непустые) части: range1 и range2.
 
@@ -615,16 +614,16 @@ public class Main {
                         range2.add(k);
                 }
 
-            Helper.write(filenameOutput, "ranges:   " + Arrays.toString(range1.toArray()) + "   " +
+            Helper.log(filenameOutput, "ranges:   " + Arrays.toString(range1.toArray()) + "   " +
                     Arrays.toString(range2.toArray()) + "\n");
 
             var range1Corr = new ArrayList<>(range1);
             var range2Corr = new ArrayList<>(range2);
 
             if (range1Corr.removeAll(anglesWithNoJumpPixel))
-                Helper.write(filenameOutput, "range1Corr:   " + range1Corr);
+                Helper.log(filenameOutput, "range1Corr:   " + range1Corr);
             if (range2Corr.removeAll(anglesWithNoJumpPixel))
-                Helper.write(filenameOutput, "range2Corr:   " + range2Corr);
+                Helper.log(filenameOutput, "range2Corr:   " + range2Corr);
 
             var sr1 = new SimpleRegression();
             var sr2 = new SimpleRegression();
@@ -634,7 +633,7 @@ public class Main {
             for (int i : range2Corr)
                 sr2.addData(jumpPixel[i].getI(), jumpPixel[i].getJ());
 
-            Helper.write(filenameOutput, "slopes:   " + sr1.getSlope() + "   " + sr2.getSlope() + "\n");
+            Helper.log(filenameOutput, "slopes:   " + sr1.getSlope() + "   " + sr2.getSlope() + "\n");
 
             // inclination1 (inclination2) - угол наклона прямой, аппроксимирующей точки массива jumpPixel, чьи индексы
             // прнадлежат списку range1Corr (range2Corr). Сначала принадлежит интервалу (-90,90) или равен NaN, потом
@@ -663,10 +662,10 @@ public class Main {
                         90 : inclination2);
 
             if (Helper.compare(inclination1, inclination1Old) && Helper.compare(inclination2, inclination2Old))
-                Helper.write(filenameOutput, "inclinations:   " + inclination1 + "   " + inclination2 + "\n");
+                Helper.log(filenameOutput, "inclinations:   " + inclination1 + "   " + inclination2 + "\n");
             else {
-                Helper.write(filenameOutput, "inclinations (initial):   " + inclination1Old + "   " + inclination2Old);
-                Helper.write(filenameOutput, "inclinations (after change):   " + inclination1 + "   " + inclination2 + "\n");
+                Helper.log(filenameOutput, "inclinations (initial):   " + inclination1Old + "   " + inclination2Old);
+                Helper.log(filenameOutput, "inclinations (after change):   " + inclination1 + "   " + inclination2 + "\n");
             }
 
             // pipeAngle - угол наклона биссектрисы острого угла между прямыми, чьи углы наклона равны inclination1 и
@@ -682,7 +681,7 @@ public class Main {
                 pipeAngle = inclination1;
             else if (range1Corr.size() < 2) {
                 pipeAngle = 90; // Эту ситуацию можно обрабатывать более точно, например, сдвигом или изм. длины.
-                Helper.write(filenameOutput, "В качестве pipeAngle берётся 90, т. к. range1Corr.size,range2Corr.size<2.\n");
+                Helper.log(filenameOutput, "В качестве pipeAngle берётся 90, т. к. range1Corr.size,range2Corr.size<2.\n");
             } else {
                 double v = (inclination1 + inclination2) / 2;
                 pipeAngle = v + (inclination1 * inclination2 < 0 && abs(inclination1) + abs(inclination2) > 90 ?
@@ -697,14 +696,14 @@ public class Main {
             pipeAngle = pipeAngle + (pipeAngle < 0 ? 180 : 0);
 
             if (pipeAngle == pipeAngleOld) {
-                Helper.write(filenameOutput, "============================");
-                Helper.write(filenameOutput, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle)");
+                Helper.log(filenameOutput, "============================");
+                Helper.log(filenameOutput, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle)");
             } else {
-                Helper.write(filenameOutput, "    " + (round(pipeAngleOld * 100) / 100.) + "   (pipeAngle (initial))");
-                Helper.write(filenameOutput, "============================");
-                Helper.write(filenameOutput, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle (after change))");
+                Helper.log(filenameOutput, "    " + (round(pipeAngleOld * 100) / 100.) + "   (pipeAngle (initial))");
+                Helper.log(filenameOutput, "============================");
+                Helper.log(filenameOutput, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle (after change))");
             }
-            Helper.write(filenameOutput, "============================\n");
+            Helper.log(filenameOutput, "============================\n");
 
             String standardDirection = "";
             double standardAngle = -1000;
@@ -738,14 +737,14 @@ public class Main {
             if ((dInd != -1 || aDInd != -1) && !isCloseToStandardDirection) {
                 if (iter < maxIter) {
                     coef *= dec;
-                    Helper.write(filenameOutput, "Эталонное направление:   " + standardDirection +
+                    Helper.log(filenameOutput, "Эталонное направление:   " + standardDirection +
                             " (" + standardDirectionName + "),   эталонный угол:   " + standardAngle + ",   " +
                             "pipeAngle:   " + (round(pipeAngle * 100) / 100.) + ".");
-                    Helper.write(filenameOutput, "--- Уменьшение coef, т. к. pipeAngle не соответствует " +
+                    Helper.log(filenameOutput, "--- Уменьшение coef, т. к. pipeAngle не соответствует " +
                             "эталонному углу. ---\n\n");
                 } else {
                     pipeAngle = standardAngle + (standardAngle < 0 ? 180 : 0);
-                    Helper.write(filenameOutput, "--- Итерации исчерпаны, в качестве pipeAngle берём угол, " +
+                    Helper.log(filenameOutput, "--- Итерации исчерпаны, в качестве pipeAngle берём угол, " +
                             "соответствующий эталонному направлению " + standardDirection +
                             " (" + standardDirectionName + "):   " + standardAngle + ".\n\n");
                 }
@@ -756,19 +755,19 @@ public class Main {
                 if ((abs(i1 - i2) == 1 || (i1 == 0 && i2 == l - 1)) ||
                         (abs(i1 - i2) == 2 || (i1 == 0 && i2 == l - 2) || (i1 == 1 && i2 == l - 1))) {
 
-                    Helper.write(filenameOutput, "Эталонное направление отсутствует.");
-                    Helper.write(filenameOutput, "--- Cдвиг и уменьшение coef. ---");
+                    Helper.log(filenameOutput, "Эталонное направление отсутствует.");
+                    Helper.log(filenameOutput, "--- Cдвиг и уменьшение coef. ---");
                     coef *= dec;
                     Pixel shiftedPixel = shiftPixel(pixel, right, left, avEndTemp, anglesWithNoAvEndTemp, resX, resY);
-                    Helper.write(filenameOutput, pixel + "  ->  " + shiftedPixel + "\n\n");
+                    Helper.log(filenameOutput, pixel + "  ->  " + shiftedPixel + "\n\n");
                     pixel = shiftedPixel;
                 }
                 // i1 и i2 - отличаются более чем на 2 (это при l=8 равносильно наличию эталонного направления).
                 else {
-                    Helper.write(filenameOutput, "Эталонное направление:   " + standardDirection +
+                    Helper.log(filenameOutput, "Эталонное направление:   " + standardDirection +
                             " (" + standardDirectionName + "),   эталонный угол:   " + standardAngle + ",   " +
                             "pipeAngle:   " + (round(pipeAngle * 100) / 100.) + ".");
-                    Helper.write(filenameOutput, "--- Прекращение итераций, т. к. pipeAngle соответствует " +
+                    Helper.log(filenameOutput, "--- Прекращение итераций, т. к. pipeAngle соответствует " +
                             "эталонному углу. ---\n\n");
                     break;
                 }
@@ -778,7 +777,7 @@ public class Main {
         try {
             BufferedImage image = ImageIO.read(new File(outputPictureFilename));
             for (int i = 0; i < l; i++) {
-                Helper.write(filenameOutput, String.format("%1$6s", angles[i]) + "  " +
+                Helper.log(filenameOutput, String.format("%1$6s", angles[i]) + "  " +
                         String.format("%1$5s", round(avEndTemp[i] * 10) / 10.) + "  " + jumpPixel[i]);
                 if (!anglesWithNoJumpPixel.contains(i))
                     new Segment(pixel.toPoint(resY), jumpPixel[i].toPoint(resY)).draw(image, Color.BLACK);
@@ -788,8 +787,14 @@ public class Main {
             e.printStackTrace();
         }
 
-        Helper.write(filenameOutput, "\n\n");
+        Helper.log(filenameOutput, "\n\n");
         return pipeAngle;
+    }
+
+    public static double sq(Polygon<Pixel> polygon, double height, double focalLength) {
+        List<Pixel> v = polygon.getVertices();
+        return Thermogram.earthDistance(v.get(0), v.get(1), height, focalLength) *
+                Thermogram.earthDistance(v.get(1), v.get(2), height, focalLength);
     }
 
     private static void defects(Thermogram thermogram, Polygon<Pixel> overlap, double diameter,
@@ -815,6 +820,14 @@ public class Main {
                 Color.BLACK, thermogramFilename, outputPictureFilename, focalLength, resY);
         Polygon.showSquares(enlargedPolygons, thermogram.getHeight(), focalLength, resX, resY);
 
+
+        int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize,
+                focalLength));
+        Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0), new Pixel(resX - 1, resY - 1))
+                .toPolygon();
+        double thermogramSquare = Thermogram.toEarthSquare(thermogramPolygon.square(focalLength),
+                thermogram.getHeight(), focalLength);
+
         List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, resY, 0, MIN_PIXEL_SQUARE,
                 5, focalLength, overlap, enlargedPolygons, 3, 5);
 
@@ -824,47 +837,49 @@ public class Main {
                     2, 2, 8, 0.9, 20, 10, realFilename, outputPictureFilename,
                     DIR_CURRENT + "/angles2.txt", separatorReal, pixelSize, focalLength, resX, resY));
 
+        var boundingDefects = new ArrayList<Rectangle<Pixel>>();
+        var slopingDefects = new ArrayList<Polygon<Pixel>>();
+        var defects = new ArrayList<Polygon<Pixel>>();
+        var squares = new ArrayList<Double>();
+
+        for (int i = 0; i < enlargedPolygons.size(); i++) {
+            Rectangle<Pixel> bd = Polygon.toPixelPolygon(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
+            Polygon<Pixel> sd = Rectangle.slopeRectangle(bd,
+                    pipeAngles.get(i) + (pipeAngles.get(i) >= 90 ? -90 : 0), resY);
+            Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngles.get(i));
+
+            boundingDefects.add(bd);
+            slopingDefects.add(sd);
+            defects.add(d);
+
+            double s1 = Rectangle.squarePolygonWithoutOverlap(d, overlap, focalLength);
+            double s2 = Rectangle.squarePolygonWithoutOverlap(d, thermogramPolygon, focalLength);
+            squares.add(Thermogram.toEarthSquare(s1 - s2, thermogram.getHeight(), focalLength));
+        }
+
+        double totalSquare = 0;
+        for (double s : squares)
+            totalSquare += s;
+
+        Helper.log(DIR_CURRENT + "/squares.txt", thermogram.getName() + "   " + squares + "\n");
+
+        Helper.log(DIR_CURRENT + "/squares2.txt", thermogram.getName() + "   " + totalSquare + "   " +
+                (round((totalSquare * 100 / thermogramSquare) * 100) / 100.) + "\n");
+
+        var defectsPoint = new ArrayList<Polygon<Point>>();
+        for (Polygon<Pixel> d : defects)
+            defectsPoint.add(Polygon.toPointPolygon(d, focalLength, resY));
+        Polygon.drawPolygons(defectsPoint, Polygon.toPointPolygon(overlap, focalLength, resY),
+                thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename,
+                DIR_CURRENT + "/out_sloping/" + thermogram.getName() + "_sl.jpg", focalLength, resY);
+
         var roundedPipeAngles = new ArrayList<String>();
         for (double v : pipeAngles) {
             String s = round(v * 100) / 100. + "";
             s = !s.contains(".") ? s : s.replaceAll("0*$", "").replaceAll("\\.$", "");
             roundedPipeAngles.add(s);
         }
-
-        try {
-            FileWriter writer = new FileWriter(DIR_CURRENT + "/angles.txt", true);
-            writer.write(thermogram.getName() + "   " + roundedPipeAngles + "\n\n");
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize,
-                focalLength));
-
-        var boundingDefects = new ArrayList<Rectangle<Pixel>>();
-        var slopingDefects = new ArrayList<Polygon<Pixel>>();
-        var widenedDefects = new ArrayList<Polygon<Pixel>>();
-
-        for (int i = 0; i < enlargedPolygons.size(); i++) {
-            Rectangle<Pixel> bd = Polygon.toPixelPolygon(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
-            Polygon<Pixel> sd = Rectangle.slopeRectangle(bd,
-                    pipeAngles.get(i) + (pipeAngles.get(i) >= 90 ? -90 : 0), resY);
-            Polygon<Pixel> wd = sd.widen(diameterPixel, pipeAngles.get(i));
-
-            boundingDefects.add(bd);
-            slopingDefects.add(sd);
-            widenedDefects.add(wd);
-        }
-
-        try {
-            BufferedImage image = ImageIO.read(new File(thermogramFilename));
-            for (Polygon<Pixel> wd : widenedDefects)
-                Polygon.draw(Polygon.toPointPolygon(wd, focalLength, resY), image, Color.BLACK);
-            ImageIO.write(image, "jpg", new File(DIR_CURRENT + "/out_sloping/" + thermogram.getName() + "_sl.jpg"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Helper.log(DIR_CURRENT + "/angles.txt", thermogram.getName() + "   " + roundedPipeAngles + "\n");
     }
 
     public static void main(String[] args) throws IOException {
@@ -902,6 +917,10 @@ public class Main {
                         DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" + SHORT_FILENAME_THERMOGRAMS_INFO,
                         DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
                 double diameter = 0.7;
+                Helper.clear(DIR_CURRENT + "/squares.txt");
+                Helper.clear(DIR_CURRENT + "/squares2.txt");
+                Helper.clear(DIR_CURRENT + "/angles.txt");
+                Helper.clear(DIR_CURRENT + "/angles2.txt");
                 for (int i = 0; i < thermograms.length; i++)
                     defects(thermograms[i],
                             thermograms[i].getOverlapWith(thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1],

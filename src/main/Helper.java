@@ -207,11 +207,30 @@ public final class Helper {
     }
 
     /**
-     * Записывает строку {@code str} в конец файла с названием {@code filename}.
+     * Записывает строку {@code str} (вместе с символом новой строки) в конец файла с названием {@code filename}.
+     */
+    public static void log(String filename, String str) {
+        writeToFile(filename, str, true);
+    }
+
+    /**
+     * Записывает строку {@code str} (вместе с символом новой строки) в файл с названием {@code filename}, перезаписывая
+     * его.
      */
     public static void write(String filename, String str) {
+        writeToFile(filename, str, false);
+    }
+
+    /**
+     * Очищает файл с названием {@code filename}.
+     */
+    public static void clear(String filename) {
+        write(filename, "");
+    }
+
+    private static void writeToFile(String filename, String str, boolean append) {
         try {
-            FileWriter writer = new FileWriter(filename, true);
+            FileWriter writer = new FileWriter(filename, append);
             writer.write(str + "\n");
             writer.close();
         } catch (IOException e) {
@@ -246,7 +265,7 @@ public final class Helper {
 
         double rawRefl = planckR1 / (planckR2 * (pow(E, planckB / tRefl) - planckF)) - planckO;
         double rawObj = (rawValue - (1 - emissivity) * rawRefl) / emissivity;
-        return planckB / log(planckR1 / (planckR2 * (rawObj + planckO)) + planckF) - 273.15;
+        return planckB / Math.log(planckR1 / (planckR2 * (rawObj + planckO)) + planckF) - 273.15;
     }
 
     /**

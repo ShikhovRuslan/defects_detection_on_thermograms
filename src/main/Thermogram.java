@@ -187,7 +187,7 @@ public class Thermogram {
                 intersection = Pixel.findIntersection(Corners.values()[i].toPixel(),
                         Corners.values()[i + 1 < 4 ? i + 1 : 0].toPixel(),
                         toPixel(previous.getCorners(focalLength)[j], focalLength), toPixel(previous.getCorners(focalLength)[j + 1 < 4 ? j + 1 : 0], focalLength));
-                if (intersection.getI() != -1)
+                if (!intersection.equals(new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE)))
                     vertices.add(intersection);
             }
         return new Polygon<>(AbstractPoint.order(vertices), focalLength);

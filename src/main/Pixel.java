@@ -32,12 +32,13 @@ public class Pixel extends AbstractPoint {
 
     /**
      * Возвращает точку пересечения отрезков [p1, p2] и [p3, p4] в случае, если они пересекаются по единственной точке и
-     * эта точка является внутренней для каждого из этих отрезков. В противном случае возвращается точка (-1,-1).
+     * эта точка является внутренней для каждого из этих отрезков. В противном случае возвращает точку
+     * {@code ({@link Integer#MIN_VALUE},{@link Integer#MIN_VALUE})}.
      * <p>
      * (https://vscode.ru/prog-lessons/nayti-tochku-peresecheniya-otrezkov.html)
      */
     static Pixel findIntersection(Pixel p1, Pixel p2, Pixel p3, Pixel p4) {
-        Pixel no = new Pixel(-1, -1);
+        Pixel no = new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE);
 
         // Добиваемся, чтобы было p1.i <= p2.i и p3.i <= p4.i.
         if (p2.getI() < p1.getI()) {
