@@ -13,7 +13,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.lang.Math.*;
 import static java.lang.Math.abs;
@@ -797,13 +799,39 @@ public class Main {
                 Thermogram.earthDistance(v.get(1), v.get(2), height, focalLength);
     }
 
+    public static String roundAndTrim(double num, int k) {
+        String s = round(num * pow(10, k)) / pow(10, k) + "";
+        return s.replaceAll("0*$", "").replaceAll("\\.$", "");
+    }
+
+    public static List<String> roundAndTrim(List<Double> list, int k) {
+        return list.stream().map(d -> roundAndTrim(d, k)).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public static String spaces(int l) {
+        return " ".repeat(Math.max(0, l));
+    }
+
+    public static String roundAndTrim(double num, int k, int a) {
+        String s = roundAndTrim(num, k);
+        if (!s.contains("."))
+            return spaces(a - s.toCharArray().length) + s + spaces(k + 1);
+        else
+            return spaces(a - s.substring(0, s.indexOf('.')).toCharArray().length) + s +
+                    spaces(k - s.substring(s.indexOf('.') + 1).toCharArray().length);
+    }
+
+    public static List<String> roundAndTrim(List<Double> list, int k, int a) {
+        return list.stream().map(d -> roundAndTrim(d, k, a)).collect(Collectors.toCollection(ArrayList::new));
+    }
+
     private static void defects(Thermogram thermogram, Polygon<Pixel> overlap, double diameter,
                                 String thermogramFilename, String outputPictureFilename, String realFilename,
                                 char separatorReal, double pixelSize, double focalLength, int resX, int resY) throws IOException {
         System.out.println("=== Thermogram: " + thermogram.getName() + " ===\n");
 
         double[][] realTable = Helper.extractTable(realFilename, SEPARATOR_REAL);
-        int[][] binTable = Helper.findIf(realTable, num -> num > T_MIN);
+        int[][] binTable = Helper.findIf(realTable, num -> num > T_MIN && num < 60);
 
         Helper.nullifyRectangles(binTable, thermogram.getForbiddenZones(), resY);
 
@@ -841,6 +869,9 @@ public class Main {
         var slopingDefects = new ArrayList<Polygon<Pixel>>();
         var defects = new ArrayList<Polygon<Pixel>>();
         var squares = new ArrayList<Double>();
+        var pipeSquares = new ArrayList<Double>();
+
+        var indicesOfPipeAnglesToRemove = new ArrayList<Integer>();
 
         for (int i = 0; i < enlargedPolygons.size(); i++) {
             Rectangle<Pixel> bd = Polygon.toPixelPolygon(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
@@ -848,38 +879,45 @@ public class Main {
                     pipeAngles.get(i) + (pipeAngles.get(i) >= 90 ? -90 : 0), resY);
             Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngles.get(i));
 
-            boundingDefects.add(bd);
-            slopingDefects.add(sd);
-            defects.add(d);
+            Polygon<Pixel> prev = i > 0 ? defects.get(defects.size() - 1) : null;
 
-            double s1 = Rectangle.squarePolygonWithoutOverlap(d, overlap, focalLength);
-            double s2 = Rectangle.squarePolygonWithoutOverlap(d, thermogramPolygon, focalLength);
-            squares.add(Thermogram.toEarthSquare(s1 - s2, thermogram.getHeight(), focalLength));
+            if (i == 0 ||
+                    d.verticesFrom(prev, focalLength).isEmpty() && prev.verticesFrom(d, focalLength).isEmpty()) {
+
+                boundingDefects.add(bd);
+                slopingDefects.add(sd);
+                defects.add(d);
+
+                double s1 = Rectangle.squarePolygonWithoutOverlap(d, overlap, focalLength);
+                double s2 = Rectangle.squarePolygonWithoutOverlap(d, thermogramPolygon, focalLength);
+                double s = Thermogram.toEarthSquare(s1 - s2, thermogram.getHeight(), focalLength);
+                double ps = PI * s;
+                squares.add(s);
+                pipeSquares.add(ps);
+            } else
+                indicesOfPipeAnglesToRemove.add(i);
         }
 
-        double totalSquare = 0;
-        for (double s : squares)
-            totalSquare += s;
+        for (int t = indicesOfPipeAnglesToRemove.size() - 1; t >= 0; t--)
+            pipeAngles.remove(indicesOfPipeAnglesToRemove.get(t).intValue());
 
-        Helper.log(DIR_CURRENT + "/squares.txt", thermogram.getName() + "   " + squares + "\n");
+        double totalSquare = squares.stream().mapToDouble(Double::doubleValue).sum();
+        double totalPipeSquare = pipeSquares.stream().mapToDouble(Double::doubleValue).sum();
 
-        Helper.log(DIR_CURRENT + "/squares2.txt", thermogram.getName() + "   " + totalSquare + "   " +
-                (round((totalSquare * 100 / thermogramSquare) * 100) / 100.) + "\n");
+        Helper.log(DIR_CURRENT + "/squares.txt", thermogram.getName() + "   " +
+                roundAndTrim(totalSquare, 2, 2) + "   " +
+                roundAndTrim(totalSquare * 100 / thermogramSquare, 2, 2) + "   " + roundAndTrim(squares, 2, 2) +
+                "\n");
 
-        var defectsPoint = new ArrayList<Polygon<Point>>();
-        for (Polygon<Pixel> d : defects)
-            defectsPoint.add(Polygon.toPointPolygon(d, focalLength, resY));
-        Polygon.drawPolygons(defectsPoint, Polygon.toPointPolygon(overlap, focalLength, resY),
+        Helper.log(DIR_CURRENT + "/pipe_squares.txt", thermogram.getName() + "   " +
+                roundAndTrim(totalPipeSquare, 2, 2) + "   " + roundAndTrim(pipeSquares, 2, 2) + "\n");
+
+        Polygon.drawPolygons(defects, Polygon.toPointPolygon(overlap, focalLength, resY),
                 thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename,
-                DIR_CURRENT + "/out_sloping/" + thermogram.getName() + "_sl.jpg", focalLength, resY);
+                DIR_CURRENT + "/out_sloping/" + thermogram.getName() + "_sl.jpg", resY, focalLength);
 
-        var roundedPipeAngles = new ArrayList<String>();
-        for (double v : pipeAngles) {
-            String s = round(v * 100) / 100. + "";
-            s = !s.contains(".") ? s : s.replaceAll("0*$", "").replaceAll("\\.$", "");
-            roundedPipeAngles.add(s);
-        }
-        Helper.log(DIR_CURRENT + "/angles.txt", thermogram.getName() + "   " + roundedPipeAngles + "\n");
+        Helper.log(DIR_CURRENT + "/angles.txt", thermogram.getName() + "   " +
+                roundAndTrim(pipeAngles, 2, 3) + "\n");
     }
 
     public static void main(String[] args) throws IOException {
@@ -918,7 +956,7 @@ public class Main {
                         DIR_CURRENT + "/" + SHORT_FILENAME_FORBIDDEN_ZONES);
                 double diameter = 0.7;
                 Helper.clear(DIR_CURRENT + "/squares.txt");
-                Helper.clear(DIR_CURRENT + "/squares2.txt");
+                Helper.clear(DIR_CURRENT + "/pipe_squares.txt");
                 Helper.clear(DIR_CURRENT + "/angles.txt");
                 Helper.clear(DIR_CURRENT + "/angles2.txt");
                 for (int i = 0; i < thermograms.length; i++)

@@ -281,6 +281,17 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         }
     }
 
+    public static void drawPolygons(List<Polygon<Pixel>> polygons, Polygon<Point> overlap,
+                                    List<Rectangle<Pixel>> forbiddenZones, Color color,
+                                    String pictureName, String newPictureName, int resY, double focalLength) {
+
+        var polygonsPoint = new ArrayList<Polygon<Point>>();
+        for (Polygon<Pixel> p : polygons)
+            polygonsPoint.add(Polygon.toPointPolygon(p, focalLength, resY));
+
+        drawPolygons(polygonsPoint, overlap, forbiddenZones, color, pictureName, newPictureName, focalLength, resY);
+    }
+
     /**
      * Выдаёт многоугольник, являющийся прямоугольником, который строится на основе текущего многоугольника путём
      * расширения пары противоположных сторон (отличной от другой пары сторон, которые наклонены под углом
@@ -306,19 +317,19 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
         double diff = (length - sideToWiden) / 2;
 
-        if (sideToWiden < length) {
-            if (angle < PI / 2) {
-                v[0] = (T) v[0].create(v[0].getI() - diff * sin(angle), v[0].getJ() + diff * cos(angle));
-                v[3] = (T) v[3].create(v[3].getI() - diff * sin(angle), v[3].getJ() + diff * cos(angle));
-                v[1] = (T) v[1].create(v[1].getI() + diff * sin(angle), v[1].getJ() - diff * cos(angle));
-                v[2] = (T) v[2].create(v[2].getI() + diff * sin(angle), v[2].getJ() - diff * cos(angle));
-            } else {
-                v[0] = (T) v[0].create(v[0].getI() - diff * sin(angle), v[0].getJ() + diff * cos(angle));
-                v[3] = (T) v[3].create(v[3].getI() + diff * sin(angle), v[3].getJ() - diff * cos(angle));
-                v[1] = (T) v[1].create(v[1].getI() - diff * sin(angle), v[1].getJ() + diff * cos(angle));
-                v[2] = (T) v[2].create(v[2].getI() + diff * sin(angle), v[2].getJ() - diff * cos(angle));
-            }
+        //if (sideToWiden < length) {
+        if (angle < PI / 2) {
+            v[0] = (T) v[0].create(v[0].getI() - diff * sin(angle), v[0].getJ() + diff * cos(angle));
+            v[3] = (T) v[3].create(v[3].getI() - diff * sin(angle), v[3].getJ() + diff * cos(angle));
+            v[1] = (T) v[1].create(v[1].getI() + diff * sin(angle), v[1].getJ() - diff * cos(angle));
+            v[2] = (T) v[2].create(v[2].getI() + diff * sin(angle), v[2].getJ() - diff * cos(angle));
+        } else {
+            v[0] = (T) v[0].create(v[0].getI() - diff * sin(angle), v[0].getJ() + diff * cos(angle));
+            v[3] = (T) v[3].create(v[3].getI() + diff * sin(angle), v[3].getJ() - diff * cos(angle));
+            v[1] = (T) v[1].create(v[1].getI() - diff * sin(angle), v[1].getJ() + diff * cos(angle));
+            v[2] = (T) v[2].create(v[2].getI() + diff * sin(angle), v[2].getJ() - diff * cos(angle));
         }
+        //}
 
         return new Polygon<>(Arrays.asList(v.clone()), 0, 0, 0);
     }
