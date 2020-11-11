@@ -301,8 +301,8 @@ public class Base {
         double diameterPixel = realToMatrix(diameter, height, Main.PIXEL_SIZE, focalLength);
 
         // 829 thermogram
-        filename = Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
-                "/" + "DJI_0829_R" + Property.POSTFIX_REAL.getValue() + Main.EXTENSION_REAL;
+        filename = Main.DIR_CURRENT + "/" + Property.SUBDIR_REAL_TEMPS.getValue() +
+                "/" + "DJI_0829_R" + Property.POSTFIX_REAL_TEMPS.getValue() + Main.EXTENSION_REAL;
         // 379,190  Paint
         pixel1 = new Pixel(375, resY - 1 - 188);
         pixel2 = new Pixel(382, resY - 1 - 188);
@@ -316,8 +316,8 @@ public class Base {
                 pixel1, pixel2, pixel3, pixel4));
 
         // 817 thermogram
-        filename = Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT_REAL.getValue() +
-                "/" + "DJI_0817_R" + Property.POSTFIX_REAL.getValue() + Main.EXTENSION_REAL;
+        filename = Main.DIR_CURRENT + "/" + Property.SUBDIR_REAL_TEMPS.getValue() +
+                "/" + "DJI_0817_R" + Property.POSTFIX_REAL_TEMPS.getValue() + Main.EXTENSION_REAL;
 //        pixel1 = new Pixel(426, Main.RES_Y - 1 - 37);
 //        pixel2 = new Pixel(430, Main.RES_Y - 1 - 37);
 //        pixel3 = new Pixel(430, Main.RES_Y - 1 - 41);

@@ -1,11 +1,12 @@
 #!/bin/bash
-# Извлекает из всех термограмм из папки THERMOGRAMS_DIR необработанные температурные данные в файлы в папке ./RAW_SUBDIR.
+# Извлекает из всех термограмм из папки DIR_THERMOGRAMS необработанные температурные данные в файлы в папке
+# ./SUBDIR_RAW_TEMPS.
 
-THERMOGRAMS_DIR=$(grep "^THERMOGRAMS_DIR" config.txt | cut -d'=' -f 2 | sed 's/^ //')
+DIR_THERMOGRAMS=$(grep "^DIR_THERMOGRAMS" config.txt | cut -d'=' -f 2 | sed 's/^ //')
 
-RAW_SUBDIR=$(grep "^RAW_SUBDIR" config.txt | cut -d'=' -f 2 | sed 's/^ //')
+SUBDIR_RAW_TEMPS=$(grep "^SUBDIR_RAW_TEMPS" config.txt | cut -d'=' -f 2 | sed 's/^ //')
 
 
-for file in "$THERMOGRAMS_DIR"/*; do
-  bash raw.sh "$file" ./"$RAW_SUBDIR"
+for file in "$DIR_THERMOGRAMS"/*; do
+  bash raw.sh "$file" ./"$SUBDIR_RAW_TEMPS"
 done

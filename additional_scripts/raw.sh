@@ -1,14 +1,14 @@
 #!/bin/bash
-# Извлекает из указанной термограммы необработанные температурные данные в файл <thermogram_name>POSTFIX_RAW.pgm
+# Извлекает из указанной термограммы необработанные температурные данные в файл <thermogram_name>POSTFIX_RAW_TEMPS.pgm
 # в указанной папке.
 # $1 - термограмма
 # $2 - папка, содержащая файл с необработанными температурными данными термограммы
 
-POSTFIX_RAW=$(grep "^POSTFIX_RAW" config.txt | cut -d'=' -f 2 | sed 's/^ //')
+POSTFIX_RAW_TEMPS=$(grep "^POSTFIX_RAW_TEMPS" config.txt | cut -d'=' -f 2 | sed 's/^ //')
 
 
 OUTPUT_FILE=$(basename "$1" .${1##*.})
-OUTPUT_FILE=$2/$OUTPUT_FILE$POSTFIX_RAW
+OUTPUT_FILE=$2/$OUTPUT_FILE$POSTFIX_RAW_TEMPS
 
 exiftool -b -RawThermalImage "$1" | convert - "$OUTPUT_FILE".png
 

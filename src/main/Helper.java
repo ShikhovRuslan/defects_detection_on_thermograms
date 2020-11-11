@@ -206,6 +206,12 @@ public final class Helper {
         return indexMax;
     }
 
+    public static String filename(Object... dir) {
+        StringBuilder filename = new StringBuilder();
+        for (Object o : dir) filename.append("/").append(o);
+        return filename.substring(1);
+    }
+
     /**
      * Записывает строку {@code str} (вместе с символом новой строки) в конец файла с названием {@code filename}.
      */
