@@ -30,30 +30,25 @@ public enum ExifParam {
     ExifParam(String rawName) {
         this.rawName = rawName;
 
+        double value = readValue(Helper.filename(Main.DIR_CURRENT, Property.SUBDIR_OUTPUT.value(),
+                Main.GLOBAL_PARAMS));
         switch (rawName) {
             case "FocalLength":
-                this.value = readValue(Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" +
-                        Main.SHORT_FILENAME_GLOBAL_PARAMS) / 1000;
+                this.value = value / 1000;
                 break;
             case "ReflectedApparentTemperature":
-                this.value = readValue(Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" +
-                        Main.SHORT_FILENAME_GLOBAL_PARAMS) + 273.15;
+                this.value = value + 273.15;
                 break;
             default:
-                this.value = readValue(Main.DIR_CURRENT + "/" + Property.SUBDIR_OUTPUT.getValue() + "/" +
-                        Main.SHORT_FILENAME_GLOBAL_PARAMS);
+                this.value = value;
         }
     }
 
-    public String getRawName() {
-        return rawName;
-    }
-
-    public double getValue() {
+    public double value() {
         return value;
     }
 
-    public int getIntValue() {
+    public int intValue() {
         return (int) value;
     }
 

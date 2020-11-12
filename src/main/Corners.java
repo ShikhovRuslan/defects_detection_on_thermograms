@@ -10,15 +10,15 @@ public enum Corners {
     /**
      * Верхний левый угол термограммы.
      */
-    C0(0, ExifParam.RES_Y.getIntValue() - 1),
+    C0(0, ExifParam.RES_Y.intValue() - 1),
     /**
      * Верхний правый угол термограммы.
      */
-    C1(ExifParam.RES_X.getIntValue() - 1, ExifParam.RES_Y.getIntValue() - 1),
+    C1(ExifParam.RES_X.intValue() - 1, ExifParam.RES_Y.intValue() - 1),
     /**
      * Нижний правый угол термограммы.
      */
-    C2(ExifParam.RES_X.getIntValue() - 1, 0),
+    C2(ExifParam.RES_X.intValue() - 1, 0),
     /**
      * Нижний левый угол термограммы.
      */

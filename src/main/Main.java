@@ -26,57 +26,75 @@ import static java.lang.Math.abs;
  */
 public class Main {
     //
-    // Краткие имена файлов.
+    // Краткие имена скриптов.
     //
 
     /**
-     *
+     * Скрипт, извлекающий общие для всех термограмм EXIF-параметры.
      */
     private final static String SCRIPT_GLOBAL_PARAMS = "global_params";
     /**
-     *
+     * Скрипт, извлекающий из всех термограмм геометрические характеристики съёмки.
      */
     private final static String SCRIPT_THERMOGRAMS_INFO = "thermograms_info";
     /**
-     *
+     * Скрипт, извлекающий из всех термограмм необработанные температурные данные.
      */
     private final static String SCRIPT_THERMOGRAMS_RAW_TEMPERATURES = "thermograms_raw_temperatures";
+
+
+    //
+    // Краткие имена файлов, содержащих исходную информацию.
+    //
+
     /**
-     *
+     * Файл с конфигурационными параметрами.
      */
-    private final static String SCRIPT_RAW = "raw";
+    final static String CONFIG = "config.txt";
     /**
-     * Краткое имя файла с конфигурационными параметрами.
+     * Файл с запрещёнными зонами.
      */
-    final static String SHORT_FILENAME_CONFIG = "config.txt";
+    private final static String FORBIDDEN_ZONES = "forbidden_zones.txt";
     /**
-     * Краткое имя файла с общими для всех термограмм EXIF-параметрами.
+     * Файл со справкой.
      */
-    final static String SHORT_FILENAME_GLOBAL_PARAMS = "global_params.txt";
+    private final static String HELP = "help.txt";
+
+
+    //
+    // Краткие имена файлов, которые редактируются скриптами.
+    //
+
     /**
-     * Краткое имя файла с геометрическими характеристиками съёмки.
+     * Файл с общими для всех термограмм EXIF-параметрами.
+     */
+    final static String GLOBAL_PARAMS = "global_params.txt";
+    /**
+     * Файл с геометрическими характеристиками съёмки.
      */
     private final static String THERMOGRAMS_INFO = "thermograms_info.txt";
+
+
+    //
+    // Краткие имена файлов, которые редактируются этой программой.
+    //
+
     /**
-     * Краткое имя файла с площадями дефектов.
+     * Файл с площадями дефектов.
      */
     private final static String PIPE_SQUARES = "pipe_squares.txt";
     /**
-     * Краткое имя файла с .
+     * Файл с площадями проекций дефектов.
      */
     private final static String SQUARES = "squares.txt";
     /**
-     * Краткое имя файла с .
+     * Файл с углами наклона трубы.
      */
     private final static String PIPE_ANGLES = "angles.txt";
     /**
-     * Краткое имя файла с .
+     * Файл с этапами вычисления углов наклона трубы.
      */
     private final static String PIPE_ANGLES_LOG = "pipe_angles_log.txt";
-    /**
-     * Краткое имя файла с запрещёнными зонами.
-     */
-    private final static String FORBIDDEN_ZONES = "forbidden_zones.txt";
 
 
     //
@@ -96,67 +114,25 @@ public class Main {
      */
     public final static String DIR_CURRENT;
     /**
-     * Расширение файлов с необработанными температурными данными термограмм.
-     */
-    private final static String EXTENSION_RAW = ".pgm";
-    /**
      * Расширение термограмм.
      */
     private final static String EXTENSION = ".jpg";
     /**
-     * Расширение файлов с температурными данными термограмм в формате CSV.
+     * Расширение файлов с необработанными температурами (в формате CSV).
+     */
+    private final static String EXTENSION_RAW = ".pgm";
+    /**
+     * Расширение файлов с температурами (в формате CSV).
      */
     public final static String EXTENSION_REAL = ".csv";
     /**
-     * Разделитель значений в файле с необработанными температурами в формате CSV.
+     * Разделитель значений в файле с необработанными температурами.
      */
     private final static char SEPARATOR_RAW = ' ';
     /**
-     * Разделитель значений в файле с температурами в формате CSV.
+     * Разделитель значений в файле с температурами.
      */
     public final static char SEPARATOR_REAL = ';';
-    /**
-     * Минимальная площадь прямоугольника (в кв. пикселях).
-     */
-    //public final static int MIN_PIXEL_SQUARE = 25;
-    /**
-     *
-     */
-    private final static String SHORT_FILENAME_HELP = "help.txt";
-
-
-    //
-    // Константы, извлечённые с использованием информации из конфигурационного файла SHORT_FILENAME_CONFIG.
-    //
-
-    /**
-     * Шаг пикселя, м.
-     */
-    public final static double PIXEL_SIZE;
-    /**
-     * Абсцисса главной точки снимка в системе координат c'x'y'.
-     */
-    public final static int PRINCIPAL_POINT_X;
-    /**
-     * Ордината главной точки снимка в системе координат c'x'y'.
-     */
-    public final static int PRINCIPAL_POINT_Y;
-    /**
-     * Главная точка снимка в системе координат c'x'y'.
-     */
-    public final static Pixel PRINCIPAL_POINT;
-    /**
-     * Минимальная температура, гр. Ц.
-     */
-    public final static double T_MIN;
-    /**
-     * Максимальная температура, гр. Ц.
-     */
-    public final static double T_MAX;
-    /**
-     * Минимальная площадь изначального варианта дефекта (в кв. пикселях).
-     */
-    public final static int MIN_PIXEL_SQUARE;
 
 
     static {
@@ -178,14 +154,6 @@ public class Main {
             e.printStackTrace();
         }
         DIR_CURRENT = dirCurrent.substring(OS.equals(Helper.Os.WINDOWS.getName()) ? 1 : 0, dirCurrent.lastIndexOf('/'));
-
-        PIXEL_SIZE = Property.PIXEL_SIZE.getDoubleValue() / 1000_000;
-        PRINCIPAL_POINT_X = Property.PRINCIPAL_POINT_X.getIntValue();
-        PRINCIPAL_POINT_Y = Property.PRINCIPAL_POINT_Y.getIntValue();
-        PRINCIPAL_POINT = new Pixel(PRINCIPAL_POINT_X, PRINCIPAL_POINT_Y);
-        T_MIN = Property.T_MIN.getDoubleValue();
-        T_MAX = Property.T_MAX.getDoubleValue();
-        MIN_PIXEL_SQUARE = Property.MIN_PIXEL_SQUARE.getIntValue();
     }
 
 
@@ -199,7 +167,7 @@ public class Main {
 
         private static void help() {
             try {
-                BufferedReader reader = Files.newBufferedReader(Paths.get(DIR_CURRENT + "/" + SHORT_FILENAME_HELP));
+                BufferedReader reader = Files.newBufferedReader(Paths.get(Helper.filename(DIR_CURRENT, Main.HELP)));
                 String line;
                 while ((line = reader.readLine()) != null)
                     System.out.println(line);
@@ -230,11 +198,11 @@ public class Main {
      * Выдаёт пиксель, который расположен на отрезке, соединяющим пиксель {@code start} и пиксель, находящийся на
      * расстоянии, эквивалентном земному расстоянию {@code length}, и угловом расстоянии {@code angle} от пикселя
      * {@code start}, температура которого отличается от температуры предыдущего пикселя не менее, чем на
-     * {@code tempDiff} гр. Ц. Если таких пикселей несколько, то выдаётся пиксель, который наиболее удалён от пикселя
+     * {@code tempJump} гр. Ц. Если таких пикселей несколько, то выдаётся пиксель, который наиболее удалён от пикселя
      * {@code start}. Сам пиксель {@code start} отрезку не принадлежит.
      * <p>
-     * Выдаёт средннюю температуру {@code n} пикселей, которые находятся в конце упомянутого выше отрезка. (Это
-     * количество может быть уменьшено, если число пикселей в отрезке меньше {@code n}.)
+     * Выдаёт средннюю температуру {@code numberEndPixels} пикселей, которые находятся в конце упомянутого выше отрезка. (Это
+     * количество может быть уменьшено, если число пикселей в отрезке меньше {@code numberEndPixels}.)
      * <p>
      * Неинформативные случаи:
      * - длина отрезка равна 0, т. е. пиксель {@code start} совпадает с другим концом этого отрезка (в этом случае
@@ -242,25 +210,27 @@ public class Main {
      * - длина отрезка >0, но на нём нет температурного контраста, т. е. пиксель, чьё вычисление описано в начале,
      * отсутствует (в этом случае выдаётся пиксель {@code (-1,-1)}).
      *
-     * @param angle    угол (в град.), отсчитываемый от положительного направления оси c'y' по часовой стрелке,
-     *                 принадлежащий промежутку {@code (-180,180]}
-     * @param length   земная длина (в м.) рассматриваемого отрезка
-     * @param tempDiff разность температур (в гр. Ц.) между соседними пикселями, при превышении которой запоминается
-     *                 пиксель
-     * @param n        максимальное число пикселей, по которым рассчитывается средняя температура
+     * @param angle           угол (в град.), отсчитываемый от положительного направления оси c'y' по часовой стрелке,
+     *                        принадлежащий промежутку {@code (-180,180]}
+     * @param length          земная длина (в м.) рассматриваемого отрезка
+     * @param tempJump        разность температур (в гр. Ц.) между соседними пикселями, при превышении которой запоминается
+     *                        пиксель
+     * @param numberEndPixels максимальное число пикселей, по которым рассчитывается средняя температура
      */
-    public static Object[] findJump(Pixel start, double angle, double length, double tempDiff, int n, String filename,
-                                    char separator, double height, double pixelSize, double focalLength,
-                                    int resX, int resY) {
+    public static Object[] findJump(Pixel start, double angle, double length, double tempJump, int numberEndPixels,
+                                    String realTempsFilename, char separator, double height, double pixelSize,
+                                    double focalLength, int resX, int resY) {
 
-        double[][] realTable = Helper.extractTable(filename, separator);
+        double[][] realTable = Helper.extractTable(realTempsFilename, separator);
         List<Pixel> jumps = new ArrayList<>();
         List<Double> temperatures = new ArrayList<>();
         int sI = start.getI();
         int sJ = start.getJ();
 
-        int iInc = (int) Math.round(Thermogram.earthToDiscreteMatrix(length * sin(angle * PI / 180), height, pixelSize, focalLength));
-        int jInc = (int) Math.round(Thermogram.earthToDiscreteMatrix(length * cos(angle * PI / 180), height, pixelSize, focalLength));
+        int iInc = (int) Math.round(Thermogram.earthToDiscreteMatrix(length * sin(angle * PI / 180), height,
+                pixelSize, focalLength));
+        int jInc = (int) Math.round(Thermogram.earthToDiscreteMatrix(length * cos(angle * PI / 180), height,
+                pixelSize, focalLength));
 
         int iIncSign = (int) signum(iInc);
         int jIncSign = (int) signum(jInc);
@@ -316,15 +286,15 @@ public class Main {
             }
 
             temperatures.add(currTemp);
-            if (i != sI + iIncSign && abs(currTemp - prevTemp) >= tempDiff)
+            if (i != sI + iIncSign && abs(currTemp - prevTemp) >= tempJump)
                 jumps.add(!inversion ? new Pixel(i, j) : new Pixel(j, i));
             jPrev = j;
         }
 
         double avEndTemp = 0;
-        for (int i = 0; i < min(n, temperatures.size()); i++)
+        for (int i = 0; i < min(numberEndPixels, temperatures.size()); i++)
             avEndTemp += temperatures.get(temperatures.size() - 1 - i);
-        avEndTemp = avEndTemp / min(n, temperatures.size());
+        avEndTemp = avEndTemp / min(numberEndPixels, temperatures.size());
 
         return new Object[]{jumps.size() > 0 ? jumps.get(jumps.size() - 1) : new Pixel(-1, -1), avEndTemp};
     }
@@ -333,27 +303,30 @@ public class Main {
      * Конвертирует таблицу с реальными температурами {@code realTable} в список укрупнённых многоугольников.
      */
     private static List<Polygon<Point>> realTableToEnlargedPolygons(Thermogram thermogram, double[][] realTable,
-                                                                    double tMin, int minPixelSquare, int distance,
-                                                                    Polygon<Pixel> overlap, double focalLength,
-                                                                    int resY) {
+                                                                    double tMin, double tMax, int minPixelSquare,
+                                                                    int distance, Polygon<Pixel> overlap,
+                                                                    double focalLength, double pixelSize, int resY) {
 
-        int[][] binTable = Helper.findIf(realTable, num -> num > tMin);
+        int[][] binTable = Helper.findIf(realTable, num -> num > tMin && num < tMax);
         Helper.nullifyRectangles(binTable, thermogram.getForbiddenZones(), resY);
 
         List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable, focalLength);
         ranges.removeIf(range -> range.squarePixels() < minPixelSquare);
 
-        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength, resY);
-        return Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getHeight(), focalLength, resY);
+        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength,
+                pixelSize, resY);
+
+        return Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getHeight(), focalLength, pixelSize,
+                resY);
     }
 
-    private static List<Pixel> findMiddlesOfPseudoDefects(Thermogram thermogram, double[][] realTable, int resY,
-                                                          double tMin, int minPixelSquare, int distance,
+    private static List<Pixel> findMiddlesOfPseudoDefects(Thermogram thermogram, double[][] realTable, double pixelSize,
+                                                          int resY, double tMinPseudo, int minPixelSquare, int distance,
                                                           double focalLength, Polygon<Pixel> overlap,
                                                           List<Polygon<Point>> enlargedPolygons, int maxDiff, double k) {
 
-        List<Polygon<Point>> enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMin,
-                minPixelSquare, distance, overlap, focalLength, resY);
+        List<Polygon<Point>> enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMinPseudo,
+                100, minPixelSquare, distance, overlap, focalLength, pixelSize, resY);
 
         var boundingRectangles = new ArrayList<Rectangle<Pixel>>();
         for (Polygon<Point> p : enlargedPolygons)
@@ -459,33 +432,35 @@ public class Main {
     }
 
     private static double findPipeAngle(Pixel pixel, Polygon<Point> polygon, int num, Thermogram thermogram,
-                                        double diameter, double coef, double tempJump, int l, double dec, double eps,
-                                        int maxIter, String filename, String outputPictureFilename,
-                                        String filenameOutput, char separatorReal, double pixelSize, double focalLength,
-                                        int resX, int resY) {
+                                        double diameter, double coef, double tempJump, int numberEndPixels, double dec,
+                                        double eps, int maxIter, String realTempsFilename, String rawDefectsFilename,
+                                        String pipeAnglesLogFilename, char separatorReal, double pixelSize,
+                                        double focalLength, int resX, int resY) {
 
         Polygon<Pixel> polygon1 = Polygon.toPixelPolygon(polygon, focalLength, resY);
         double d = Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize, focalLength);
         int w = polygon1.width();
         int h = polygon1.height();
-        Helper.log(filenameOutput, "       ===  " + thermogram.getName() + ",  polygon " + num + "  ===\n");
-        Helper.log(filenameOutput, "Polygon (" + w + "x" + h + "): " + polygon1 + ".\n");
+        Helper.log(pipeAnglesLogFilename, "       ===  " + thermogram.getName() + ",  polygon " + num + "  ===\n");
+        Helper.log(pipeAnglesLogFilename, "Polygon (" + w + "x" + h + "): " + polygon1 + ".\n");
 
         int eps1 = 2;
         int eps2 = 4;
 
         // Многоугольник polygon является отчётливо горизонтальным (относительно термограммы).
         if (w >= d + eps2 && ((d - eps1 <= h && h <= d) || (h > d && w > h))) {
-            Helper.log(filenameOutput, "Многоугольник является отчётливо горизонтальным => pipeAngle=0.\n\n\n");
+            Helper.log(pipeAnglesLogFilename, "Многоугольник является отчётливо горизонтальным => pipeAngle=0.\n\n\n");
             return 0;
         }
 
         // Многоугольник polygon является отчётливо вертикальным (относительно термограммы).
         if (h >= d + eps2 && ((d - eps1 <= w && w <= d) || (w > d && h > w))) {
-            Helper.log(filenameOutput, "Многоугольник является отчётливо вертикальным => pipeAngle=90.\n\n\n");
+            Helper.log(pipeAnglesLogFilename, "Многоугольник является отчётливо вертикальным => pipeAngle=90.\n\n\n");
             return 90;
         }
 
+        // При другом l алгоритм работает некорректно, но можно адаптировать его для произвольного l, кратного n(=8).
+        int l = 8;
         double[] angles = new double[l];
         // 0, 45, 90, 135, 180, -135, -90, -45 (при l=8)
         for (int i = 0; i < l; i++)
@@ -544,15 +519,15 @@ public class Main {
         int i1 = -1, i2 = -1;
         double pipeAngle = -1000;
 
-        Helper.log(filenameOutput, "");
+        Helper.log(pipeAnglesLogFilename, "");
 
         while (iter < maxIter) {
             if (pixel.equals(new Pixel(-10, -10))) {
-                Helper.log(filenameOutput, "--- Сдвиг pixel невозможен. ---\n");
+                Helper.log(pipeAnglesLogFilename, "--- Сдвиг pixel невозможен. ---\n");
                 break;
             }
             iter++;
-            Helper.log(filenameOutput, "            === iter:  " + iter + " ===\n");
+            Helper.log(pipeAnglesLogFilename, "            === iter:  " + iter + " ===\n");
 
             double inclination1, inclination2;
             double inclination1Old, inclination2Old;
@@ -568,8 +543,8 @@ public class Main {
             var anglesWithNoAvEndTemp = new ArrayList<Integer>();
 
             for (int i = 0; i < l; i++) {
-                jumps[i] = findJump(pixel, angles[i], coef * diameter, tempJump, 2, filename, separatorReal,
-                        thermogram.getHeight(), pixelSize, focalLength, resX, resY);
+                jumps[i] = findJump(pixel, angles[i], coef * diameter, tempJump, numberEndPixels,
+                        realTempsFilename, separatorReal, thermogram.getHeight(), pixelSize, focalLength, resX, resY);
                 jumpPixel[i] = (Pixel) jumps[i][0];
                 avEndTemp[i] = (double) jumps[i][1];
                 if (jumpPixel[i].equals(new Pixel(-1, -1)) || jumpPixel[i].equals(new Pixel(-2, -2)))
@@ -595,18 +570,18 @@ public class Main {
                 i2 = max(tmp, i2);
             } else {
                 if (iter > 1) {
-                    Helper.log(filenameOutput, "Значения i1, i2 остаются с предыдущей итерации, т. к. не могут " +
-                            "быть корректно вычислены из-за того, что anglesWithNoAvEndTemp.size>l-2." + "\n");
+                    Helper.log(pipeAnglesLogFilename, "Значения i1, i2 остаются с предыдущей итерации, т. к. не " +
+                            "могут быть корректно вычислены из-за того, что anglesWithNoAvEndTemp.size>l-2." + "\n");
                 } else {
                     i1 = 0;
                     i2 = half;
-                    Helper.log(filenameOutput, "В качестве значений i1, i2 берутся " + i1 + ", " + i2 + ", " +
+                    Helper.log(pipeAnglesLogFilename, "В качестве значений i1, i2 берутся " + i1 + ", " + i2 + ", " +
                             "т. к. не могут быть корректно вычислены из-за того, что anglesWithNoAvEndTemp.size>l-2, " +
                             "и итерация 1-я." + "\n");
                 }
             }
 
-            Helper.log(filenameOutput, "aMaxs:   " + angles[i1] + "   " + angles[i2] + "\n");
+            Helper.log(pipeAnglesLogFilename, "aMaxs:   " + angles[i1] + "   " + angles[i2] + "\n");
 
             // Разделяем все индексы углов, за исключением индексов i1 и i2, на две (непустые) части: range1 и range2.
 
@@ -635,16 +610,16 @@ public class Main {
                         range2.add(k);
                 }
 
-            Helper.log(filenameOutput, "ranges:   " + Arrays.toString(range1.toArray()) + "   " +
+            Helper.log(pipeAnglesLogFilename, "ranges:   " + Arrays.toString(range1.toArray()) + "   " +
                     Arrays.toString(range2.toArray()) + "\n");
 
             var range1Corr = new ArrayList<>(range1);
             var range2Corr = new ArrayList<>(range2);
 
             if (range1Corr.removeAll(anglesWithNoJumpPixel))
-                Helper.log(filenameOutput, "range1Corr:   " + range1Corr);
+                Helper.log(pipeAnglesLogFilename, "range1Corr:   " + range1Corr);
             if (range2Corr.removeAll(anglesWithNoJumpPixel))
-                Helper.log(filenameOutput, "range2Corr:   " + range2Corr);
+                Helper.log(pipeAnglesLogFilename, "range2Corr:   " + range2Corr);
 
             var sr1 = new SimpleRegression();
             var sr2 = new SimpleRegression();
@@ -654,7 +629,7 @@ public class Main {
             for (int i : range2Corr)
                 sr2.addData(jumpPixel[i].getI(), jumpPixel[i].getJ());
 
-            Helper.log(filenameOutput, "slopes:   " + sr1.getSlope() + "   " + sr2.getSlope() + "\n");
+            Helper.log(pipeAnglesLogFilename, "slopes:   " + sr1.getSlope() + "   " + sr2.getSlope() + "\n");
 
             // inclination1 (inclination2) - угол наклона прямой, аппроксимирующей точки массива jumpPixel, чьи индексы
             // прнадлежат списку range1Corr (range2Corr). Сначала принадлежит интервалу (-90,90) или равен NaN, потом
@@ -683,10 +658,12 @@ public class Main {
                         90 : inclination2);
 
             if (Helper.compare(inclination1, inclination1Old) && Helper.compare(inclination2, inclination2Old))
-                Helper.log(filenameOutput, "inclinations:   " + inclination1 + "   " + inclination2 + "\n");
+                Helper.log(pipeAnglesLogFilename, "inclinations:   " + inclination1 + "   " + inclination2 + "\n");
             else {
-                Helper.log(filenameOutput, "inclinations (initial):   " + inclination1Old + "   " + inclination2Old);
-                Helper.log(filenameOutput, "inclinations (after change):   " + inclination1 + "   " + inclination2 + "\n");
+                Helper.log(pipeAnglesLogFilename, "inclinations (initial):   " + inclination1Old + "   " +
+                        inclination2Old);
+                Helper.log(pipeAnglesLogFilename, "inclinations (after change):   " + inclination1 + "   " +
+                        inclination2 + "\n");
             }
 
             // pipeAngle - угол наклона биссектрисы острого угла между прямыми, чьи углы наклона равны inclination1 и
@@ -702,7 +679,8 @@ public class Main {
                 pipeAngle = inclination1;
             else if (range1Corr.size() < 2) {
                 pipeAngle = 90; // Эту ситуацию можно обрабатывать более точно, например, сдвигом или изм. длины.
-                Helper.log(filenameOutput, "В качестве pipeAngle берётся 90, т. к. range1Corr.size,range2Corr.size<2.\n");
+                Helper.log(pipeAnglesLogFilename, "В качестве pipeAngle берётся 90, т. к. range1Corr.size," +
+                        "range2Corr.size<2.\n");
             } else {
                 double v = (inclination1 + inclination2) / 2;
                 pipeAngle = v + (inclination1 * inclination2 < 0 && abs(inclination1) + abs(inclination2) > 90 ?
@@ -717,14 +695,16 @@ public class Main {
             pipeAngle = pipeAngle + (pipeAngle < 0 ? 180 : 0);
 
             if (pipeAngle == pipeAngleOld) {
-                Helper.log(filenameOutput, "============================");
-                Helper.log(filenameOutput, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle)");
+                Helper.log(pipeAnglesLogFilename, "============================");
+                Helper.log(pipeAnglesLogFilename, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle)");
             } else {
-                Helper.log(filenameOutput, "    " + (round(pipeAngleOld * 100) / 100.) + "   (pipeAngle (initial))");
-                Helper.log(filenameOutput, "============================");
-                Helper.log(filenameOutput, "=   " + (round(pipeAngle * 100) / 100.) + "   (pipeAngle (after change))");
+                Helper.log(pipeAnglesLogFilename, "    " + (round(pipeAngleOld * 100) / 100.) +
+                        "   (pipeAngle (initial))");
+                Helper.log(pipeAnglesLogFilename, "============================");
+                Helper.log(pipeAnglesLogFilename, "=   " + (round(pipeAngle * 100) / 100.) +
+                        "   (pipeAngle (after change))");
             }
-            Helper.log(filenameOutput, "============================\n");
+            Helper.log(pipeAnglesLogFilename, "============================\n");
 
             String standardDirection = "";
             double standardAngle = -1000;
@@ -751,21 +731,22 @@ public class Main {
 
             // Определяет, отстоит ли прямая с углом наклона pipeAngle от прямой с углом наклона standardAngle не более,
             // чем на eps.
-            boolean isCloseToStandardDirection = Helper.close(pipeAngle, standardAngle + (standardAngle < 0 ? 180 : 0), eps);
+            boolean isCloseToStandardDirection = Helper.close(pipeAngle,
+                    standardAngle + (standardAngle < 0 ? 180 : 0), eps);
 
             // Значения i1, i2 соответствуют эталонному направлению (диаметру или почти-диаметру), но угол pipeAngle
             // сильно отличается от эталонного угла.
             if ((dInd != -1 || aDInd != -1) && !isCloseToStandardDirection) {
                 if (iter < maxIter) {
                     coef *= dec;
-                    Helper.log(filenameOutput, "Эталонное направление:   " + standardDirection +
+                    Helper.log(pipeAnglesLogFilename, "Эталонное направление:   " + standardDirection +
                             " (" + standardDirectionName + "),   эталонный угол:   " + standardAngle + ",   " +
                             "pipeAngle:   " + (round(pipeAngle * 100) / 100.) + ".");
-                    Helper.log(filenameOutput, "--- Уменьшение coef, т. к. pipeAngle не соответствует " +
+                    Helper.log(pipeAnglesLogFilename, "--- Уменьшение coef, т. к. pipeAngle не соответствует " +
                             "эталонному углу. ---\n\n");
                 } else {
                     pipeAngle = standardAngle + (standardAngle < 0 ? 180 : 0);
-                    Helper.log(filenameOutput, "--- Итерации исчерпаны, в качестве pipeAngle берём угол, " +
+                    Helper.log(pipeAnglesLogFilename, "--- Итерации исчерпаны, в качестве pipeAngle берём угол, " +
                             "соответствующий эталонному направлению " + standardDirection +
                             " (" + standardDirectionName + "):   " + standardAngle + ".\n\n");
                 }
@@ -776,19 +757,19 @@ public class Main {
                 if ((abs(i1 - i2) == 1 || (i1 == 0 && i2 == l - 1)) ||
                         (abs(i1 - i2) == 2 || (i1 == 0 && i2 == l - 2) || (i1 == 1 && i2 == l - 1))) {
 
-                    Helper.log(filenameOutput, "Эталонное направление отсутствует.");
-                    Helper.log(filenameOutput, "--- Cдвиг и уменьшение coef. ---");
+                    Helper.log(pipeAnglesLogFilename, "Эталонное направление отсутствует.");
+                    Helper.log(pipeAnglesLogFilename, "--- Cдвиг и уменьшение coef. ---");
                     coef *= dec;
                     Pixel shiftedPixel = shiftPixel(pixel, right, left, avEndTemp, anglesWithNoAvEndTemp, resX, resY);
-                    Helper.log(filenameOutput, pixel + "  ->  " + shiftedPixel + "\n\n");
+                    Helper.log(pipeAnglesLogFilename, pixel + "  ->  " + shiftedPixel + "\n\n");
                     pixel = shiftedPixel;
                 }
                 // i1 и i2 - отличаются более чем на 2 (это при l=8 равносильно наличию эталонного направления).
                 else {
-                    Helper.log(filenameOutput, "Эталонное направление:   " + standardDirection +
+                    Helper.log(pipeAnglesLogFilename, "Эталонное направление:   " + standardDirection +
                             " (" + standardDirectionName + "),   эталонный угол:   " + standardAngle + ",   " +
                             "pipeAngle:   " + (round(pipeAngle * 100) / 100.) + ".");
-                    Helper.log(filenameOutput, "--- Прекращение итераций, т. к. pipeAngle соответствует " +
+                    Helper.log(pipeAnglesLogFilename, "--- Прекращение итераций, т. к. pipeAngle соответствует " +
                             "эталонному углу. ---\n\n");
                     break;
                 }
@@ -796,26 +777,26 @@ public class Main {
         }
 
         try {
-            BufferedImage image = ImageIO.read(new File(outputPictureFilename));
+            BufferedImage image = ImageIO.read(new File(rawDefectsFilename));
             for (int i = 0; i < l; i++) {
-                Helper.log(filenameOutput, String.format("%1$6s", angles[i]) + "  " +
+                Helper.log(pipeAnglesLogFilename, String.format("%1$6s", angles[i]) + "  " +
                         String.format("%1$5s", round(avEndTemp[i] * 10) / 10.) + "  " + jumpPixel[i]);
                 if (!anglesWithNoJumpPixel.contains(i))
                     new Segment(pixel.toPoint(resY), jumpPixel[i].toPoint(resY)).draw(image, Color.BLACK);
             }
-            ImageIO.write(image, "jpg", new File(outputPictureFilename));
+            ImageIO.write(image, "jpg", new File(rawDefectsFilename));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        Helper.log(filenameOutput, "\n\n");
+        Helper.log(pipeAnglesLogFilename, "\n\n");
         return pipeAngle;
     }
 
-    public static double sq(Polygon<Pixel> polygon, double height, double focalLength) {
+    public static double sq(Polygon<Pixel> polygon, double height, double focalLength, double pixelSize) {
         List<Pixel> v = polygon.getVertices();
-        return Thermogram.earthDistance(v.get(0), v.get(1), height, focalLength) *
-                Thermogram.earthDistance(v.get(1), v.get(2), height, focalLength);
+        return Thermogram.earthDistance(v.get(0), v.get(1), height, focalLength, pixelSize) *
+                Thermogram.earthDistance(v.get(1), v.get(2), height, focalLength, pixelSize);
     }
 
     public static String roundAndTrim(double num, int k) {
@@ -845,46 +826,47 @@ public class Main {
     }
 
     private static Object[] defects(Thermogram thermogram, Polygon<Pixel> overlap, double tMin, double tMax,
-                                    int minPixelSquare, double diameter, String thermogramFilename,
+                                    int minPixelSquare, double diameter, double[] params, String thermogramFilename,
                                     String rawDefectsFilename, String realTempsFilename, char separatorReal,
                                     double pixelSize, double focalLength, int resX, int resY, String squaresFilename,
                                     String pipeAnglesFilename, String pipeAnglesLogFilename) {
 
+        int distance = (int) params[0];
+        double tMinPseudo = params[1];
+        int maxDiff = (int) params[2];
+        double k = params[3];
+        double coef = params[4];
+        double tempJump = params[5];
+        int numberEndPixels = (int) params[6];
+        double dec = params[7];
+        double eps = params[8];
+        int maxIter = (int) params[9];
+
         System.out.println("=== Thermogram: " + thermogram.getName() + " ===\n");
 
         double[][] realTable = Helper.extractTable(realTempsFilename, separatorReal);
-        int[][] binTable = Helper.findIf(realTable, num -> tMin < num && num < tMax);
 
-        Helper.nullifyRectangles(binTable, thermogram.getForbiddenZones(), resY);
+        List<Polygon<Point>> enlargedPolygons = realTableToEnlargedPolygons(thermogram, realTable, tMin, tMax,
+                minPixelSquare, distance, overlap, focalLength, pixelSize, resY);
 
-        List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable, focalLength);
-        ranges.removeIf(range -> range.squarePixels() < minPixelSquare);
-
-        System.out.println("Overlap: " + overlap);
-
-        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength, resY);
-        List<Polygon<Point>> enlargedPolygons = Polygon.enlargeIteratively(polygons, 5, overlap,
-                thermogram.getHeight(), focalLength, resY);
-
-        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap, focalLength, resY), thermogram.getForbiddenZones(),
-                Color.BLACK, thermogramFilename, rawDefectsFilename, focalLength, resY);
-        Polygon.showSquares(enlargedPolygons, thermogram.getHeight(), focalLength, resX, resY);
-
+        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap, focalLength, resY),
+                thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, rawDefectsFilename, focalLength, resY);
+        Polygon.showSquares(enlargedPolygons, thermogram.getHeight(), focalLength, pixelSize, resX, resY);
 
         int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize,
                 focalLength));
         Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0), new Pixel(resX - 1, resY - 1))
                 .toPolygon();
         double thermogramSquare = Thermogram.toEarthSquare(thermogramPolygon.square(focalLength),
-                thermogram.getHeight(), focalLength);
+                thermogram.getHeight(), focalLength, pixelSize);
 
-        List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, resY, 0, minPixelSquare,
-                5, focalLength, overlap, enlargedPolygons, 3, 5);
+        List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, pixelSize, resY, tMinPseudo,
+                minPixelSquare, distance, focalLength, overlap, enlargedPolygons, maxDiff, k);
 
         var pipeAngles = new ArrayList<Double>();
         for (int i = 0; i < enlargedPolygons.size(); i++)
             pipeAngles.add(findPipeAngle(middles.get(i), enlargedPolygons.get(i), i + 1, thermogram, diameter,
-                    2, 2, 8, 0.9, 20, 10, realTempsFilename, rawDefectsFilename,
+                    coef, tempJump, numberEndPixels, dec, eps, maxIter, realTempsFilename, rawDefectsFilename,
                     pipeAnglesLogFilename, separatorReal, pixelSize, focalLength, resX, resY));
 
         var boundingDefects = new ArrayList<Rectangle<Pixel>>();
@@ -912,7 +894,7 @@ public class Main {
 
                 double s1 = Rectangle.squarePolygonWithoutOverlap(d, overlap, focalLength);
                 double s2 = Rectangle.squarePolygonWithoutOverlap(d, thermogramPolygon, focalLength);
-                double s = Thermogram.toEarthSquare(s1 - s2, thermogram.getHeight(), focalLength);
+                double s = Thermogram.toEarthSquare(s1 - s2, thermogram.getHeight(), focalLength, pixelSize);
                 double ps = PI * s;
                 squares.add(s);
                 pipeSquares.add(ps);
@@ -926,8 +908,8 @@ public class Main {
         double totalSquare = squares.stream().mapToDouble(Double::doubleValue).sum();
 
         Helper.log(squaresFilename, thermogram.getName() + "   " + roundAndTrim(totalSquare, 2, 2) + "   " +
-                roundAndTrim(totalSquare * 100 / thermogramSquare, 2, 2) + "   " + roundAndTrim(squares, 2, 2) +
-                "\n");
+                roundAndTrim(totalSquare * 100 / thermogramSquare, 2, 2) + "   " +
+                roundAndTrim(squares, 2, 2) + "\n");
 
         Helper.log(pipeAnglesFilename, thermogram.getName() + "   " + roundAndTrim(pipeAngles, 2, 3) + "\n");
 
@@ -954,35 +936,37 @@ public class Main {
                 break;
 
             case CSV:
-                File[] files = new File(Property.DIR_THERMOGRAMS.getValue()).listFiles();
+                File[] files = new File(Property.DIR_THERMOGRAMS.value()).listFiles();
                 String[] thermogramsNames = new String[files.length];
                 for (int i = 0; i < files.length; i++)
                     thermogramsNames[i] = files[i].getName().substring(0, files[i].getName().indexOf('.'));
                 for (String thermogramName : thermogramsNames)
-                    Helper.rawFileToRealFile(DIR_CURRENT + "/" + Property.SUBDIR_RAW_TEMPS.getValue() +
-                                    "/" + thermogramName + Property.POSTFIX_RAW_TEMPS.getValue() + EXTENSION_RAW,
-                            DIR_CURRENT + "/" + Property.SUBDIR_REAL_TEMPS.getValue() +
-                                    "/" + thermogramName + Property.POSTFIX_REAL_TEMPS.getValue() + EXTENSION_REAL,
-                            ExifParam.RES_Y.getIntValue(), ExifParam.RES_X.getIntValue(), SEPARATOR_RAW, SEPARATOR_REAL,
+                    Helper.rawFileToRealFile(DIR_CURRENT + "/" + Property.SUBDIR_RAW_TEMPS.value() +
+                                    "/" + thermogramName + Property.POSTFIX_RAW_TEMPS.value() + EXTENSION_RAW,
+                            DIR_CURRENT + "/" + Property.SUBDIR_REAL_TEMPS.value() +
+                                    "/" + thermogramName + Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL,
+                            ExifParam.RES_Y.intValue(), ExifParam.RES_X.intValue(), SEPARATOR_RAW, SEPARATOR_REAL,
                             Arrays.copyOfRange(ExifParam.readValues(), 1, ExifParam.readValues().length));
                 break;
 
             case DEFECTS:
                 Thermogram[] thermograms = Thermogram.readThermograms(
-                        Helper.filename(DIR_CURRENT, Property.SUBDIR_OUTPUT.getValue(), THERMOGRAMS_INFO),
+                        Helper.filename(DIR_CURRENT, Property.SUBDIR_OUTPUT.value(), THERMOGRAMS_INFO),
                         Helper.filename(DIR_CURRENT, FORBIDDEN_ZONES));
 
-                int resX = ExifParam.RES_X.getIntValue();
-                int resY = ExifParam.RES_Y.getIntValue();
-                double focalLength = ExifParam.FOCAL_LENGTH.getValue();
+                // Сохранение 10-ти последних параметров из конфиг. файла в массив. На этих параметрах основывается
+                // метод defects().
+                double[] params = new double[10];
+                for (int i = 0; i < 10; i++)
+                    params[i] = Property.values()[Property.values().length - 10 + i].doubleValue();
 
-                String pipeSquaresFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_OUTPUT.getValue(),
+                String pipeSquaresFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_OUTPUT.value(),
                         PIPE_SQUARES);
-                String squaresFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_AUXILIARY.getValue(),
+                String squaresFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_AUXILIARY.value(),
                         SQUARES);
-                String pipeAnglesFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_AUXILIARY.getValue(),
+                String pipeAnglesFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_AUXILIARY.value(),
                         PIPE_ANGLES);
-                String pipeAnglesLogFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_AUXILIARY.getValue(),
+                String pipeAnglesLogFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_AUXILIARY.value(),
                         PIPE_ANGLES_LOG);
 
                 Helper.clear(pipeSquaresFilename);
@@ -995,24 +979,26 @@ public class Main {
                     String thermogramName = thermogram.getName();
 
                     Polygon<Pixel> overlap = thermogram.getOverlapWith(
-                            thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1], focalLength, resX, resY);
+                            thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1], ExifParam.FOCAL_LENGTH.value(),
+                            Property.PIXEL_SIZE.doubleValue() / 1000_000,
+                            new Pixel(Property.PRINCIPAL_POINT_X.intValue(), Property.PRINCIPAL_POINT_Y.intValue()),
+                            ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue());
 
-                    String thermogramFilename = Helper.filename(Property.DIR_THERMOGRAMS.getValue().replace('\\', '/'),
-                            thermogramName + EXTENSION);
+                    String thermogramFilename = Helper.filename(Property.DIR_THERMOGRAMS.value()
+                            .replace('\\', '/'), thermogramName + EXTENSION);
+                    String rawDefectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_RAW_DEFECTS.value(),
+                            thermogramName + Property.POSTFIX_RAW_DEFECTS.value() + EXTENSION);
+                    String defectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_DEFECTS.value(),
+                            thermogramName + Property.POSTFIX_DEFECTS.value() + EXTENSION);
+                    String realTempsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_REAL_TEMPS.value(),
+                            thermogramName + Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL);
 
-                    String rawDefectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_RAW_DEFECTS.getValue(),
-                            thermogramName + Property.POSTFIX_RAW_DEFECTS.getValue() + EXTENSION);
-
-                    String defectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_DEFECTS.getValue(),
-                            thermogramName + Property.POSTFIX_DEFECTS.getValue() + EXTENSION);
-
-                    String realTempsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_REAL_TEMPS.getValue(),
-                            thermogramName + Property.POSTFIX_REAL_TEMPS.getValue() + EXTENSION_REAL);
-
-                    Object[] o = defects(thermogram, overlap, T_MIN, T_MAX, MIN_PIXEL_SQUARE,
-                            Property.DIAMETER.getDoubleValue(), thermogramFilename, rawDefectsFilename,
-                            realTempsFilename, SEPARATOR_REAL, PIXEL_SIZE, focalLength, resX, resY, squaresFilename,
-                            pipeAnglesFilename, pipeAnglesLogFilename);
+                    Object[] o = defects(thermogram, overlap, Property.T_MIN.doubleValue(),
+                            Property.T_MAX.doubleValue(), Property.MIN_PIXEL_SQUARE.intValue(),
+                            Property.DIAMETER.doubleValue(), params, thermogramFilename, rawDefectsFilename,
+                            realTempsFilename, SEPARATOR_REAL, Property.PIXEL_SIZE.doubleValue() / 1000_000,
+                            ExifParam.FOCAL_LENGTH.value(), ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(),
+                            squaresFilename, pipeAnglesFilename, pipeAnglesLogFilename);
 
                     var defects = (ArrayList<Polygon<Pixel>>) o[0];
                     var pipeSquares = (ArrayList<Double>) o[1];
@@ -1021,9 +1007,10 @@ public class Main {
                             roundAndTrim(pipeSquares.stream().mapToDouble(Double::doubleValue).sum(), 2, 2) +
                             "   " + roundAndTrim(pipeSquares, 2, 2) + "\n");
 
-                    Polygon.drawPolygons(defects, Polygon.toPointPolygon(overlap, focalLength, resY),
-                            thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, defectsFilename, resY,
-                            focalLength);
+                    Polygon.drawPolygons(defects, Polygon.toPointPolygon(overlap, ExifParam.FOCAL_LENGTH.value(),
+                            ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
+                            thermogramFilename, defectsFilename, ExifParam.RES_Y.intValue(),
+                            ExifParam.FOCAL_LENGTH.value());
                 }
                 break;
 

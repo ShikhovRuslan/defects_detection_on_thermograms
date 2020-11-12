@@ -95,23 +95,23 @@ public class Thermogram {
     /**
      * Вычисляет расстояние в метрах между пикселями {@code a} и {@code b}.
      */
-    private static double matrixDistance(Pixel a, Pixel b) {
-        return Main.PIXEL_SIZE * sqrt(pow(a.getI() - b.getI(), 2) + pow(a.getJ() - b.getJ(), 2));
+    private static double matrixDistance(Pixel a, Pixel b, double pixelSize) {
+        return pixelSize * sqrt(pow(a.getI() - b.getI(), 2) + pow(a.getJ() - b.getJ(), 2));
     }
 
     /**
      * Вычисляет расстояние в метрах между точками Земли, которые проектируются в пиксели {@code a} и {@code b}.
      */
-    static double earthDistance(Pixel a, Pixel b, double height, double focalLength) {
-        return reverseScale(height, focalLength) * matrixDistance(a, b);
+    static double earthDistance(Pixel a, Pixel b, double height, double focalLength, double pixelSize) {
+        return reverseScale(height, focalLength) * matrixDistance(a, b, pixelSize);
     }
 
     /**
      * Конвертирует площадь в кв. пикселях участка матрицы в площадь в кв. метрах участка Земли, который проектируется
      * на этот участок матрицы.
      */
-    public static double toEarthSquare(double pixelSquare, double height, double focalLength) {
-        return pixelSquare * pow(Main.PIXEL_SIZE * reverseScale(height, focalLength), 2);
+    public static double toEarthSquare(double pixelSquare, double height, double focalLength, double pixelSize) {
+        return pixelSquare * pow(pixelSize * reverseScale(height, focalLength), 2);
     }
 
     /**
@@ -129,35 +129,35 @@ public class Thermogram {
     /**
      * Вычисляет географические координаты углов текущей термограммы.
      */
-    Point[] getCorners(double focalLength) {
+    Point[] getCorners(double focalLength, double pixelSize, Pixel principalPoint) {
         Point[] corners = new Point[4];
         double[] angles = {
-                Corners.C0.angle(Main.PRINCIPAL_POINT) - yaw - 180,
-                -Corners.C1.angle(Main.PRINCIPAL_POINT) - yaw,
-                Corners.C2.angle(Main.PRINCIPAL_POINT) - yaw,
-                -Corners.C3.angle(Main.PRINCIPAL_POINT) - yaw + 180};
+                Corners.C0.angle(principalPoint) - yaw - 180,
+                -Corners.C1.angle(principalPoint) - yaw,
+                Corners.C2.angle(principalPoint) - yaw,
+                -Corners.C3.angle(principalPoint) - yaw + 180};
         for (int i = 0; i < 4; i++)
             corners[i] = EarthCalc.pointAt(groundNadir, angles[i],
-                    earthDistance(Main.PRINCIPAL_POINT, Corners.values()[i].toPixel(), height, focalLength));
+                    earthDistance(principalPoint, Corners.values()[i].toPixel(), height, focalLength, pixelSize));
         return corners;
     }
 
     /**
      * Возвращает пиксельные координаты точки {@code point}, заданной географическими координатами.
      */
-    Pixel toPixel(Point point, double focalLenght) {
-        Point centre = getCorners(focalLenght)[3];
+    Pixel toPixel(Point point, double focalLength, Pixel principalPoint, double pixelSize) {
+        Point centre = getCorners(focalLength, pixelSize, principalPoint)[3];
         double earthDistance = EarthCalc.harvesineDistance(point, centre);
         double omega = (PI / 180) * (360 - yaw - EarthCalc.bearing(centre, point));
-        double pixelDistance = earthDistance / reverseScale(height, focalLenght) / Main.PIXEL_SIZE;
+        double pixelDistance = earthDistance / reverseScale(height, focalLength) / pixelSize;
         return new Pixel(pixelDistance * cos(omega), pixelDistance * sin(omega));
     }
 
     /**
      * Определяет принадлежность текущей термограмме точки {@code point}, заданной географическими координатами.
      */
-    private boolean contains(Point point, double focalLength, int resX, int resY) {
-        Pixel pixel = toPixel(point, focalLength);
+    private boolean contains(Point point, double focalLength, Pixel principalPoint, double pixelSize, int resX, int resY) {
+        Pixel pixel = toPixel(point, focalLength, principalPoint, pixelSize);
         return (0 <= pixel.getI() && pixel.getI() < resX) && (0 <= pixel.getJ() && pixel.getJ() < resY);
     }
 
@@ -165,11 +165,12 @@ public class Thermogram {
      * Возвращает список координат углов термограммы {@code second}, которые принадлежат термограмме {@code first}, в
      * системе пиксельных координат, связанных с текущей термограммой.
      */
-    private List<Pixel> cornersFromOther(Thermogram first, Thermogram second, double focalLength, int resX, int resY) {
+    private List<Pixel> cornersFromOther(Thermogram first, Thermogram second, double focalLength, double pixelSize,
+                                         Pixel principalPoint, int resX, int resY) {
         List<Pixel> vertices = new ArrayList<>();
-        for (Point vertex : second.getCorners(focalLength))
-            if (first.contains(vertex, focalLength, resX, resY))
-                vertices.add(toPixel(vertex, focalLength));
+        for (Point vertex : second.getCorners(focalLength, pixelSize, principalPoint))
+            if (first.contains(vertex, focalLength, principalPoint, pixelSize, resX, resY))
+                vertices.add(toPixel(vertex, focalLength, principalPoint, pixelSize));
         return vertices;
     }
 
@@ -177,16 +178,20 @@ public class Thermogram {
      * Возвращает многоугольник (в системе пиксельных координат, связанных с текущей термограммой), который является
      * пересечением текущей термограммы и термограммы {@code previous}.
      */
-    Polygon<Pixel> getOverlapWith(Thermogram previous, double focalLength, int resX, int resY) {
+    Polygon<Pixel> getOverlapWith(Thermogram previous, double focalLength, double pixelSize, Pixel principalPoint,
+                                  int resX, int resY) {
         List<Pixel> vertices = new ArrayList<>();
-        vertices.addAll(cornersFromOther(this, previous, focalLength, resX, resY));
-        vertices.addAll(cornersFromOther(previous, this, focalLength, resX, resY));
+        vertices.addAll(cornersFromOther(this, previous, focalLength, pixelSize, principalPoint, resX, resY));
+        vertices.addAll(cornersFromOther(previous, this, focalLength, pixelSize, principalPoint, resX, resY));
         Pixel intersection;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++) {
                 intersection = Pixel.findIntersection(Corners.values()[i].toPixel(),
                         Corners.values()[i + 1 < 4 ? i + 1 : 0].toPixel(),
-                        toPixel(previous.getCorners(focalLength)[j], focalLength), toPixel(previous.getCorners(focalLength)[j + 1 < 4 ? j + 1 : 0], focalLength));
+                        toPixel(previous.getCorners(focalLength, pixelSize, principalPoint)[j],
+                                focalLength, principalPoint, pixelSize),
+                        toPixel(previous.getCorners(focalLength, pixelSize, principalPoint)[j + 1 < 4 ? j + 1 : 0],
+                                focalLength, principalPoint, pixelSize));
                 if (!intersection.equals(new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE)))
                     vertices.add(intersection);
             }

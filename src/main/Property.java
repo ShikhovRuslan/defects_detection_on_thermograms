@@ -33,7 +33,18 @@ public enum Property {
     DIAMETER("DIAMETER"),
     T_MIN("T_MIN"),
     T_MAX("T_MAX"),
-    MIN_PIXEL_SQUARE("MIN_PIXEL_SQUARE");
+    MIN_PIXEL_SQUARE("MIN_PIXEL_SQUARE"),
+
+    DISTANCE("DISTANCE"),
+    T_MIN_PSEUDO("T_MIN_PSEUDO"),
+    MAX_DIFF("MAX_DIFF"),
+    K("K"),
+    COEF("COEF"),
+    TEMP_JUMP("TEMP_JUMP"),
+    NUMBER_END_PIXELS("NUMBER_END_PIXELS"),
+    DEC("DEC"),
+    EPS("EPS"),
+    MAX_ITER("MAX_ITER");
 
     /**
      * Имя параметра.
@@ -51,7 +62,7 @@ public enum Property {
     static {
         Scanner sc = null;
         try {
-            sc = new Scanner(new File(Main.DIR_CURRENT + "/" + Main.SHORT_FILENAME_CONFIG));
+            sc = new Scanner(new File(Helper.filename(Main.DIR_CURRENT, Main.CONFIG)));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -59,26 +70,22 @@ public enum Property {
         while (sc.hasNextLine()) {
             nextLine = sc.nextLine();
             for (Property p : Property.values())
-                if (nextLine.matches(p.name + ".*")) {
+                if (nextLine.matches(p.name + " *=.*")) {
                     p.value = nextLine.substring(nextLine.indexOf('=') + 2);
                     break;
                 }
         }
     }
 
-    String getName() {
-        return name;
-    }
-
-    public String getValue() {
+    public String value() {
         return value;
     }
 
-    int getIntValue() {
+    int intValue() {
         return Integer.parseInt(value);
     }
 
-    double getDoubleValue() {
+    double doubleValue() {
         return Double.parseDouble(value);
     }
 }

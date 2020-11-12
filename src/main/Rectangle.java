@@ -36,17 +36,17 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * Преобразует текущий прямоугольник в многоугольник, создавая список его вершин, которые упорядочены против часовой
      * стрелки, начиная с нижней левой вершины.
      */
-    public Polygon<T> toPolygon(double squareRectangleWithoutOverlap, double height, double focalLength) {
+    public Polygon<T> toPolygon(double squareRectangleWithoutOverlap, double height, double focalLength, double pixelSize) {
         List<T> vertices = new ArrayList<>();
         vertices.add(left);
         vertices.add((T) left.create(right.getI(), left.getJ()));
         vertices.add(right);
         vertices.add((T) right.create(left.getI(), right.getJ()));
-        return new Polygon<>(vertices, squareRectangleWithoutOverlap, height, focalLength);
+        return new Polygon<>(vertices, squareRectangleWithoutOverlap, height, focalLength, pixelSize);
     }
 
     public Polygon<T> toPolygon() {
-        return toPolygon(-1, -1, -1);
+        return toPolygon(-1, -1, -1, -1);
     }
 
     public T getLeft() {
@@ -70,7 +70,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      *              принадлежащий промежутку {@code [0,90]}
      */
     public static Polygon<Pixel> slopeRectangle(Rectangle<Pixel> rectangle, double angle, int resY) {
-        Polygon<Pixel> polygon = rectangle.toPolygon(0, 0, 0);
+        Polygon<Pixel> polygon = rectangle.toPolygon(0, 0, 0, 0);
         List<Pixel> vertices = polygon.getVertices();
         Segment[] sides = Polygon.getSides(Polygon.toPointPolygon(polygon, 0, resY));
         double a = angle * PI / 180;
@@ -92,7 +92,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * {@code true}, если первый принадлежит второму или если первый слегка выходит за рамки второго, но при этом
      * проекции векторов, соединяющих left-вершину прямоугольника {@code big} с аналогичной вершиной текущего
      * прямоугольника и right-вершину текущего прямоугольника с аналогичной вершиной прямоугольника {@code big} на
-     * координатные оси не должны быть меньше положительной величины {@code maxDiff}.
+     * координатные оси не должны быть меньше отрицательной величины {@code -maxDiff}.
      */
     public boolean isIn(Rectangle<T> big, int maxDiff) {
         int leftIDiff = left.getI() - big.left.getI();
