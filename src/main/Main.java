@@ -41,6 +41,10 @@ public class Main {
      * Скрипт, извлекающий из всех термограмм необработанные температурные данные.
      */
     private final static String SCRIPT_THERMOGRAMS_RAW_TEMPERATURES = "thermograms_raw_temperatures";
+    /**
+     * Скрипт, копирующий GPS-координаты из термограмм в картинки с дефектами.
+     */
+    private final static String SCRIPT_COPY_GPS = "copy_gps";
 
 
     //
@@ -842,8 +846,6 @@ public class Main {
         double eps = params[8];
         int maxIter = (int) params[9];
 
-        System.out.println("=== Thermogram: " + thermogram.getName() + " ===\n");
-
         double[][] realTable = Helper.extractTable(realTempsFilename, separatorReal);
 
         List<Polygon<Point>> enlargedPolygons = realTableToEnlargedPolygons(thermogram, realTable, tMin, tMax,
@@ -851,7 +853,6 @@ public class Main {
 
         Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap, focalLength, resY),
                 thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, rawDefectsFilename, focalLength, resY);
-        Polygon.showSquares(enlargedPolygons, thermogram.getHeight(), focalLength, pixelSize, resX, resY);
 
         int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize,
                 focalLength));
@@ -1012,6 +1013,7 @@ public class Main {
                             thermogramFilename, defectsFilename, ExifParam.RES_Y.intValue(),
                             ExifParam.FOCAL_LENGTH.value());
                 }
+                Helper.run(DIR_CURRENT, SCRIPT_COPY_GPS + SCRIPT_EXTENSION, OS);
                 break;
 
             case HELP:
