@@ -175,7 +175,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         for (Point vertex : first.vertices)
             for (Segment side : sides)
                 // Специально используется сокращённый оператор AND.
-                if (vertex.projectableTo(side) && vertex.distance(side) <= distance)
+                if (vertex.projectableTo(side, true) && vertex.distance(side, true) <= distance)
                     return true;
         return false;
     }
@@ -229,7 +229,15 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         Segment[] sides = getSides(second);
         for (Point vertex : first.vertices)
             for (Segment side : sides)
-                if (vertex.projectableTo(side) && vertex.distance(side) <= distance) {
+                if (vertex.projectableTo(side, true) && vertex.distance(side, true) <= distance) {
+                    int side0Index = indexOfSide(first, vertex, side.isHorizontal());
+                    Segment side0ToShorten = getSides(first)[side0Index];
+                    Point end0 = side0ToShorten.getOtherEnd(vertex);
+                    Point other = side.getOtherEnd(vertex.project(side));
+                    if((side.isVertical() && (end0.getI() > vertex.getI() && other.getI() > vertex.getI() ||
+                            end0.getI() < vertex.getI() && other.getI() < vertex.getI())) ||
+                    (side.isHorizontal() && (end0.getJ() > vertex.getJ() && other.getJ() > vertex.getJ() ||
+                            end0.getJ() < vertex.getJ() && other.getJ() < vertex.getJ())))
                     tmpDistances.add(vertex.distance(side));
                     tmpVertices.add(vertex);
                     tmpSides.add(side);

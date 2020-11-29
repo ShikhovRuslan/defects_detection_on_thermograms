@@ -31,8 +31,8 @@ public class Point extends AbstractPoint {
      * @throws IllegalArgumentException если текущая точка не может быть спроектирована на внутренность отрезка или
      *                                  отрезок не является ни горизонтальным, ни вертикальным
      */
-    public int distance(Segment segment) {
-        if (projectableTo(segment)) {
+    public int distance(Segment segment, boolean... inclusive) {
+        if (projectableTo(segment, inclusive[0])) {
             if (segment.isHorizontal())
                 return Math.abs(getI() - segment.getA().getI());
             if (segment.isVertical())
@@ -54,13 +54,16 @@ public class Point extends AbstractPoint {
      *
      * @throws IllegalArgumentException если отрезок не является ни горизонтальным, ни вертикальным
      */
-    public boolean projectableTo(Segment segment) {
+    public boolean projectableTo(Segment segment, boolean... inclusive) {
+        int minJ = Math.min(segment.getA().getJ(), segment.getB().getJ());
+        int maxJ = Math.max(segment.getA().getJ(), segment.getB().getJ());
+        int minI = Math.min(segment.getA().getI(), segment.getB().getI());
+        int maxI = Math.max(segment.getA().getI(), segment.getB().getI());
+
         if (segment.isHorizontal())
-            return getJ() > Math.min(segment.getA().getJ(), segment.getB().getJ()) &&
-                    getJ() < Math.max(segment.getA().getJ(), segment.getB().getJ());
+            return inclusive[0] ? getJ() >= minJ && getJ() <= maxJ : getJ() > minJ && getJ() < maxJ;
         if (segment.isVertical())
-            return getI() > Math.min(segment.getA().getI(), segment.getB().getI()) &&
-                    getI() < Math.max(segment.getA().getI(), segment.getB().getI());
+            return inclusive[0] ? getI() >= minI && getI() <= maxI : getI() > minI && getI() < maxI;
         throw new IllegalArgumentException("Отрезок не является ни горизонтальным, ни вертикальным.");
     }
 
