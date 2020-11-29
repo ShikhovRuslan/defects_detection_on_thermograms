@@ -37,7 +37,7 @@ public class Pixel extends AbstractPoint {
      * <p>
      * (https://vscode.ru/prog-lessons/nayti-tochku-peresecheniya-otrezkov.html)
      */
-    static Pixel findIntersection(Pixel p1, Pixel p2, Pixel p3, Pixel p4) {
+    public static Pixel findIntersection(Pixel p1, Pixel p2, Pixel p3, Pixel p4) {
         Pixel no = new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE);
 
         // Добиваемся, чтобы было p1.i <= p2.i и p3.i <= p4.i.

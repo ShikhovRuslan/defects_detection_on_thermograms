@@ -1,6 +1,8 @@
 package polygons;
 
 import main.Helper;
+import main.Pixel;
+import main.Polygon;
 import main.Rectangle;
 
 import java.awt.*;
@@ -74,44 +76,44 @@ public class Segment {
     /**
      * Возвращает верхний конец текущего отрезка.
      *
-     * @throws IllegalArgumentException если текущий отрезок горизонтален
+     * @throws IllegalArgumentException если текущий отрезок горизонтален и не является точкой
      */
     public Point upperEnd() {
-        if (isHorizontal())
-            throw new IllegalArgumentException("Текущий отрезок горизонтален.");
+        if (isHorizontal() && !isPointNotLine())
+            throw new IllegalArgumentException("Текущий отрезок горизонтален и не является точкой.");
         return a.getI() < b.getI() ? a : b;
     }
 
     /**
      * Возвращает нижний конец текущего отрезка.
      *
-     * @throws IllegalArgumentException если текущий отрезок горизонтален
+     * @throws IllegalArgumentException если текущий отрезок горизонтален и не является точкой
      */
     public Point lowerEnd() {
-        if (isHorizontal())
-            throw new IllegalArgumentException("Текущий отрезок горизонтален.");
+        if (isHorizontal() && !isPointNotLine())
+            throw new IllegalArgumentException("Текущий отрезок горизонтален и не является точкой.");
         return a.getI() > b.getI() ? a : b;
     }
 
     /**
      * Возвращает правый конец текущего отрезка.
      *
-     * @throws IllegalArgumentException если текущий отрезок вертикален
+     * @throws IllegalArgumentException если текущий отрезок вертикален и не является точкой
      */
     public Point rightEnd() {
-        if (isVertical())
-            throw new IllegalArgumentException("Текущий отрезок вертикален.");
+        if (isVertical() && !isPointNotLine())
+            throw new IllegalArgumentException("Текущий отрезок вертикален и не является точкой.");
         return a.getJ() > b.getJ() ? a : b;
     }
 
     /**
      * Возвращает левый конец текущего отрезка.
      *
-     * @throws IllegalArgumentException если текущий отрезок вертикален
+     * @throws IllegalArgumentException если текущий отрезок вертикален и не является точкой
      */
     public Point leftEnd() {
-        if (isVertical())
-            throw new IllegalArgumentException("Текущий отрезок вертикален.");
+        if (isVertical() && !isPointNotLine())
+            throw new IllegalArgumentException("Текущий отрезок вертикален и не является точкой.");
         return a.getJ() < b.getJ() ? a : b;
     }
 
@@ -126,6 +128,21 @@ public class Segment {
         if (isVertical())
             return point.getJ() == a.getJ() && point.projectableTo(this);
         throw new IllegalArgumentException("Текущий отрезок ни горизонтален, ни вертикален.");
+    }
+
+    public boolean containsVerticesFrom(Polygon<Point> polygon) {
+        for (Point vertex : polygon.getVertices())
+            if (contains(vertex)) return true;
+        return false;
+    }
+
+    public boolean intersectsSideOf(Polygon<Point> polygon) {
+        for (Segment side : Polygon.getSides(polygon))
+            if (!Pixel.findIntersection(new Pixel(a.getI(), a.getJ()), new Pixel(b.getI(), b.getJ()),
+                    new Pixel(side.a.getI(), side.a.getJ()), new Pixel(side.b.getI(), side.b.getJ()))
+                    .equals(new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE)))
+                return true;
+        return false;
     }
 
     /**

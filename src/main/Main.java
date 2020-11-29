@@ -854,6 +854,15 @@ public class Main {
         Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap, focalLength, resY),
                 thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, rawDefectsFilename, focalLength, resY);
 
+        /*for (int i = 0; i < enlargedPolygons.size(); i++) {
+            List<Polygon<Point>> ps = new ArrayList<>();
+            ps.add(enlargedPolygons.get(i));
+            Polygon.drawPolygons(ps, Polygon.toPointPolygon(overlap, focalLength, resY),
+                    thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename,
+                    rawDefectsFilename.substring(0, rawDefectsFilename.length() - EXTENSION.length()) +
+                            "__" + i + EXTENSION, focalLength, resY);
+        }*/
+
         int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize,
                 focalLength));
         Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0), new Pixel(resX - 1, resY - 1))
@@ -987,6 +996,9 @@ public class Main {
 
                     String thermogramFilename = Helper.filename(Property.DIR_THERMOGRAMS.value()
                             .replace('\\', '/'), thermogramName + EXTENSION);
+                    if (!new File(thermogramFilename).isFile())
+                        thermogramFilename = thermogramFilename.substring(0,
+                                thermogramFilename.length() - EXTENSION.length()) + EXTENSION.toUpperCase();
                     String rawDefectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_RAW_DEFECTS.value(),
                             thermogramName + Property.POSTFIX_RAW_DEFECTS.value() + EXTENSION);
                     String defectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_DEFECTS.value(),

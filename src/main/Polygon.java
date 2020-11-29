@@ -13,6 +13,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.lang.Math.*;
 
@@ -112,6 +115,42 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         return false;
     }
 
+    public static boolean intersects(Polygon<Point> polygon1, Polygon<Point> polygon2, double focalLength, int resY) {
+        List<?> v1 = polygon1.getVertices();
+        List<?> v2 = polygon2.getVertices();
+        Segment[] s1 = getSides(polygon1);
+        Segment[] s2 = getSides(polygon2);
+
+        for (Object v : v1)
+            for (Object u : v2)
+                if (v.equals(u)) return true;
+
+        for (Object v : v1)
+            for (Segment s : s2)
+                if (s.contains((Point) v)) return true;
+        for (Object v : v2)
+            for (Segment s : s1)
+                if (s.contains((Point) v)) return true;
+
+        Polygon<Pixel> p1 = Polygon.toPixelPolygon(polygon1, focalLength, resY);
+        Polygon<Pixel> p2 = Polygon.toPixelPolygon(polygon2, focalLength, resY);
+
+        v1 = p1.getVertices();
+        v2 = p2.getVertices();
+
+        for (int i = 0; i < v1.size(); i++)
+            for (int j = 0; j < v2.size(); j++)
+                if (!Pixel.findIntersection(
+                        (Pixel) v1.get(i),
+                        (Pixel) v1.get(i + 1 < v1.size() ? i + 1 : 0),
+                        (Pixel) v2.get(j),
+                        (Pixel) v2.get(j + 1 < v2.size() ? j + 1 : 0))
+                        .equals(new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE)))
+                    return true;
+
+        return false;
+    }
+
     /**
      * Возвращает список сторон многоугольника {@code polygon}, соединяя последовательно его вершины.
      */
@@ -203,16 +242,16 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     /**
      * Возвращает номер стороны многоугольника {@code polygon}, которая имеет своим концом точку {@code vertex} и имеет
-     * противоположную значению {@code isPerpendicularHorizontal} ориентацию, или {@code -1}, в противном случае.
+     * ориентацию {@code isHorizontal}, или {@code -1}, в противном случае.
      * (Ориентация стороны понимается относительно термограммы.)
      * Значение {@code -1} может быть выдано, если эта точка является вершиной развёрнутого угла.
      */
-    private static int indexOfSideToShorten(Polygon<Point> polygon, Point vertex, boolean isPerpendicularHorizontal) {
+    private static int indexOfSide(Polygon<Point> polygon, Point vertex, boolean isHorizontal) {
         Segment[] sides = getSides(polygon);
         for (int i = 0; i < sides.length; i++)
             if ((vertex.equals(sides[i].getA()) || vertex.equals(sides[i].getB())) &&
-                    (isPerpendicularHorizontal && sides[i].isVertical() ||
-                            !isPerpendicularHorizontal && sides[i].isHorizontal()))
+                    (isHorizontal && sides[i].isHorizontal() ||
+                            !isHorizontal && sides[i].isVertical()))
                 return i;
         return -1;
     }
@@ -414,8 +453,6 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * @param polygon0      многоугольник
      * @param polygon1      многоугольник
      * @param vertex0       вершина многоугольника {@code polygon0}
-     * @param perpendicular перпендикуляр, опущенный из вершины {@code vertex0} на внутренность стороны многоугольника
-     *                      {@code polygon1}
      * @param end1          конец {@code perpendicular}, принадлежащий многоугольнику {@code polygon1}
      * @param side0Index    номер стороны многоугольника {@code polygon0}, которая имеет своим концом вершину
      *                      {@code vertex0} и имеет ориентацию, противоположную ориентации {@code perpendicular}
@@ -423,7 +460,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      *                      {@code end1}
      */
     private static Segment[][] getPolygonalChains(Polygon<Point> polygon0, Polygon<Point> polygon1, Point vertex0,
-                                                  Segment perpendicular, Point end1, int side0Index, int side1Index) {
+                                                  Point end1, int side0Index, int side1Index) {
         Segment[] sides0 = getSides(polygon0);
         Segment[] sides1 = getSides(polygon1);
         Segment side0ToShorten = sides0[side0Index];
@@ -433,7 +470,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         Segment newSide11;
         Point end0 = side0ToShorten.getOtherEnd(vertex0);
         Point otherBorder0, otherBorder1;
-        if (perpendicular.isHorizontal())
+        if (side1ToShorten.isVertical())
             if (end0.getI() < vertex0.getI()) {
                 if (end0.getI() < side1ToShorten.upperEnd().getI()) {
                     newSide0 = new Segment(end0, new Point(side1ToShorten.upperEnd().getI(), vertex0.getJ()));
@@ -508,15 +545,19 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      *
      * @see #areClose(Polygon, Polygon, int)
      */
-    static Polygon<Point> unite(Polygon<Point> first, Polygon<Point> second, int distance, Polygon<Pixel> overlap, double height, double focalLength, double pixelSize, int resY)
+    private static Polygon<Point> unite(Polygon<Point> first, Polygon<Point> second, List<Polygon<Point>> polygons,
+                                        int distance, Polygon<Pixel> overlap, double height, double focalLength,
+                                        double pixelSize, int resY)
             throws NullPointerException {
+
         Segment[] segments = perpendicular(first, second, distance);
         Segment perpendicular = segments[0];
+        Segment side1 = segments[1];
         Point vertex0 = perpendicular.getA();
         Point end1 = perpendicular.getB();
-        int side0Index = indexOfSideToShorten(first, vertex0, perpendicular.isHorizontal());
+        int side0Index = indexOfSide(first, vertex0, side1.isHorizontal());
         int side1Index = indexOfSideWithPoint(second, end1);
-        Segment[][] polygonalChains = getPolygonalChains(first, second, vertex0, perpendicular, end1, side0Index,
+        Segment[][] polygonalChains = getPolygonalChains(first, second, vertex0, end1, side0Index,
                 side1Index);
         Segment otherBoarder = polygonalChains[2][0];
         Segment[] allSegments = new Segment[polygonalChains[0].length + polygonalChains[1].length + 2];
@@ -525,9 +566,27 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 polygonalChains[1].length);
         System.arraycopy(new Segment[]{perpendicular, otherBoarder}, 0, allSegments,
                 polygonalChains[0].length + polygonalChains[1].length, 2);
-        double squarePixelsOfConnectingRectangle = Rectangle.squarePolygonWithoutOverlap(Rectangle.toRectangle(vertex0, otherBoarder.getB(), resY).toPolygon(0, 0, 0, 0), overlap, focalLength);
+
+        Polygon<Pixel> connectingRectangle = Rectangle.toRectangle(vertex0, otherBoarder.getB(), resY).toPolygon();
+        Polygon<Point> connRectPoint = toPointPolygon(connectingRectangle, focalLength, resY);
+
+        Polygon<Point> no = new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
+
+        for (Polygon<Point> p : polygons)
+            if (intersects(connRectPoint, p, focalLength, resY)) return no;
+
+        if (perpendicular.containsVerticesFrom(first) || perpendicular.containsVerticesFrom(second) ||
+                otherBoarder.containsVerticesFrom(first) || otherBoarder.containsVerticesFrom(second))
+            return no;
+
+        if(perpendicular.intersectsSideOf(first)
+                || otherBoarder.intersectsSideOf(first) || otherBoarder.intersectsSideOf(second))
+            return no;
+
         return createPolygon(allSegments,
-                first.pixelSquare + second.pixelSquare + squarePixelsOfConnectingRectangle, height, focalLength, pixelSize);
+                first.pixelSquare + second.pixelSquare +
+                        Rectangle.squarePolygonWithoutOverlap(connectingRectangle, overlap, focalLength),
+                height, focalLength, pixelSize);
     }
 
     /**
@@ -535,24 +594,52 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * {@code distance}, многоугольников из списка {@code polygons}.
      */
     private static List<Polygon<Point>> toBiggerPolygons(List<Polygon<Point>> polygons, int distance,
-                                                         Polygon<Pixel> overlap, double height, double focalLength, double pixelSize, int resY) {
-        List<Polygon<Point>> newPolygons = new ArrayList<>();
-        List<Integer> processed = new ArrayList<>();
+                                                         Polygon<Pixel> overlap, double height, double focalLength,
+                                                         double pixelSize, int resY) {
+
+        var newPolygons = new ArrayList<Polygon<Point>>();
+        var processed = new ArrayList<Integer>();
+
         try {
             for (int i = 0; i < polygons.size(); i++)
                 if (!Helper.isIn(processed, i)) {
                     int j;
                     for (j = i + 1; j < polygons.size(); j++)
                         if (!Helper.isIn(processed, j)) {
+                            int ii = i;
+                            int jj = j;
+                            List<Integer> indices = IntStream.rangeClosed(0, polygons.size() - 1)
+                                    .boxed().collect(Collectors.toList()).stream()
+                                    .filter(k -> k > ii && k != jj && !Helper.isIn(processed, k))
+                                    .collect(Collectors.toList());
+
+                            var polygonsNotProcessed = new ArrayList<Polygon<Point>>();
+                            for (int k : indices)
+                                polygonsNotProcessed.add(polygons.get(k));
+
                             if (areClose(polygons.get(i), polygons.get(j), distance)) {
-                                newPolygons.add(unite(polygons.get(i), polygons.get(j), distance, overlap, height, focalLength, pixelSize, resY));
-                                processed.add(j);
-                                break;
+                                Polygon<Point> unitedPolygon = unite(
+                                        polygons.get(i), polygons.get(j),
+                                        Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
+                                                .collect(Collectors.toList()),
+                                        distance, overlap, height, focalLength, pixelSize, resY);
+                                if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
+                                    newPolygons.add(unitedPolygon);
+                                    processed.add(j);
+                                    break;
+                                }
                             }
                             if (areClose(polygons.get(j), polygons.get(i), distance)) {
-                                newPolygons.add(unite(polygons.get(j), polygons.get(i), distance, overlap, height, focalLength, pixelSize, resY));
-                                processed.add(j);
-                                break;
+                                Polygon<Point> unitedPolygon = unite(
+                                        polygons.get(j), polygons.get(i),
+                                        Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
+                                                .collect(Collectors.toList()),
+                                        distance, overlap, height, focalLength, pixelSize, resY);
+                                if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
+                                    newPolygons.add(unitedPolygon);
+                                    processed.add(j);
+                                    break;
+                                }
                             }
                         }
                     // Если не смогли найти пару i-му многоугольнику, то просто его добавляем.
