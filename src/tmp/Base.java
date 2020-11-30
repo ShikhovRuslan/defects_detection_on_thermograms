@@ -288,8 +288,31 @@ public class Base {
         return new Object[]{jumps.get(jumps.size() - 1), averageEndTemperature, angle};
     }
 
+    int f(List<Integer> list) {
+        int ind;
+        try {
+            ind = Helper.findIndexOfMin(list);
+        } catch (IllegalArgumentException e) {
+            return 0;
+        }
+        return ind + 1000;
+    }
+
+    public static <T> T unsafe(T elements) {
+        return elements; // unsafe! don't ever return a parameterized varargs array
+    }
+
+    public static <T> T broken(T seed) {
+        T plant = unsafe(seed); // broken! This will be an Object[] no matter what T is
+        return plant;
+    }
+
     public static void main(String[] args) {
-        int n = 48;
+        //List<Integer> list = new ArrayList<>();
+
+        String plants = broken("seed"); // ClassCastException
+
+        /*int n = 48;
         double coef = 4;
         double diameter = 0.7;
         double height = 152;
@@ -332,6 +355,6 @@ public class Base {
         pixel3 = new Pixel(387, resY - 1 - 154);
         pixel4 = new Pixel(380, resY - 1 - 154);
         System.out.println(sss(diameterPixel, n, coef, Main.SEPARATOR_REAL, filename, resX, resY,
-                pixel1, pixel2, pixel3, pixel4));
+                pixel1, pixel2, pixel3, pixel4));*/
     }
 }

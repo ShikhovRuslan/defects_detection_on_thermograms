@@ -141,8 +141,11 @@ public final class Helper {
 
     /**
      * Возвращает индекс первого вхождения минимального числа в списке {@code list}.
+     *
+     * @throws IllegalArgumentException если список пуст
      */
     public static int findIndexOfMin(List<Integer> list) {
+        if (list.isEmpty()) throw new IllegalArgumentException("Empty list.");
         int index = 0;
         int min = list.get(index);
         for (int i = 1; i < list.size(); i++)

@@ -1,5 +1,6 @@
 package main;
 
+import org.apache.commons.lang3.ArrayUtils;
 import polygons.Segment;
 import polygons.Point;
 
@@ -223,26 +224,47 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * Надо вызывать этот метод, только если {@link #areClose(Polygon, Polygon, int)} выдаёт {@code true}.
      */
     private static Segment[] perpendicular(Polygon<Point> first, Polygon<Point> second, int distance) {
-        List<Integer> tmpDistances = new ArrayList<>();
-        List<Point> tmpVertices = new ArrayList<>();
-        List<Segment> tmpSides = new ArrayList<>();
+        var tmpDistances = new ArrayList<Integer>();
+        var tmpVertices = new ArrayList<Point>();
+        var tmpSides = new ArrayList<Segment>();
         Segment[] sides = getSides(second);
+
         for (Point vertex : first.vertices)
             for (Segment side : sides)
                 if (vertex.projectableTo(side, true) && vertex.distance(side, true) <= distance) {
-                    int side0Index = indexOfSide(first, vertex, side.isHorizontal());
-                    Segment side0ToShorten = getSides(first)[side0Index];
-                    Point end0 = side0ToShorten.getOtherEnd(vertex);
-                    Point other = side.getOtherEnd(vertex.project(side));
-                    if((side.isVertical() && (end0.getI() > vertex.getI() && other.getI() > vertex.getI() ||
-                            end0.getI() < vertex.getI() && other.getI() < vertex.getI())) ||
-                    (side.isHorizontal() && (end0.getJ() > vertex.getJ() && other.getJ() > vertex.getJ() ||
-                            end0.getJ() < vertex.getJ() && other.getJ() < vertex.getJ())))
-                    tmpDistances.add(vertex.distance(side));
-                    tmpVertices.add(vertex);
-                    tmpSides.add(side);
+                    boolean union;
+
+                    // vertex проектируется на концы стороны side
+                    if (!vertex.projectableTo(side)) {
+                        int side0Index = indexOfSide(first, vertex, side.isHorizontal());
+                        Segment side0ToShorten = getSides(first)[side0Index];
+                        Point end0 = side0ToShorten.getOtherEnd(vertex);
+                        Point other;
+                        try {
+                            other = side.getOtherEnd(vertex.project(side));
+                        } catch (IllegalArgumentException e) {
+                            System.out.println(side0ToShorten + "\n" + side + "\n" + vertex + "\n" + vertex.project(side));
+                            break;
+                        }
+
+                        union = (side.isVertical() && (min(end0.getI(), other.getI()) > vertex.getI() ||
+                                max(end0.getI(), other.getI()) < vertex.getI())) ||
+                                (side.isHorizontal() && (min(end0.getJ(), other.getJ()) > vertex.getJ() ||
+                                        max(end0.getJ(), other.getJ()) < vertex.getJ()));
+                    } else union = true;
+
+                    if (union) {
+                        tmpDistances.add(vertex.distance(side, true));
+                        tmpVertices.add(vertex);
+                        tmpSides.add(side);
+                    }
                 }
-        int index = Helper.findIndexOfMin(tmpDistances);
+        int index;
+        try {
+            index = Helper.findIndexOfMin(tmpDistances);
+        } catch (IllegalArgumentException e) {
+            return new Segment[]{};
+        }
         Point vertex0 = tmpVertices.get(index);
         Segment side1 = tmpSides.get(index);
         return new Segment[]{new Segment(vertex0, vertex0.project(side1)), side1};
@@ -458,14 +480,14 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * соединяющий эти многоугольники, отличный от перпендикуляра. (Ориентация стороны понимается относительно
      * термограммы.)
      *
-     * @param polygon0      многоугольник
-     * @param polygon1      многоугольник
-     * @param vertex0       вершина многоугольника {@code polygon0}
-     * @param end1          конец {@code perpendicular}, принадлежащий многоугольнику {@code polygon1}
-     * @param side0Index    номер стороны многоугольника {@code polygon0}, которая имеет своим концом вершину
-     *                      {@code vertex0} и имеет ориентацию, противоположную ориентации {@code perpendicular}
-     * @param side1Index    номер стороны многоугольника {@code polygon1}, внутренность которой содержит точку
-     *                      {@code end1}
+     * @param polygon0   многоугольник
+     * @param polygon1   многоугольник
+     * @param vertex0    вершина многоугольника {@code polygon0}
+     * @param end1       конец {@code perpendicular}, принадлежащий многоугольнику {@code polygon1}
+     * @param side0Index номер стороны многоугольника {@code polygon0}, которая имеет своим концом вершину
+     *                   {@code vertex0} и имеет ориентацию, противоположную ориентации {@code perpendicular}
+     * @param side1Index номер стороны многоугольника {@code polygon1}, внутренность которой содержит точку
+     *                   {@code end1}
      */
     private static Segment[][] getPolygonalChains(Polygon<Point> polygon0, Polygon<Point> polygon1, Point vertex0,
                                                   Point end1, int side0Index, int side1Index) {
@@ -558,13 +580,17 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                                         double pixelSize, int resY)
             throws NullPointerException {
 
+        Polygon<Point> no = new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
+
         Segment[] segments = perpendicular(first, second, distance);
+        if (segments.length == 0) return no;
+
         Segment perpendicular = segments[0];
         Segment side1 = segments[1];
         Point vertex0 = perpendicular.getA();
         Point end1 = perpendicular.getB();
         int side0Index = indexOfSide(first, vertex0, side1.isHorizontal());
-        int side1Index = indexOfSideWithPoint(second, end1);
+        int side1Index = ArrayUtils.indexOf(getSides(second), side1);
         Segment[][] polygonalChains = getPolygonalChains(first, second, vertex0, end1, side0Index,
                 side1Index);
         Segment otherBoarder = polygonalChains[2][0];
@@ -578,8 +604,6 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         Polygon<Pixel> connectingRectangle = Rectangle.toRectangle(vertex0, otherBoarder.getB(), resY).toPolygon();
         Polygon<Point> connRectPoint = toPointPolygon(connectingRectangle, focalLength, resY);
 
-        Polygon<Point> no = new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
-
         for (Polygon<Point> p : polygons)
             if (intersects(connRectPoint, p, focalLength, resY)) return no;
 
@@ -587,7 +611,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 otherBoarder.containsVerticesFrom(first) || otherBoarder.containsVerticesFrom(second))
             return no;
 
-        if(perpendicular.intersectsSideOf(first)
+        if (perpendicular.intersectsSideOf(first)
                 || otherBoarder.intersectsSideOf(first) || otherBoarder.intersectsSideOf(second))
             return no;
 

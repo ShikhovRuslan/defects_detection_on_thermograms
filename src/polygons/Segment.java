@@ -9,6 +9,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
 /**
@@ -68,8 +69,8 @@ public class Segment {
      * @throws IllegalArgumentException если точка {@code end} не является концом текущего отрезка.
      */
     public Point getOtherEnd(Point end) {
-        if (a == end) return b;
-        if (b == end) return a;
+        if (a.equals(end)) return b;
+        if (b.equals(end)) return a;
         throw new IllegalArgumentException("Аргумент не является концом текущего отрезка.");
     }
 
@@ -210,6 +211,17 @@ public class Segment {
                     }
                 }
         return newSegments;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        Segment segment = (Segment) obj;
+
+        if (!Objects.equals(a, segment.a) && !Objects.equals(a, segment.b)) return false;
+        return Objects.equals(b, Objects.equals(a, segment.a) ? segment.b : segment.a);
     }
 
     @Override

@@ -32,7 +32,7 @@ public class Point extends AbstractPoint {
      *                                  отрезок не является ни горизонтальным, ни вертикальным
      */
     public int distance(Segment segment, boolean... inclusive) {
-        if (projectableTo(segment, inclusive[0])) {
+        if (projectableTo(segment, inclusive.length > 0 && inclusive[0])) {
             if (segment.isHorizontal())
                 return Math.abs(getI() - segment.getA().getI());
             if (segment.isVertical())
@@ -60,10 +60,10 @@ public class Point extends AbstractPoint {
         int minI = Math.min(segment.getA().getI(), segment.getB().getI());
         int maxI = Math.max(segment.getA().getI(), segment.getB().getI());
 
-        if (segment.isHorizontal())
-            return inclusive[0] ? getJ() >= minJ && getJ() <= maxJ : getJ() > minJ && getJ() < maxJ;
-        if (segment.isVertical())
-            return inclusive[0] ? getI() >= minI && getI() <= maxI : getI() > minI && getI() < maxI;
+        if (segment.isHorizontal()) return (inclusive.length > 0 && inclusive[0]) ?
+                getJ() >= minJ && getJ() <= maxJ : getJ() > minJ && getJ() < maxJ;
+        if (segment.isVertical()) return (inclusive.length > 0 && inclusive[0]) ?
+                getI() >= minI && getI() <= maxI : getI() > minI && getI() < maxI;
         throw new IllegalArgumentException("Отрезок не является ни горизонтальным, ни вертикальным.");
     }
 
