@@ -575,18 +575,18 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      *
      * @see #areClose(Polygon, Polygon, int)
      */
-    private static Polygon<Point> unite(Polygon<Point> first, Polygon<Point> second, List<Polygon<Point>> polygons,
-                                        int distance, Polygon<Pixel> overlap, double height, double focalLength,
+    private static Polygon<Point> unite(Polygon<Point> first, Polygon<Point> second, Segment perpendicular,
+                                        Segment side1, List<Polygon<Point>> polygons, int distance, Polygon<Pixel> overlap, double height, double focalLength,
                                         double pixelSize, int resY)
             throws NullPointerException {
 
         Polygon<Point> no = new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
 
-        Segment[] segments = perpendicular(first, second, distance);
+        /*Segment[] segments = perpendicular(first, second, distance);
         if (segments.length == 0) return no;
 
         Segment perpendicular = segments[0];
-        Segment side1 = segments[1];
+        Segment side1 = segments[1];*/
         Point vertex0 = perpendicular.getA();
         Point end1 = perpendicular.getB();
         int side0Index = indexOfSide(first, vertex0, side1.isHorizontal());
@@ -649,9 +649,10 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                             for (int k : indices)
                                 polygonsNotProcessed.add(polygons.get(k));
 
-                            if (areClose(polygons.get(i), polygons.get(j), distance)) {
+                            Segment[] segments = perpendicular(polygons.get(i), polygons.get(j), distance);
+                            if (segments.length == 2) {
                                 Polygon<Point> unitedPolygon = unite(
-                                        polygons.get(i), polygons.get(j),
+                                        polygons.get(i), polygons.get(j), segments[0], segments[1],
                                         Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
                                                 .collect(Collectors.toList()),
                                         distance, overlap, height, focalLength, pixelSize, resY);
@@ -661,9 +662,10 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                                     break;
                                 }
                             }
-                            if (areClose(polygons.get(j), polygons.get(i), distance)) {
+                            segments = perpendicular(polygons.get(j), polygons.get(i), distance);
+                            if (segments.length == 2) {
                                 Polygon<Point> unitedPolygon = unite(
-                                        polygons.get(j), polygons.get(i),
+                                        polygons.get(j), polygons.get(i), segments[0], segments[1],
                                         Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
                                                 .collect(Collectors.toList()),
                                         distance, overlap, height, focalLength, pixelSize, resY);
