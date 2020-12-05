@@ -334,11 +334,11 @@ public class Main {
 
         var boundingRectangles = new ArrayList<Rectangle<Pixel>>();
         for (Polygon<Point> p : enlargedPolygons)
-            boundingRectangles.add(Polygon.toPixelPolygon(p, focalLength, resY).boundingRectangle());
+            boundingRectangles.add(Polygon.toPolygonPixel(p, focalLength, resY).boundingRectangle());
 
         var boundingRectangles2 = new ArrayList<Rectangle<Pixel>>();
         for (Polygon<Point> p : enlargedPolygons2)
-            boundingRectangles2.add(Polygon.toPixelPolygon(p, focalLength, resY).boundingRectangle());
+            boundingRectangles2.add(Polygon.toPolygonPixel(p, focalLength, resY).boundingRectangle());
 
         var middlesOfPseudoDefects = new ArrayList<Pixel>();
         for (Rectangle<Pixel> br : boundingRectangles) {
@@ -441,7 +441,7 @@ public class Main {
                                         String pipeAnglesLogFilename, char separatorReal, double pixelSize,
                                         double focalLength, int resX, int resY) {
 
-        Polygon<Pixel> polygon1 = Polygon.toPixelPolygon(polygon, focalLength, resY);
+        Polygon<Pixel> polygon1 = Polygon.toPolygonPixel(polygon, focalLength, resY);
         double d = Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize, focalLength);
         int w = polygon1.width();
         int h = polygon1.height();
@@ -851,7 +851,7 @@ public class Main {
         List<Polygon<Point>> enlargedPolygons = realTableToEnlargedPolygons(thermogram, realTable, tMin, tMax,
                 minPixelSquare, distance, overlap, focalLength, pixelSize, resY);
 
-        Polygon.drawPolygons(enlargedPolygons, Polygon.toPointPolygon(overlap, focalLength, resY),
+        Polygon.drawPolygons(enlargedPolygons, Polygon.toPolygonPoint(overlap, focalLength, resY),
                 thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, rawDefectsFilename, focalLength, resY);
 
         /*for (int i = 0; i < enlargedPolygons.size(); i++) {
@@ -888,7 +888,7 @@ public class Main {
         var indicesOfPipeAnglesToRemove = new ArrayList<Integer>();
 
         for (int i = 0; i < enlargedPolygons.size(); i++) {
-            Rectangle<Pixel> bd = Polygon.toPixelPolygon(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
+            Rectangle<Pixel> bd = Polygon.toPolygonPixel(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
             Polygon<Pixel> sd = Rectangle.slopeRectangle(bd,
                     pipeAngles.get(i) + (pipeAngles.get(i) >= 90 ? -90 : 0), resY);
             Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngles.get(i));
@@ -933,19 +933,13 @@ public class Main {
         Option option = args.length == 1 ? Option.getByAlias(args[0]) : Option.HELP;
 
         switch (option) {
-            case GLOBAL_PARAMS:
-                Helper.run(DIR_CURRENT, SCRIPT_GLOBAL_PARAMS + SCRIPT_EXTENSION, OS);
-                break;
+            case GLOBAL_PARAMS -> Helper.run(DIR_CURRENT, SCRIPT_GLOBAL_PARAMS + SCRIPT_EXTENSION, OS);
 
-            case THERMOGRAMS_INFO:
-                Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_INFO + SCRIPT_EXTENSION, OS);
-                break;
+            case THERMOGRAMS_INFO -> Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_INFO + SCRIPT_EXTENSION, OS);
 
-            case THERMOGRAMS_RAW_TEMPERATURES:
-                Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_RAW_TEMPERATURES + SCRIPT_EXTENSION, OS);
-                break;
+            case THERMOGRAMS_RAW_TEMPERATURES -> Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_RAW_TEMPERATURES + SCRIPT_EXTENSION, OS);
 
-            case CSV:
+            case CSV -> {
                 File[] files = new File(Property.DIR_THERMOGRAMS.value()).listFiles();
                 String[] thermogramsNames = new String[files.length];
                 for (int i = 0; i < files.length; i++)
@@ -957,9 +951,9 @@ public class Main {
                                     "/" + thermogramName + Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL,
                             ExifParam.RES_Y.intValue(), ExifParam.RES_X.intValue(), SEPARATOR_RAW, SEPARATOR_REAL,
                             Arrays.copyOfRange(ExifParam.readValues(), 1, ExifParam.readValues().length));
-                break;
+            }
 
-            case DEFECTS:
+            case DEFECTS -> {
                 Thermogram[] thermograms = Thermogram.readThermograms(
                         Helper.filename(DIR_CURRENT, Property.SUBDIR_OUTPUT.value(), THERMOGRAMS_INFO),
                         Helper.filename(DIR_CURRENT, FORBIDDEN_ZONES));
@@ -1026,16 +1020,15 @@ public class Main {
                             roundAndTrim(pipeSquares.stream().mapToDouble(Double::doubleValue).sum(), 2, 2) +
                             "   " + roundAndTrim(pipeSquares, 2, 2) + "\n");
 
-                    Polygon.drawPolygons(defects, Polygon.toPointPolygon(overlap, ExifParam.FOCAL_LENGTH.value(),
+                    Polygon.drawPolygons(defects, Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
                             ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
                             thermogramFilename, defectsFilename, ExifParam.RES_Y.intValue(),
                             ExifParam.FOCAL_LENGTH.value());
                 }
                 Helper.run(DIR_CURRENT, SCRIPT_COPY_GPS + SCRIPT_EXTENSION, OS);
-                break;
+            }
 
-            case HELP:
-                Option.help();
+            case HELP -> Option.help();
         }
     }
 }

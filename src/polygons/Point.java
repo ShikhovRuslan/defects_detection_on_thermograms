@@ -42,13 +42,6 @@ public class Point extends AbstractPoint {
     }
 
     /**
-     * Конвертирует точку {@code point} из системы координат c'x'y' в систему координат Oxy.
-     */
-    public static Point toPoint(Pixel point, int resY) {
-        return new Point(resY - 1 - point.getJ(), point.getI());
-    }
-
-    /**
      * Определяет возможность проектирования текущей точки на внутренность отрезка {@code segment}, если
      * {@code inclusive[0]} равен {@code false}, или на весь отрезок, в противном случае. Отсутствие {@code inclusive}
      * равносильно значению {@code false}.

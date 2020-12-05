@@ -139,9 +139,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         for (Segment side : getSides(polygon1))
             if (side.intersectsSideOf(polygon2)) return true;
 
-          return   !polygon1.verticesFrom(polygon2, focalLength).isEmpty() || !polygon2.verticesFrom(polygon1, focalLength).isEmpty();
-
-        //return false;
+        return !polygon1.verticesFrom(polygon2, focalLength).isEmpty() || !polygon2.verticesFrom(polygon1, focalLength).isEmpty();
     }
 
     /**
@@ -306,18 +304,18 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Конвертирует многоугольник {@code polygon} из системы координат c'x'y' в систему координат Oxy.
      */
-    public static Polygon<Point> toPointPolygon(Polygon<Pixel> polygon, double focalLength, int resY) {
-        List<Point> vertices = new ArrayList<>();
+    public static Polygon<Point> toPolygonPoint(Polygon<Pixel> polygon, double focalLength, int resY) {
+        var vertices = new ArrayList<Point>();
         for (Pixel vertex : polygon.vertices)
-            vertices.add(Point.toPoint(vertex, resY));
+            vertices.add(vertex.toPoint(resY));
         return new Polygon<>(vertices, focalLength);
     }
 
     /**
      * Конвертирует многоугольник {@code polygon} из системы координат Oxy в систему координат c'x'y'.
      */
-    public static Polygon<Pixel> toPixelPolygon(Polygon<Point> polygon, double focalLength, int resY) {
-        List<Pixel> vertices = new ArrayList<>();
+    public static Polygon<Pixel> toPolygonPixel(Polygon<Point> polygon, double focalLength, int resY) {
+        var vertices = new ArrayList<Pixel>();
         for (Point vertex : polygon.vertices)
             vertices.add(vertex.toPixel(resY));
         return new Polygon<>(vertices, focalLength);
@@ -345,7 +343,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 draw(polygon, image, color);
             if (forbiddenZones != null)
                 for (Rectangle<Pixel> rectangle : forbiddenZones)
-                    draw(toPointPolygon(rectangle.toPolygon(0, 0, focalLength, 0), focalLength, resY), image, color);
+                    draw(toPolygonPoint(rectangle.toPolygon(0, 0, focalLength, 0), focalLength, resY), image, color);
             ImageIO.write(image, "jpg", new File(newPictureName));
         } catch (IOException e) {
             e.printStackTrace();
@@ -358,7 +356,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
         var polygonsPoint = new ArrayList<Polygon<Point>>();
         for (Polygon<Pixel> p : polygons)
-            polygonsPoint.add(Polygon.toPointPolygon(p, focalLength, resY));
+            polygonsPoint.add(Polygon.toPolygonPoint(p, focalLength, resY));
 
         drawPolygons(polygonsPoint, overlap, forbiddenZones, color, pictureName, newPictureName, focalLength, resY);
     }
@@ -451,7 +449,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         List<Polygon<Point>> polygons = new ArrayList<>();
         for (Rectangle<Point> rectangle : rectangles)
             polygons.add(rectangle.toPolygon(
-                    Rectangle.squarePolygonWithoutOverlap(Rectangle.toRectangle(rectangle, resY)
+                    Rectangle.squarePolygonWithoutOverlap(Rectangle.toRectanglePixel(rectangle, resY)
                             .toPolygon(0, 0, 0, 0), overlap, focalLength),
                     height, focalLength, pixelSize
             ));
@@ -633,9 +631,9 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         System.arraycopy(new Segment[]{perpendicular, otherBoarder}, 0, allSegments,
                 polygonalChains[0].length + polygonalChains[1].length, 2);
 
-        Polygon<Pixel> connectingRectangle = Rectangle.toRectangle(perpendicular.getA(), otherBoarder.getB(), resY)
+        Polygon<Pixel> connectingRectangle = Rectangle.toRectanglePixel(perpendicular.getA(), otherBoarder.getB(), resY)
                 .toPolygon();
-        Polygon<Point> connectingRectanglePoint = toPointPolygon(connectingRectangle, focalLength, resY);
+        Polygon<Point> connectingRectanglePoint = toPolygonPoint(connectingRectangle, focalLength, resY);
 
         Polygon<Point> no = new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
 

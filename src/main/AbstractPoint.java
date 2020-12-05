@@ -1,8 +1,11 @@
 package main;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -67,6 +70,16 @@ public abstract class AbstractPoint {
                 max = f.apply(points[i]);
         }
         return new int[]{min, max};
+    }
+
+    /**
+     * Вычисляет минимальный и максимальный числа среди чисел, полученных в результате применения функции {@code f} к
+     * точкам массива {@code points}.
+     */
+    public static <T extends AbstractPoint> int[] findMinAndMax(T[] points, Function<T, Integer> f) {
+        List<Integer> allIndices = IntStream.rangeClosed(0, points.length - 1)
+                .boxed().collect(Collectors.toList());
+        return findMinAndMax(points, allIndices, f);
     }
 
     /**

@@ -17,7 +17,7 @@ public class Base {
                 centre.getJ() + 0.5 * length * cos(angle));
         Pixel b = new Pixel(centre.getI() - 0.5 * length * sin(angle),
                 centre.getJ() - 0.5 * length * cos(angle));
-        return new Segment(Point.toPoint(a, resY), Point.toPoint(b, resY));
+        return new Segment(a.toPoint(resY), b.toPoint(resY));
     }
 
     public static double av(Segment s, double[][] table, int resX) {

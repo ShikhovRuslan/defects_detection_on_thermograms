@@ -72,7 +72,7 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     public static Polygon<Pixel> slopeRectangle(Rectangle<Pixel> rectangle, double angle, int resY) {
         Polygon<Pixel> polygon = rectangle.toPolygon(0, 0, 0, 0);
         List<Pixel> vertices = polygon.getVertices();
-        Segment[] sides = Polygon.getSides(Polygon.toPointPolygon(polygon, 0, resY));
+        Segment[] sides = Polygon.getSides(Polygon.toPolygonPoint(polygon, 0, resY));
         double a = angle * PI / 180;
 
         Pixel v0 = new Pixel(vertices.get(0).getI() - sides[3].length() * cos(a) * sin(a),
@@ -172,9 +172,20 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     /**
      * Конвертирует прямоугольник {@code rectangle} из системы координат Oxy в систему координат c'x'y'.
      */
-    public static Rectangle<Pixel> toRectangle(Rectangle<Point> rectangle, int resY) {
-        return new Rectangle<>(new Pixel(rectangle.left.getJ(), resY - 1 - rectangle.right.getI()),
-                new Pixel(rectangle.right.getJ(), resY - 1 - rectangle.left.getI()));
+    public static Rectangle<Pixel> toRectanglePixel(Rectangle<Point> rectangle, int resY) {
+        return new Rectangle<>(new Point(rectangle.right.getI(), rectangle.left.getJ()).toPixel(resY),
+                new Point(rectangle.left.getI(), rectangle.right.getJ()).toPixel(resY));
+    }
+
+    /**
+     * Возвращает прямоугольник в системе координат c'x'y', чьими противоположными вершинами являются точки {@code p1} и
+     * {@code p2} в системе координат Oxy.
+     */
+    public static Rectangle<Pixel> toRectanglePixel(Point p1, Point p2, int resY) {
+        int[] ii = AbstractPoint.findMinAndMax(new Point[]{p1, p2}, Point::getI);
+        int[] jj = AbstractPoint.findMinAndMax(new Point[]{p1, p2}, Point::getJ);
+
+        return toRectanglePixel(new Rectangle<>(new Point(ii[0], jj[0]), new Point(ii[1], jj[1])), resY);
     }
 
     /**
@@ -183,17 +194,6 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     public static Rectangle<Point> toRectangle2(Rectangle<Pixel> rectangle, int resY) {
         return new Rectangle<>(new Point(resY - rectangle.right.getJ(), rectangle.left.getI()),
                 new Point(resY - rectangle.left.getJ(), rectangle.right.getI()));
-    }
-
-    /**
-     * Возвращает прямоугольник, чьими противоположными вершинами являются точки {@code p1} и {@code p2}.
-     */
-    public static Rectangle<Pixel> toRectangle(Point p1, Point p2, int resY) {
-        int i1 = Math.min(p1.getI(), p2.getI());
-        int i2 = Math.max(p1.getI(), p2.getI());
-        int j1 = Math.min(p1.getJ(), p2.getJ());
-        int j2 = Math.max(p1.getJ(), p2.getJ());
-        return toRectangle(new Rectangle<>(new Point(i1, j1), new Point(i2, j2)), resY);
     }
 
     /**
@@ -254,13 +254,14 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
                 incrementY = true;
             }
         } while (incrementX || incrementY);
+
         int newI = point.getI();
         int newJ = point.getJ();
-        if (amountOfOnes(new Rectangle<>(point, new Point(point.getI(), y)), table) < (y - point.getJ() + 1) / 2 &&
-                point.getI() + 1 < table.length)
+        if (amountOfOnes(new Rectangle<>(new Point(newI, newJ), new Point(newI, y)), table) < (y - newJ + 1) / 2 &&
+                newI + 1 < table.length)
             newI++;
-        if (amountOfOnes(new Rectangle<>(point, new Point(x, point.getJ())), table) < (x - point.getI() + 1) / 2 &&
-                point.getJ() + 1 < table[0].length)
+        if (amountOfOnes(new Rectangle<>(new Point(newI, newJ), new Point(x, newJ)), table) < (x - newI + 1) / 2 &&
+                newJ + 1 < table[0].length)
             newJ++;
         return new Rectangle<>(new Point(newI, newJ), new Point(x, y));
     }
