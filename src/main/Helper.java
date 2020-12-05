@@ -34,6 +34,14 @@ public final class Helper {
         public String getName() {
             return name;
         }
+
+        public static Os getByName(String name) {
+            return switch (name) {
+                case "Windows" -> WINDOWS;
+                case "Linux" -> LINUX;
+                default -> throw new IllegalStateException("Unexpected value: " + name);
+            };
+        }
     }
 
     private Helper() {
@@ -417,15 +425,15 @@ public final class Helper {
     /**
      * Запускает пакетный файл Windows или bash-скрипт Linux {@code scriptname}, находящийся в папке {@code dir}, из
      * рабочей директории {@code dir}.
-     * <p>
-     * {@param params} необязательный список параметров командной строки для скрипта
+     *
+     * @param params необязательный список параметров командной строки для скрипта
      */
     public static void run(String dir, String scriptname, String os, String... params) {
-        String command = "";
-        if (os.equals(Os.WINDOWS.name))
-            command = "cmd /C start " + scriptname;
-        if (os.equals(Os.LINUX.name))
-            command = "/bin/bash " + scriptname;
+        String command = switch (Os.getByName(os)) {
+            case WINDOWS -> "cmd /C start";
+            case LINUX -> "/bin/bash";
+        } + " " + scriptname;
+
         for (String param : params)
             command += " " + param;
 

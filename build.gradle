@@ -17,13 +17,13 @@ run {
 
 javadoc {
     options.encoding = 'UTF-8'
+    options.memberLevel = JavadocMemberLevel.PRIVATE
 }
 
 jar {
     manifest {
         attributes(
                 'Main-Class': 'main.Main'
-                //'Main-Class': 'tmp.Base'
         )
     }
     from {

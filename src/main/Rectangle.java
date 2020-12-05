@@ -173,8 +173,8 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * Конвертирует прямоугольник {@code rectangle} из системы координат Oxy в систему координат c'x'y'.
      */
     public static Rectangle<Pixel> toRectangle(Rectangle<Point> rectangle, int resY) {
-        return new Rectangle<>(new Pixel(rectangle.left.getJ(), resY - rectangle.right.getI()),
-                new Pixel(rectangle.right.getJ(), resY - rectangle.left.getI()));
+        return new Rectangle<>(new Pixel(rectangle.left.getJ(), resY - 1 - rectangle.right.getI()),
+                new Pixel(rectangle.right.getJ(), resY - 1 - rectangle.left.getI()));
     }
 
     /**
@@ -203,8 +203,16 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      */
     private static boolean verticalSegmentIntersectsRectangles(int i1, int i2, int j,
                                                                List<Rectangle<Point>> rectangles, double focalLength) {
-        for (int k = Math.min(i1, i2); k <= Math.max(i1, i2); k++)
+        for (int k = min(i1, i2); k <= max(i1, i2); k++)
             if (new Point(k, j).isInRectangles(rectangles, focalLength))
+                return true;
+        return false;
+    }
+
+    private static boolean horizontalSegmentIntersectsRectangles(int i, int j1, int j2,
+                                                                 List<Rectangle<Point>> rectangles, double focalLength) {
+        for (int k = min(j1, j2); k <= max(j1, j2); k++)
+            if (new Point(i, k).isInRectangles(rectangles, focalLength))
                 return true;
         return false;
     }
@@ -232,14 +240,15 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
             incrementX = false;
             incrementY = false;
             if (x + 1 < table.length &&
-                    amountOfOnes(new Rectangle<>(point, new Point(x + 1, y)), table) -
-                            amountOfOnes(new Rectangle<>(point, new Point(x, y)), table) > (y - point.getJ() + 1) / 2) {
+                    amountOfOnes(new Rectangle<>(new Point(x + 1, point.getJ()), new Point(x + 1, y)), table)
+                            > (y - point.getJ() + 1) / 2 &&
+                    !Rectangle.horizontalSegmentIntersectsRectangles(x + 1, point.getJ(), y, rectangles, focalLength)) {
                 x++;
                 incrementX = true;
             }
             if (y + 1 < table[0].length &&
-                    amountOfOnes(new Rectangle<>(point, new Point(x, y + 1)), table) -
-                            amountOfOnes(new Rectangle<>(point, new Point(x, y)), table) > (x - point.getI() + 1) / 2 &&
+                    amountOfOnes(new Rectangle<>(new Point(point.getI(), y + 1), new Point(x, y + 1)), table)
+                            > (x - point.getI() + 1) / 2 &&
                     !Rectangle.verticalSegmentIntersectsRectangles(point.getI(), x, y + 1, rectangles, focalLength)) {
                 y++;
                 incrementY = true;

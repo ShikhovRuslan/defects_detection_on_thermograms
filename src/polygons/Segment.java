@@ -131,12 +131,19 @@ public class Segment {
         throw new IllegalArgumentException("Текущий отрезок ни горизонтален, ни вертикален.");
     }
 
-    public boolean containsVerticesFrom(Polygon<Point> polygon) {
+    /**
+     * Определяет, содержит ли внутренность текущего отрезка какую-либо вершину многоугольника {@code polygon}.
+     */
+    public boolean containsVertexFrom(Polygon<Point> polygon) {
         for (Point vertex : polygon.getVertices())
             if (contains(vertex)) return true;
         return false;
     }
 
+    /**
+     * Определяет, пересекается ли текущий отрезок с какой-либо стороной многоугольника {@code polygon} по единственной
+     * точке, которая является внутренней для каждого из этих отрезков.
+     */
     public boolean intersectsSideOf(Polygon<Point> polygon) {
         for (Segment side : Polygon.getSides(polygon))
             if (!Pixel.findIntersection(new Pixel(a.getI(), a.getJ()), new Pixel(b.getI(), b.getJ()),

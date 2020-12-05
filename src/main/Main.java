@@ -211,8 +211,8 @@ public class Main {
      * Неинформативные случаи:
      * - длина отрезка равна 0, т. е. пиксель {@code start} совпадает с другим концом этого отрезка (в этом случае
      * выдаётся пиксель {@code (-2,-2)} и нулевая температура),
-     * - длина отрезка >0, но на нём нет температурного контраста, т. е. пиксель, чьё вычисление описано в начале,
-     * отсутствует (в этом случае выдаётся пиксель {@code (-1,-1)}).
+     * - длина отрезка {@code >0}, но на нём нет температурного контраста, т. е. пиксель, чьё вычисление описано в
+     * начале, отсутствует (в этом случае выдаётся пиксель {@code (-1,-1)}).
      *
      * @param angle           угол (в град.), отсчитываемый от положительного направления оси c'y' по часовой стрелке,
      *                        принадлежащий промежутку {@code (-180,180]}
@@ -1006,12 +1006,18 @@ public class Main {
                     String realTempsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_REAL_TEMPS.value(),
                             thermogramName + Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL);
 
-                    Object[] o = defects(thermogram, overlap, Property.T_MIN.doubleValue(),
-                            Property.T_MAX.doubleValue(), Property.MIN_PIXEL_SQUARE.intValue(),
-                            Property.DIAMETER.doubleValue(), params, thermogramFilename, rawDefectsFilename,
-                            realTempsFilename, SEPARATOR_REAL, Property.PIXEL_SIZE.doubleValue() / 1000_000,
-                            ExifParam.FOCAL_LENGTH.value(), ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(),
-                            squaresFilename, pipeAnglesFilename, pipeAnglesLogFilename);
+                    Object[] o;
+                    try {
+                        o = defects(thermogram, overlap, Property.T_MIN.doubleValue(),
+                                Property.T_MAX.doubleValue(), Property.MIN_PIXEL_SQUARE.intValue(),
+                                Property.DIAMETER.doubleValue(), params, thermogramFilename, rawDefectsFilename,
+                                realTempsFilename, SEPARATOR_REAL, Property.PIXEL_SIZE.doubleValue() / 1000_000,
+                                ExifParam.FOCAL_LENGTH.value(), ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(),
+                                squaresFilename, pipeAnglesFilename, pipeAnglesLogFilename);
+                    } catch (IllegalArgumentException e) {
+                        System.out.println("Problem in thermogram " + thermogramName);
+                        break;
+                    }
 
                     var defects = (ArrayList<Polygon<Pixel>>) o[0];
                     var pipeSquares = (ArrayList<Double>) o[1];

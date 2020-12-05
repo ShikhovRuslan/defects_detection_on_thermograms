@@ -4,6 +4,8 @@ import main.*;
 
 import java.util.List;
 
+import static java.lang.Math.abs;
+
 
 /**
  * Используется для хранения координат точек в системе координат Oxy.
@@ -26,20 +28,17 @@ public class Point extends AbstractPoint {
     }
 
     /**
-     * Возвращает расстояние от текущей точки до отрезка {@code segment}.
+     * Возвращает расстояние от текущей точки до прямой, содержащей отрезок {@code segment}.
      *
-     * @throws IllegalArgumentException если текущая точка не может быть спроектирована на внутренность отрезка или
-     *                                  отрезок не является ни горизонтальным, ни вертикальным
+     * @throws IllegalArgumentException если отрезок не является ни горизонтальным, ни вертикальным
      */
-    public int distance(Segment segment, boolean... inclusive) {
-        if (projectableTo(segment, inclusive.length > 0 && inclusive[0])) {
-            if (segment.isHorizontal())
-                return Math.abs(getI() - segment.getA().getI());
-            if (segment.isVertical())
-                return Math.abs(getJ() - segment.getA().getJ());
-        }
-        throw new IllegalArgumentException("Текущая точка не может быть спроектирована на внутренность отрезка, или " +
-                "отрезок не является ни горизонтальным, ни вертикальным.");
+    public int distanceTo(Segment segment) {
+        if (segment.isHorizontal())
+            return abs(getI() - segment.getA().getI());
+        if (segment.isVertical())
+            return abs(getJ() - segment.getA().getJ());
+
+        throw new IllegalArgumentException("Отрезок не является ни горизонтальным, ни вертикальным.");
     }
 
     /**
@@ -50,7 +49,9 @@ public class Point extends AbstractPoint {
     }
 
     /**
-     * Определяет возможность проектирования текущей точки на внутренность отрезка {@code segment}.
+     * Определяет возможность проектирования текущей точки на внутренность отрезка {@code segment}, если
+     * {@code inclusive[0]} равен {@code false}, или на весь отрезок, в противном случае. Отсутствие {@code inclusive}
+     * равносильно значению {@code false}.
      *
      * @throws IllegalArgumentException если отрезок не является ни горизонтальным, ни вертикальным
      */
@@ -64,6 +65,7 @@ public class Point extends AbstractPoint {
                 getJ() >= minJ && getJ() <= maxJ : getJ() > minJ && getJ() < maxJ;
         if (segment.isVertical()) return (inclusive.length > 0 && inclusive[0]) ?
                 getI() >= minI && getI() <= maxI : getI() > minI && getI() < maxI;
+
         throw new IllegalArgumentException("Отрезок не является ни горизонтальным, ни вертикальным.");
     }
 
