@@ -181,19 +181,14 @@ public class Main {
         }
 
         private static Option getByAlias(String alias) {
-            switch (alias) {
-                case "-gp":
-                    return GLOBAL_PARAMS;
-                case "-ti":
-                    return THERMOGRAMS_INFO;
-                case "-trt":
-                    return THERMOGRAMS_RAW_TEMPERATURES;
-                case "-csv":
-                    return CSV;
-                case "-d":
-                    return DEFECTS;
-            }
-            return HELP;
+            return switch (alias) {
+                case "-gp" -> GLOBAL_PARAMS;
+                case "-ti" -> THERMOGRAMS_INFO;
+                case "-trt" -> THERMOGRAMS_RAW_TEMPERATURES;
+                case "-csv" -> CSV;
+                case "-d" -> DEFECTS;
+                default -> HELP;
+            };
         }
     }
 
@@ -320,8 +315,8 @@ public class Main {
         List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength,
                 pixelSize, resY);
 
-        return Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getHeight(), focalLength, pixelSize,
-                resY);
+        return Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getName(), thermogram.getHeight(),
+                focalLength, pixelSize, resY);
     }
 
     private static List<Pixel> findMiddlesOfPseudoDefects(Thermogram thermogram, double[][] realTable, double pixelSize,
@@ -329,12 +324,24 @@ public class Main {
                                                           double focalLength, Polygon<Pixel> overlap,
                                                           List<Polygon<Point>> enlargedPolygons, int maxDiff, double k) {
 
-        List<Polygon<Point>> enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMinPseudo,
-                100, minPixelSquare, distance, overlap, focalLength, pixelSize, resY);
-
         var boundingRectangles = new ArrayList<Rectangle<Pixel>>();
         for (Polygon<Point> p : enlargedPolygons)
             boundingRectangles.add(Polygon.toPolygonPixel(p, focalLength, resY).boundingRectangle());
+
+        List<Polygon<Point>> enlargedPolygons2;
+        try {
+            enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMinPseudo,
+                    100, minPixelSquare, distance, overlap, focalLength, pixelSize, resY);
+        } catch (Exception e) {
+            System.out.println("Устранимая проблема в Main.findMiddlesOfPseudoDefects(): " +
+                    "ошибка в Main.realTableToEnlargedPolygons() (т. е. псевдодефекты не вычисляются).\n" +
+                    "Как проблема преодолена: берём середины окаймляющих прямоугольников настоящих дефектов, а не " +
+                    "псевдодефектов.");
+            var middlesOfInitialDefects = new ArrayList<Pixel>();
+            for (Rectangle<Pixel> br : boundingRectangles)
+                middlesOfInitialDefects.add(br.middle());
+            return middlesOfInitialDefects;
+        }
 
         var boundingRectangles2 = new ArrayList<Rectangle<Pixel>>();
         for (Polygon<Point> p : enlargedPolygons2)
@@ -1008,9 +1015,10 @@ public class Main {
                                 realTempsFilename, SEPARATOR_REAL, Property.PIXEL_SIZE.doubleValue() / 1000_000,
                                 ExifParam.FOCAL_LENGTH.value(), ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(),
                                 squaresFilename, pipeAnglesFilename, pipeAnglesLogFilename);
-                    } catch (IllegalArgumentException e) {
-                        System.out.println("Problem in thermogram " + thermogramName);
-                        break;
+                    } catch (Exception e) {
+                        System.out.println("Термограмма " + thermogramName + " не обработана.");
+                        e.printStackTrace();
+                        continue;
                     }
 
                     var defects = (ArrayList<Polygon<Pixel>>) o[0];

@@ -233,7 +233,8 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * Возвращает прямоугольник, чья верхняя (относительно термограммы) левая вершина примерно совпадает с точкой
      * {@code point}, на основании таблицы {@code table} и списка уже построенных прямоугольников {@code rectangles}.
      */
-    private static Rectangle<Point> makeRectangle(int[][] table, Point point, List<Rectangle<Point>> rectangles, double focalLength) {
+    private static Rectangle<Point> makeRectangle(int[][] table, Point point, List<Rectangle<Point>> rectangles,
+                                                  double focalLength) {
         int x = point.getI(), y = point.getJ();
         boolean incrementX, incrementY;
         do {

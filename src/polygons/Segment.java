@@ -197,26 +197,39 @@ public class Segment {
     }
 
     /**
-     * Возвращает упорядоченный массив отрезков из массива {@code segments}.
+     * Возвращает упорядоченный массив отрезков из массива {@code segments} (т. е. в упорядоченном массиве конец любого
+     * отрезка совпадает с началом следующего).
+     * Предполагается, что все отрезки в массиве {@code segments} образуют замкнутую ломаную и все концы всех отрезков
+     * являются концами не более 2-х отрезков.
+     *
+     * @throws IllegalArgumentException если упорядочивание отрезков невозможно
      */
-    public static Segment[] order(Segment[] segments) throws NullPointerException {
+    public static Segment[] order(Segment[] segments) {
         Segment[] newSegments = new Segment[segments.length];
-        List<Integer> processed = new ArrayList<>();
+        var processed = new ArrayList<Integer>();
         newSegments[0] = segments[0];
-        for (int i = 1; i < segments.length; i++)
-            for (int j = 1; j < segments.length; j++)
-                if (!Helper.isIn(processed, j)) {
-                    if (newSegments[i - 1].getB().equals(segments[j].getA())) {
-                        newSegments[i] = segments[j];
-                        processed.add(j);
-                        break;
+
+        try {
+            for (int i = 1; i < segments.length; i++)
+                for (int j = 1; j < segments.length; j++)
+                    if (!Helper.isIn(processed, j)) {
+                        if (newSegments[i - 1].getB().equals(segments[j].getA())) {
+                            newSegments[i] = segments[j];
+                            processed.add(j);
+                            break;
+                        }
+                        if (newSegments[i - 1].getB().equals(segments[j].getB())) {
+                            newSegments[i] = new Segment(segments[j].getB(), segments[j].getA());
+                            processed.add(j);
+                            break;
+                        }
                     }
-                    if (newSegments[i - 1].getB().equals(segments[j].getB())) {
-                        newSegments[i] = new Segment(segments[j].getB(), segments[j].getA());
-                        processed.add(j);
-                        break;
-                    }
-                }
+
+            for (Segment s : newSegments) if (s == null) throw new NullPointerException();
+        } catch (NullPointerException e) {
+            throw new IllegalArgumentException("Упорядочивание отрезков невозможно.");
+        }
+
         return newSegments;
     }
 

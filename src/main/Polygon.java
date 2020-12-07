@@ -199,12 +199,14 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     /**
      * Удаляет петли многоугольника {@code polygon}, а также его вершины, которые являются лишними (т. е. такие вершины,
-     * которые являются вершинами развёрнутого угла).
+     * которые являются вершинами развёрнутого или нулевого угла (т. е. такие вершины, у которых входящая и исходящая
+     * стороны параллельны)).
      */
     private static void removeRedundantVertices(Polygon<Point> polygon) {
         polygon.removeLoops(); // чтобы удаление лишних вершин было корректным
-        polygon.vertices.removeIf(vertex -> incomingSide(polygon, vertex).getA().getI() == outgoingSide(polygon, vertex).getB().getI() ||
-                incomingSide(polygon, vertex).getA().getJ() == outgoingSide(polygon, vertex).getB().getJ());
+        polygon.vertices.removeIf(vertex ->
+                incomingSide(polygon, vertex).getA().getI() == outgoingSide(polygon, vertex).getB().getI() ||
+                        incomingSide(polygon, vertex).getA().getJ() == outgoingSide(polygon, vertex).getB().getJ());
     }
 
     /**
@@ -458,24 +460,24 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     /**
      * Возвращает многоугольник, построенный на точках, являющихся концами отрезков из массива {@code segments}.
+     *
+     * @throws IllegalArgumentException если не удалось создать многоугольник из-за того, что невозможно упорядочить
+     *                                  отрезки
+     * @see Segment#order(Segment[])
      */
-    private static Polygon<Point> createPolygon(Segment[] segments, double squarePixels, double height, double focalLength, double pixelSize) throws NullPointerException {
+    private static Polygon<Point> createPolygon(Segment[] segments, double squarePixels, double height,
+                                                double focalLength, double pixelSize) {
         Segment[] sides = Segment.order(segments);
-        List<Point> points = new ArrayList<>();
-        try {
+        var vertices = new ArrayList<Point>();
 
-
-            for (Segment side : sides) {
-                if (!points.contains(side.getA()))
-                    points.add(side.getA());
-                if (!points.contains(side.getB()))
-                    points.add(side.getB());
-            }
-        } catch (NullPointerException e) {
-            System.out.println("crePol\n\n" + "sides:\n" + Arrays.toString(sides) + "\n\nsegments:\n" + Arrays.toString(segments));
-            e.printStackTrace();
+        for (Segment side : sides) {
+            if (!vertices.contains(side.getA()))
+                vertices.add(side.getA());
+            if (!vertices.contains(side.getB()))
+                vertices.add(side.getB());
         }
-        Polygon<Point> polygon = new Polygon<>(points, squarePixels, height, focalLength, pixelSize);
+
+        var polygon = new Polygon<>(vertices, squarePixels, height, focalLength, pixelSize);
         removeRedundantVertices(polygon);
         return polygon;
     }
@@ -583,11 +585,6 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
             sides1 = tmp;
         }
 
-        for (Segment s : sides0)
-            if (s == null) System.out.println("0" + s);
-        for (Segment s : sides1)
-            if (s == null) System.out.println("1" + s);
-
         return new Segment[][]{sides0, sides1, new Segment[]{new Segment(otherBorder0, otherBorder1)}};
     }
 
@@ -615,6 +612,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * @param perpendicular перпендикуляр
      * @param side1         сторона
      * @param polygons      список многоугольников
+     * @throws IllegalArgumentException если не удалось создать объединённый многоугольник
      * @see Polygon#perpendicular(Polygon, Polygon, int)
      * @see Polygon#getPolygonalChains(Polygon, Polygon, Segment, Segment)
      */
@@ -637,26 +635,8 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
         Polygon<Point> no = new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
 
-        boolean found = false;
-        if (first.vertices.contains(new Point(268, 181)) &&
-                second.vertices.contains(new Point(302, 248)))
-            found = true;
-
-        if (found) {
-            System.out.println("conn rect:\n" + connectingRectanglePoint);
-            System.out.println("conn rect pixel:\n" + connectingRectangle);
-            System.out.println("    p: " + perpendicular);
-            System.out.println("   oB: " + otherBoarder);
-            System.out.println("side1: " + side1);
-        }
-
-        for (Polygon<Point> p : polygons) {
-            if (found && p.vertices.contains(new Point(290, 220))) {
-                System.out.println(p);
-                System.out.println("intersects? " + intersects(connectingRectanglePoint, p, focalLength));
-            }
+        for (Polygon<Point> p : polygons)
             if (intersects(connectingRectanglePoint, p, focalLength)) return no;
-        }
 
         if (otherBoarder.containsVertexFrom(first) || otherBoarder.containsVertexFrom(second))
             return no;
@@ -664,19 +644,9 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         if (otherBoarder.intersectsSideOf(first) || otherBoarder.intersectsSideOf(second))
             return no;
 
-        Polygon<Point> res = no;
-        try {
-            res = createPolygon(allSegments, first.pixelSquare + second.pixelSquare +
-                            Rectangle.squarePolygonWithoutOverlap(connectingRectangle, overlap, focalLength),
-                    height, focalLength, pixelSize);
-        } catch (NullPointerException e) {
-            for (Segment s : allSegments)
-                if (s == null) System.out.println("  null");
-            System.out.println("  null in unite\n\n" + Arrays.toString(allSegments));
-            e.printStackTrace();
-        }
-
-        return res;
+        return createPolygon(allSegments, first.pixelSquare + second.pixelSquare +
+                        Rectangle.squarePolygonWithoutOverlap(connectingRectangle, overlap, focalLength),
+                height, focalLength, pixelSize);
     }
 
     /**
@@ -689,86 +659,119 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * @see Polygon#unite(Polygon, Polygon, Segment, Segment, List, Polygon, double, double, double, int)
      */
     private static List<Polygon<Point>> toBiggerPolygons(List<Polygon<Point>> polygons, int distance,
-                                                         Polygon<Pixel> overlap, double height, double focalLength,
-                                                         double pixelSize, int resY) {
-
+                                                         Polygon<Pixel> overlap, String thermogramName, double height,
+                                                         double focalLength, double pixelSize, int resY) {
         var newPolygons = new ArrayList<Polygon<Point>>();
         var processed = new ArrayList<Integer>();
 
-        try {
-            for (int i = 0; i < polygons.size(); i++)
-                if (!Helper.isIn(processed, i)) {
-                    int j;
-                    for (j = i + 1; j < polygons.size(); j++)
-                        if (!Helper.isIn(processed, j)) {
-                            int ii = i;
-                            int jj = j;
-                            List<Integer> indices = IntStream.rangeClosed(0, polygons.size() - 1)
-                                    .boxed().collect(Collectors.toList()).stream()
-                                    .filter(k -> k > ii && k != jj && !Helper.isIn(processed, k))
-                                    .collect(Collectors.toList());
+        for (int i = 0; i < polygons.size(); i++)
+            if (!Helper.isIn(processed, i)) {
+                int j;
+                for (j = i + 1; j < polygons.size(); j++)
+                    if (!Helper.isIn(processed, j)) {
+                        int ii = i;
+                        int jj = j;
+                        List<Integer> indices = IntStream.rangeClosed(0, polygons.size() - 1)
+                                .boxed().collect(Collectors.toList()).stream()
+                                .filter(k -> k > ii && k != jj && !Helper.isIn(processed, k))
+                                .collect(Collectors.toList());
 
-                            var polygonsNotProcessed = new ArrayList<Polygon<Point>>();
-                            for (int k : indices)
-                                polygonsNotProcessed.add(polygons.get(k));
+                        var polygonsNotProcessed = new ArrayList<Polygon<Point>>();
+                        for (int k : indices)
+                            polygonsNotProcessed.add(polygons.get(k));
 
-                            Segment[] segments = perpendicular(polygons.get(i), polygons.get(j), distance);
-                            if (segments.length > 0 && segments[0].isPointNotLine())
-                                System.out.println("----------1-\n\n\n\n\n" + segments[0] + "\n\n\n\n\n");
-                            if (segments.length == 2) {
-                                if (segments[0].isPointNotLine())
-                                    System.out.println("\n" + polygons.get(j) + "\n" + polygons.get(i) + "\n");
-                                if (polygons.get(i).vertices.contains(new Point(268, 181)) &&
-                                        polygons.get(j).vertices.contains(new Point(302, 248))) {
-                                    System.out.println("FOUND1 \n" + polygons.get(i) + "\n" + polygons.get(j) + "\n");
-                                    System.out.println("excluded:\n" + indices);
-                                    System.out.println(" --  " + i + ",  " + j);
-                                    for (Polygon<Point> p : polygonsNotProcessed)
-                                        System.out.println("   " + p);
-                                }
-                                Polygon<Point> unitedPolygon = unite(
-                                        polygons.get(i), polygons.get(j), segments[0], segments[1],
+                        Segment[] segments;
+                        try {
+                            segments = perpendicular(polygons.get(i), polygons.get(j), distance);
+                        } catch (Exception e) {
+                            System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
+                                    "ошибка в Polygon.perpendicular().\n" +
+                                    "Термограмма: " + thermogramName + ".\n" +
+                                    "Многоугольники, фигурирующие в Polygon.perpendicular():\n" +
+                                    "многоугольник №" + i + ": " + polygons.get(i) + ",\n" +
+                                    "многоугольник №" + j + ": " + polygons.get(j) + ".");
+                            e.printStackTrace();
+                            continue;
+                        }
+                        if (segments.length > 0 && segments[0].isPointNotLine()) {
+                            System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
+                                    "перпендикуляр имеет длину 0 (равен " + segments[0] + ").\n" +
+                                    "Термограмма: " + thermogramName + ",\n" +
+                                    "Многоугольники, являющиеся кандидатами для объединения:\n" +
+                                    "многоугольник №" + i + ": " + polygons.get(i) + ",\n" +
+                                    "многоугольник №" + j + ": " + polygons.get(j) + ".\n" +
+                                    "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".");
+                            continue;
+                        }
+                        if (segments.length == 2) {
+                            Polygon<Point> unitedPolygon;
+                            try {
+                                unitedPolygon = unite(polygons.get(i), polygons.get(j), segments[0], segments[1],
                                         Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
                                                 .collect(Collectors.toList()),
                                         overlap, height, focalLength, pixelSize, resY);
-                                if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
-                                    newPolygons.add(unitedPolygon);
-                                    processed.add(j);
-                                    break;
-                                }
+                            } catch (Exception e) {
+                                System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
+                                        "ошибка в Polygon.unite().\n" +
+                                        "Термограмма: " + thermogramName + ".");
+                                e.printStackTrace();
+                                continue;
                             }
-
-                            segments = perpendicular(polygons.get(j), polygons.get(i), distance);
-                            if (segments.length > 0 && segments[0].isPointNotLine())
-                                System.out.println("----------2-\n\n\n\n\n" + segments[0] + "\n\n\n\n\n");
-                            if (segments.length == 2) {
-                                if (segments[0].isPointNotLine()) {
-                                    System.out.println("\n" + polygons.get(j) + "\n" + polygons.get(i) + "\n");
-                                    throw new IllegalArgumentException("perp is point");
-                                }
-                                if (polygons.get(j).vertices.contains(new Point(268, 181)) &&
-                                        polygons.get(i).vertices.contains(new Point(302, 248)))
-                                    System.out.println("FOUND2 \n" + polygons.get(j) + "\n" + polygons.get(i) + "\n");
-                                Polygon<Point> unitedPolygon = unite(
-                                        polygons.get(j), polygons.get(i), segments[0], segments[1],
-                                        Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
-                                                .collect(Collectors.toList()),
-                                        overlap, height, focalLength, pixelSize, resY);
-                                if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
-                                    newPolygons.add(unitedPolygon);
-                                    processed.add(j);
-                                    break;
-                                }
+                            if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
+                                newPolygons.add(unitedPolygon);
+                                processed.add(j);
+                                break;
                             }
                         }
-                    // Если не смогли найти пару i-му многоугольнику, то просто его добавляем.
-                    if (j == polygons.size())
-                        newPolygons.add(polygons.get(i));
-                }
-        } catch (NullPointerException e) {
-            System.out.println("NullPointerException in Polygon.toBiggerPolygons().");
-            e.printStackTrace();
-        }
+
+                        try {
+                            segments = perpendicular(polygons.get(j), polygons.get(i), distance);
+                        } catch (Exception e) {
+                            System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
+                                    "ошибка в Polygon.perpendicular().\n" +
+                                    "Термограмма: " + thermogramName + ".\n" +
+                                    "Многоугольники, фигурирующие в Polygon.perpendicular():\n" +
+                                    "многоугольник №" + j + ": " + polygons.get(j) + ",\n" +
+                                    "многоугольник №" + i + ": " + polygons.get(i) + ".");
+                            e.printStackTrace();
+                            continue;
+                        }
+                        if (segments.length > 0 && segments[0].isPointNotLine()) {
+                            System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
+                                    "перпендикуляр имеет длину 0 (равен " + segments[0] + ").\n" +
+                                    "Термограмма: " + thermogramName + ",\n" +
+                                    "Многоугольники, являющиеся кандидатами для объединения:\n" +
+                                    "многоугольник №" + j + ": " + polygons.get(j) + ".\n" +
+                                    "многоугольник №" + i + ": " + polygons.get(i) + ",\n" +
+                                    "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".");
+                            continue;
+                        }
+                        if (segments.length == 2) {
+                            Polygon<Point> unitedPolygon;
+                            try {
+                                unitedPolygon = unite(polygons.get(j), polygons.get(i), segments[0], segments[1],
+                                        Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
+                                                .collect(Collectors.toList()),
+                                        overlap, height, focalLength, pixelSize, resY);
+                            } catch (Exception e) {
+                                System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
+                                        "ошибка в Polygon.unite().\n" +
+                                        "Термограмма: " + thermogramName + ".");
+                                e.printStackTrace();
+                                continue;
+                            }
+                            if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
+                                newPolygons.add(unitedPolygon);
+                                processed.add(j);
+                                break;
+                            }
+                        }
+                    }
+                // Если не смогли найти пару i-му многоугольнику, то просто его добавляем.
+                if (j == polygons.size())
+                    newPolygons.add(polygons.get(i));
+            }
+
         return newPolygons;
     }
 
@@ -778,15 +781,24 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * @return список укрупнённых многоугольников
      */
     public static List<Polygon<Point>> enlargeIteratively(List<Polygon<Point>> polygons, int distance,
-                                                          Polygon<Pixel> overlap, double height, double focalLength, double pixelSize, int resY) {
-        List<Polygon<Point>> newPolygons = null;
+                                                          Polygon<Pixel> overlap, String thermogramName, double height,
+                                                          double focalLength, double pixelSize, int resY) {
+        List<Polygon<Point>> newPolygons = polygons;
         List<Polygon<Point>> prevPolygons;
-        System.out.println("enlargeIteratively:\n" + polygons);
         int count = -1; // число итераций, приводящих к укрупнению
-        List<Integer> sizes = new ArrayList<>(); // размеры первоначального и всех последующих списков многоугольников
+        var sizes = new ArrayList<Integer>(); // размеры первоначального и всех последующих списков многоугольников
         do {
-            prevPolygons = count >= 0 ? newPolygons : polygons;
-            newPolygons = toBiggerPolygons(prevPolygons, distance, overlap, height, focalLength, pixelSize, resY);
+            prevPolygons = newPolygons;
+            try {
+                newPolygons = toBiggerPolygons(prevPolygons, distance, overlap, thermogramName, height, focalLength,
+                        pixelSize, resY);
+            } catch (Exception e) {
+                System.out.println("Проблема на итерации " + (count + 2) + " в Polygon.enlargeIteratively(): " +
+                        "ошибка в Polygon.toBiggerPolygons().\n" +
+                        "Термограмма: " + thermogramName + ".");
+                e.printStackTrace();
+                break;
+            }
             count++;
             sizes.add(prevPolygons.size());
         } while (newPolygons.size() < prevPolygons.size());

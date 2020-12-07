@@ -33,14 +33,9 @@ public enum ExifParam {
         double value = readValue(Helper.filename(Main.DIR_CURRENT, Property.SUBDIR_OUTPUT.value(),
                 Main.GLOBAL_PARAMS));
         switch (rawName) {
-            case "FocalLength":
-                this.value = value / 1000;
-                break;
-            case "ReflectedApparentTemperature":
-                this.value = value + 273.15;
-                break;
-            default:
-                this.value = value;
+            case "FocalLength" -> this.value = value / 1000;
+            case "ReflectedApparentTemperature" -> this.value = value + 273.15;
+            default -> this.value = value;
         }
     }
 
