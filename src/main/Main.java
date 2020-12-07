@@ -315,8 +315,17 @@ public class Main {
         List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength,
                 pixelSize, resY);
 
-        return Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getName(), thermogram.getHeight(),
-                focalLength, pixelSize, resY);
+        try {
+            return Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getName(), thermogram.getHeight(),
+                    focalLength, pixelSize, resY);
+        } catch (Exception e) {
+            System.out.println("Проблема в Main.realTableToEnlargedPolygons(): ошибка в Polygon.enlargeIteratively().\n" +
+                    "Берём изначальные дефекты.\n" +
+                    "Термограмма: " + thermogram.getName() + ".");
+            e.printStackTrace();
+            System.out.println();
+            return polygons;
+        }
     }
 
     private static List<Pixel> findMiddlesOfPseudoDefects(Thermogram thermogram, double[][] realTable, double pixelSize,
@@ -330,13 +339,14 @@ public class Main {
 
         List<Polygon<Point>> enlargedPolygons2;
         try {
-            enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMinPseudo,
-                    100, minPixelSquare, distance, overlap, focalLength, pixelSize, resY);
+            enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMinPseudo, 100, minPixelSquare,
+                    distance, overlap, focalLength, pixelSize, resY);
         } catch (Exception e) {
-            System.out.println("Устранимая проблема в Main.findMiddlesOfPseudoDefects(): " +
+            System.out.println("Проблема в Main.findMiddlesOfPseudoDefects(): " +
                     "ошибка в Main.realTableToEnlargedPolygons() (т. е. псевдодефекты не вычисляются).\n" +
-                    "Как проблема преодолена: берём середины окаймляющих прямоугольников настоящих дефектов, а не " +
-                    "псевдодефектов.");
+                    "Берём середины окаймляющих прямоугольников настоящих дефектов, а не псевдодефектов.");
+            e.printStackTrace();
+            System.out.println();
             var middlesOfInitialDefects = new ArrayList<Pixel>();
             for (Rectangle<Pixel> br : boundingRectangles)
                 middlesOfInitialDefects.add(br.middle());
@@ -1018,6 +1028,7 @@ public class Main {
                     } catch (Exception e) {
                         System.out.println("Термограмма " + thermogramName + " не обработана.");
                         e.printStackTrace();
+                        System.out.println();
                         continue;
                     }
 

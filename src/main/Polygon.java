@@ -691,16 +691,17 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                                     "многоугольник №" + i + ": " + polygons.get(i) + ",\n" +
                                     "многоугольник №" + j + ": " + polygons.get(j) + ".");
                             e.printStackTrace();
+                            System.out.println();
                             continue;
                         }
                         if (segments.length > 0 && segments[0].isPointNotLine()) {
                             System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
                                     "перпендикуляр имеет длину 0 (равен " + segments[0] + ").\n" +
-                                    "Термограмма: " + thermogramName + ",\n" +
+                                    "Термограмма: " + thermogramName + ".\n" +
                                     "Многоугольники, являющиеся кандидатами для объединения:\n" +
                                     "многоугольник №" + i + ": " + polygons.get(i) + ",\n" +
                                     "многоугольник №" + j + ": " + polygons.get(j) + ".\n" +
-                                    "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".");
+                                    "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".\n");
                             continue;
                         }
                         if (segments.length == 2) {
@@ -715,6 +716,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                                         "ошибка в Polygon.unite().\n" +
                                         "Термограмма: " + thermogramName + ".");
                                 e.printStackTrace();
+                                System.out.println();
                                 continue;
                             }
                             if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
@@ -734,16 +736,17 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                                     "многоугольник №" + j + ": " + polygons.get(j) + ",\n" +
                                     "многоугольник №" + i + ": " + polygons.get(i) + ".");
                             e.printStackTrace();
+                            System.out.println();
                             continue;
                         }
                         if (segments.length > 0 && segments[0].isPointNotLine()) {
                             System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
                                     "перпендикуляр имеет длину 0 (равен " + segments[0] + ").\n" +
-                                    "Термограмма: " + thermogramName + ",\n" +
+                                    "Термограмма: " + thermogramName + ".\n" +
                                     "Многоугольники, являющиеся кандидатами для объединения:\n" +
-                                    "многоугольник №" + j + ": " + polygons.get(j) + ".\n" +
-                                    "многоугольник №" + i + ": " + polygons.get(i) + ",\n" +
-                                    "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".");
+                                    "многоугольник №" + j + ": " + polygons.get(j) + ",\n" +
+                                    "многоугольник №" + i + ": " + polygons.get(i) + ".\n" +
+                                    "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".\n");
                             continue;
                         }
                         if (segments.length == 2) {
@@ -758,6 +761,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                                         "ошибка в Polygon.unite().\n" +
                                         "Термограмма: " + thermogramName + ".");
                                 e.printStackTrace();
+                                System.out.println();
                                 continue;
                             }
                             if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
@@ -797,6 +801,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                         "ошибка в Polygon.toBiggerPolygons().\n" +
                         "Термограмма: " + thermogramName + ".");
                 e.printStackTrace();
+                System.out.println();
                 break;
             }
             count++;
