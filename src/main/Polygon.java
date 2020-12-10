@@ -650,6 +650,44 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     }
 
     /**
+     * Возвращает многоугольник, являющийся объединением многоугольников first и second, если объединение возможно. В
+     * противном случае, возвращает многоугольник, являющийся точкой (-1, -1).
+     *
+     * @throws Exception если ошибка в {@link Polygon#perpendicular(Polygon, Polygon, int)},
+     *                   {@link Polygon#unite(Polygon, Polygon, Segment, Segment, List, Polygon, double, double, double, int)}
+     *                   или перпендикуляр имеет длину 0
+     * @see Polygon#perpendicular(Polygon, Polygon, int)
+     * @see Polygon#unite(Polygon, Polygon, Segment, Segment, List, Polygon, double, double, double, int)
+     */
+    private static Polygon<Point> unite2(Polygon<Point> first, Polygon<Point> second, int distance,
+                                         List<Polygon<Point>> polygons, Polygon<Pixel> overlap, double height,
+                                         double focalLength, double pixelSize, int resY)
+            throws Exception {
+
+        Segment[] segments = perpendicular(first, second, distance);
+
+        if (segments.length == 2 && segments[0].isPointNotLine()) {
+            String msg = "Проблема в Polygon.unite2(): перпендикуляр имеет длину 0 (равен " + segments[0] + ").\n" +
+                    "Сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".";
+            throw new Exception(msg);
+        }
+
+        if (segments.length == 2) {
+            try {
+                return unite(first, second, segments[0], segments[1], polygons, overlap, height, focalLength,
+                        pixelSize, resY);
+            } catch (Exception e) {
+                String msg = "Проблема в Polygon.unite2(): ошибка в Polygon.unite().\n" +
+                        "Перпендикуляр: " + segments[0] + ",\n" +
+                        "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".";
+                throw new Exception(msg, e);
+            }
+        }
+
+        return new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
+    }
+
+    /**
      * Возвращает список многоугольников, полученный путём объединения многоугольников из списка {@code polygons}.
      * Условия, при выполнении которых происходит объединение, перечислены в методах
      * {@link Polygon#perpendicular(Polygon, Polygon, int)} и
@@ -680,95 +718,43 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                         for (int k : indices)
                             polygonsNotProcessed.add(polygons.get(k));
 
-                        Segment[] segments;
+                        List<Polygon<Point>> polygonsTmp =
+                                Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
+                                        .collect(Collectors.toList());
+
+                        Polygon<Point> unitedPolygon = null;
+
+                        // Пытаемся объединить многоугольники i и j.
                         try {
-                            segments = perpendicular(polygons.get(i), polygons.get(j), distance);
+                            unitedPolygon = unite2(polygons.get(i), polygons.get(j), distance, polygonsTmp, overlap,
+                                    height, focalLength, pixelSize, resY);
                         } catch (Exception e) {
-                            System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
-                                    "ошибка в Polygon.perpendicular().\n" +
-                                    "Термограмма: " + thermogramName + ".\n" +
-                                    "Многоугольники, фигурирующие в Polygon.perpendicular():\n" +
-                                    "многоугольник №" + i + ": " + polygons.get(i) + ",\n" +
-                                    "многоугольник №" + j + ": " + polygons.get(j) + ".");
+                            System.out.println("Проблема в Polygon.toBiggerPolygons(): ошибка в Polygon.unite2().\n" +
+                                    "Многоугольники, являющиеся кандидатами для объединения:\n" +
+                                    "1. " + polygons.get(i) + ",\n" + "2. " + polygons.get(j) + ".\n" +
+                                    "Термограмма: " + thermogramName + ".");
                             e.printStackTrace();
                             System.out.println();
-                            continue;
-                        }
-                        if (segments.length > 0 && segments[0].isPointNotLine()) {
-                            System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
-                                    "перпендикуляр имеет длину 0 (равен " + segments[0] + ").\n" +
-                                    "Термограмма: " + thermogramName + ".\n" +
-                                    "Многоугольники, являющиеся кандидатами для объединения:\n" +
-                                    "многоугольник №" + i + ": " + polygons.get(i) + ",\n" +
-                                    "многоугольник №" + j + ": " + polygons.get(j) + ".\n" +
-                                    "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".\n");
-                            continue;
-                        }
-                        if (segments.length == 2) {
-                            Polygon<Point> unitedPolygon;
-                            try {
-                                unitedPolygon = unite(polygons.get(i), polygons.get(j), segments[0], segments[1],
-                                        Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
-                                                .collect(Collectors.toList()),
-                                        overlap, height, focalLength, pixelSize, resY);
-                            } catch (Exception e) {
-                                System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
-                                        "ошибка в Polygon.unite().\n" +
-                                        "Термограмма: " + thermogramName + ".");
-                                e.printStackTrace();
-                                System.out.println();
-                                continue;
-                            }
-                            if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
-                                newPolygons.add(unitedPolygon);
-                                processed.add(j);
-                                break;
-                            }
                         }
 
+                        // Если многоугольники i и j не объединились, то пытаемся объединить их в другом порядке.
                         try {
-                            segments = perpendicular(polygons.get(j), polygons.get(i), distance);
+                            if (unitedPolygon == null || unitedPolygon.vertices.get(0).equals(new Point(-1, -1)))
+                                unitedPolygon = unite2(polygons.get(j), polygons.get(i), distance, polygonsTmp, overlap,
+                                        height, focalLength, pixelSize, resY);
                         } catch (Exception e) {
-                            System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
-                                    "ошибка в Polygon.perpendicular().\n" +
-                                    "Термограмма: " + thermogramName + ".\n" +
-                                    "Многоугольники, фигурирующие в Polygon.perpendicular():\n" +
-                                    "многоугольник №" + j + ": " + polygons.get(j) + ",\n" +
-                                    "многоугольник №" + i + ": " + polygons.get(i) + ".");
+                            System.out.println("Проблема в Polygon.toBiggerPolygons(): ошибка в Polygon.unite2().\n" +
+                                    "Многоугольники, являющиеся кандидатами для объединения:\n" +
+                                    "1. " + polygons.get(j) + ",\n" + "2. " + polygons.get(i) + ".\n" +
+                                    "Термограмма: " + thermogramName + ".");
                             e.printStackTrace();
                             System.out.println();
-                            continue;
                         }
-                        if (segments.length > 0 && segments[0].isPointNotLine()) {
-                            System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
-                                    "перпендикуляр имеет длину 0 (равен " + segments[0] + ").\n" +
-                                    "Термограмма: " + thermogramName + ".\n" +
-                                    "Многоугольники, являющиеся кандидатами для объединения:\n" +
-                                    "многоугольник №" + j + ": " + polygons.get(j) + ",\n" +
-                                    "многоугольник №" + i + ": " + polygons.get(i) + ".\n" +
-                                    "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".\n");
-                            continue;
-                        }
-                        if (segments.length == 2) {
-                            Polygon<Point> unitedPolygon;
-                            try {
-                                unitedPolygon = unite(polygons.get(j), polygons.get(i), segments[0], segments[1],
-                                        Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
-                                                .collect(Collectors.toList()),
-                                        overlap, height, focalLength, pixelSize, resY);
-                            } catch (Exception e) {
-                                System.out.println("Проблема в Polygon.toBiggerPolygons(): " +
-                                        "ошибка в Polygon.unite().\n" +
-                                        "Термограмма: " + thermogramName + ".");
-                                e.printStackTrace();
-                                System.out.println();
-                                continue;
-                            }
-                            if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
-                                newPolygons.add(unitedPolygon);
-                                processed.add(j);
-                                break;
-                            }
+
+                        if (unitedPolygon != null && !unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
+                            newPolygons.add(unitedPolygon);
+                            processed.add(j);
+                            break;
                         }
                     }
                 // Если не смогли найти пару i-му многоугольнику, то просто его добавляем.

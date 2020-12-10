@@ -8,6 +8,7 @@ import main.Rectangle;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -205,11 +206,11 @@ public class Segment {
      * @throws IllegalArgumentException если упорядочивание отрезков невозможно
      */
     public static Segment[] order(Segment[] segments) {
-        Segment[] newSegments = new Segment[segments.length];
-        var processed = new ArrayList<Integer>();
-        newSegments[0] = segments[0];
-
         try {
+            Segment[] newSegments = new Segment[segments.length];
+            var processed = new ArrayList<Integer>();
+            newSegments[0] = segments[0];
+
             for (int i = 1; i < segments.length; i++)
                 for (int j = 1; j < segments.length; j++)
                     if (!Helper.isIn(processed, j)) {
@@ -225,12 +226,13 @@ public class Segment {
                         }
                     }
 
-            for (Segment s : newSegments) if (s == null) throw new NullPointerException();
-        } catch (NullPointerException e) {
-            throw new IllegalArgumentException("Упорядочивание отрезков невозможно.");
+            for (Segment s : newSegments)
+                if (s == null) throw new NullPointerException("Среди новых отрезков есть null.");
+            return newSegments;
+        } catch (Exception e) {
+            String msg = "Упорядочивание отрезков невозможно. Массив отрезков:\n" + Arrays.toString(segments);
+            throw new IllegalArgumentException(msg, e);
         }
-
-        return newSegments;
     }
 
     @Override
