@@ -388,7 +388,8 @@ public final class Helper {
         int j0 = 0;
         for (int i = 0; i < table.length; i++)
             for (int j = 0; j < table[0].length; j++) {
-                table[i][j] = Integer.parseInt(allData.get(i0)[j0]);
+                //table[i][j] = Integer.parseInt(allData.get(i0)[j0]);
+                table[i][j] = new Integer(allData.get(i0)[j0]);
                 if (j0 + 1 < allData.get(i0).length - 1)
                     j0++;
                 else {
