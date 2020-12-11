@@ -4,9 +4,15 @@ import main.*;
 import polygons.Point;
 import polygons.Segment;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static java.lang.Math.*;
 
@@ -308,9 +314,13 @@ public class Base {
     }
 
     public static void main(String[] args) {
+        //Helper.clear("/home/ruslan/geo/a_test/output files/pipe_squares.txt");
+        /*Helper.addFile("/home/ruslan/geo/a_test/output files/pipe_squares.txt",
+                "/home/ruslan/geo/a_test/output files/tmp/pipe_squares___DJI_0299_R.txt", true);*/
+
         //List<Integer> list = new ArrayList<>();
 
-        String plants = broken("seed"); // ClassCastException
+        //String plants = broken("seed"); // ClassCastException
 
         /*int n = 48;
         double coef = 4;

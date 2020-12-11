@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
@@ -452,11 +453,11 @@ public class Main {
         } else return new Pixel(-10, -10);
     }
 
-    private static double findPipeAngle(Pixel pixel, Polygon<Point> polygon, int num, Thermogram thermogram,
-                                        double diameter, double coef, double tempJump, int numberEndPixels, double dec,
-                                        double eps, int maxIter, String realTempsFilename, String rawDefectsFilename,
-                                        String pipeAnglesLogFilename, char separatorReal, double pixelSize,
-                                        double focalLength, int resX, int resY) {
+    private synchronized static double findPipeAngle(Pixel pixel, Polygon<Point> polygon, int num, Thermogram thermogram,
+                                                     double diameter, double coef, double tempJump, int numberEndPixels, double dec,
+                                                     double eps, int maxIter, String realTempsFilename, String rawDefectsFilename,
+                                                     String pipeAnglesLogFilename, char separatorReal, double pixelSize,
+                                                     double focalLength, int resX, int resY) {
 
         Polygon<Pixel> polygon1 = Polygon.toPolygonPixel(polygon, focalLength, resY);
         double d = Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize, focalLength);
@@ -990,60 +991,129 @@ public class Main {
                 String pipeAnglesLogFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_AUXILIARY.value(),
                         PIPE_ANGLES_LOG);
 
-                Helper.clear(pipeSquaresFilename);
-                Helper.clear(squaresFilename);
-                Helper.clear(pipeAnglesFilename);
-                Helper.clear(pipeAnglesLogFilename);
+                Helper.clear(pipeSquaresFilename, squaresFilename, pipeAnglesFilename, pipeAnglesLogFilename);
 
-                for (int i = 0; i < thermograms.length; i++) {
-                    Thermogram thermogram = thermograms[i];
-                    String thermogramName = thermogram.getName();
+                String pipeSquaresTmpDir = Helper.filename(pipeSquaresFilename.substring(0,
+                        pipeSquaresFilename.lastIndexOf('/')), "/tmp__" +
+                        Helper.shortFilenameWithoutExtension(pipeSquaresFilename) + "/");
+                String squaresTmpDir = Helper.filename(squaresFilename.substring(0,
+                        squaresFilename.lastIndexOf('/')), "/tmp__" +
+                        Helper.shortFilenameWithoutExtension(squaresFilename) + "/");
+                String pipeAnglesTmpDir = Helper.filename(pipeAnglesFilename.substring(0,
+                        pipeAnglesFilename.lastIndexOf('/')), "/tmp__" +
+                        Helper.shortFilenameWithoutExtension(pipeAnglesFilename) + "/");
+                String pipeAnglesLogTmpDir = Helper.filename(pipeAnglesLogFilename.substring(0,
+                        pipeAnglesLogFilename.lastIndexOf('/')), "/tmp__" +
+                        Helper.shortFilenameWithoutExtension(pipeAnglesLogFilename) + "/");
 
-                    Polygon<Pixel> overlap = thermogram.getOverlapWith(
-                            thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1], ExifParam.FOCAL_LENGTH.value(),
-                            Property.PIXEL_SIZE.doubleValue() / 1000_000,
-                            new Pixel(Property.PRINCIPAL_POINT_X.intValue(), Property.PRINCIPAL_POINT_Y.intValue()),
-                            ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue());
+                Helper.createDirectories(pipeSquaresTmpDir, squaresTmpDir, pipeAnglesTmpDir, pipeAnglesLogTmpDir);
 
-                    String thermogramFilename = Helper.filename(Property.DIR_THERMOGRAMS.value()
-                            .replace('\\', '/'), thermogramName + EXTENSION);
-                    if (!new File(thermogramFilename).isFile())
-                        thermogramFilename = thermogramFilename.substring(0,
-                                thermogramFilename.length() - EXTENSION.length()) + EXTENSION.toUpperCase();
-                    String rawDefectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_RAW_DEFECTS.value(),
-                            thermogramName + Property.POSTFIX_RAW_DEFECTS.value() + EXTENSION);
-                    String defectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_DEFECTS.value(),
-                            thermogramName + Property.POSTFIX_DEFECTS.value() + EXTENSION);
-                    String realTempsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_REAL_TEMPS.value(),
-                            thermogramName + Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL);
+                class Processing implements Runnable {
+                    final Thermogram thermogram;
 
-                    Object[] o;
-                    try {
-                        o = defects(thermogram, overlap, Property.T_MIN.doubleValue(),
-                                Property.T_MAX.doubleValue(), Property.MIN_PIXEL_SQUARE.intValue(),
-                                Property.DIAMETER.doubleValue(), params, thermogramFilename, rawDefectsFilename,
-                                realTempsFilename, SEPARATOR_REAL, Property.PIXEL_SIZE.doubleValue() / 1000_000,
-                                ExifParam.FOCAL_LENGTH.value(), ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(),
-                                squaresFilename, pipeAnglesFilename, pipeAnglesLogFilename);
-                    } catch (Exception e) {
-                        System.out.println("Термограмма " + thermogramName + " не обработана.");
-                        e.printStackTrace();
-                        System.out.println();
-                        continue;
+                    final Thermogram previous;
+
+                    final int number;
+
+                    final int numberOfThermograms;
+
+                    Processing(Thermogram thermogram, Thermogram previous, int number, int numberOfThermograms) {
+                        this.thermogram = thermogram;
+                        this.previous = previous;
+                        this.number = number;
+                        this.numberOfThermograms = numberOfThermograms;
                     }
 
-                    var defects = (ArrayList<Polygon<Pixel>>) o[0];
-                    var pipeSquares = (ArrayList<Double>) o[1];
+                    @Override
+                    public void run() {
+                        String thermogramName = thermogram.getName();
+                        System.out.println("start " + thermogramName);
 
-                    Helper.log(pipeSquaresFilename, thermogramName + "   " +
-                            roundAndTrim(pipeSquares.stream().mapToDouble(Double::doubleValue).sum(), 2, 2) +
-                            "   " + roundAndTrim(pipeSquares, 2, 2) + "\n");
+                        Polygon<Pixel> overlap = thermogram.getOverlapWith(
+                                previous, ExifParam.FOCAL_LENGTH.value(),
+                                Property.PIXEL_SIZE.doubleValue() / 1000_000,
+                                new Pixel(Property.PRINCIPAL_POINT_X.intValue(), Property.PRINCIPAL_POINT_Y.intValue()),
+                                ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue());
 
-                    Polygon.drawPolygons(defects, Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
-                            ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
-                            thermogramFilename, defectsFilename, ExifParam.RES_Y.intValue(),
-                            ExifParam.FOCAL_LENGTH.value());
+                        String thermogramFilename = Helper.filename(Property.DIR_THERMOGRAMS.value()
+                                .replace('\\', '/'), thermogramName + EXTENSION);
+                        if (!new File(thermogramFilename).isFile())
+                            thermogramFilename = thermogramFilename.substring(0,
+                                    thermogramFilename.length() - EXTENSION.length()) + EXTENSION.toUpperCase();
+                        String rawDefectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_RAW_DEFECTS.value(),
+                                thermogramName + Property.POSTFIX_RAW_DEFECTS.value() + EXTENSION);
+                        String defectsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_DEFECTS.value(),
+                                thermogramName + Property.POSTFIX_DEFECTS.value() + EXTENSION);
+                        String realTempsFilename = Helper.filename(DIR_CURRENT, Property.SUBDIR_REAL_TEMPS.value(),
+                                thermogramName + Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL);
+
+                        var postfix = "__" + String.format("%0" + (numberOfThermograms + "").length() + "d", number) +
+                                "__" + thermogramName;
+                        String pipeSquaresTmpFilename = Helper.addPostfixToFilename(pipeSquaresTmpDir, pipeSquaresFilename,
+                                postfix);
+                        String squaresTmpFilename = Helper.addPostfixToFilename(squaresTmpDir, squaresFilename,
+                                postfix);
+                        String pipeAnglesTmpFilename = Helper.addPostfixToFilename(pipeAnglesTmpDir, pipeAnglesFilename,
+                                postfix);
+                        String pipeAnglesLogTmpFilename = Helper.addPostfixToFilename(pipeAnglesLogTmpDir, pipeAnglesLogFilename,
+                                postfix);
+
+                        Object[] o;
+                        try {
+                            o = defects(thermogram, overlap, Property.T_MIN.doubleValue(),
+                                    Property.T_MAX.doubleValue(), Property.MIN_PIXEL_SQUARE.intValue(),
+                                    Property.DIAMETER.doubleValue(), params, thermogramFilename, rawDefectsFilename,
+                                    realTempsFilename, SEPARATOR_REAL, Property.PIXEL_SIZE.doubleValue() / 1000_000,
+                                    ExifParam.FOCAL_LENGTH.value(), ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(),
+                                    squaresTmpFilename, pipeAnglesTmpFilename, pipeAnglesLogTmpFilename);
+                        } catch (Exception e) {
+                            System.out.println("Термограмма " + thermogramName + " не обработана.");
+                            e.printStackTrace();
+                            System.out.println();
+                            return;
+                        }
+
+                        var defects = (ArrayList<Polygon<Pixel>>) o[0];
+                        var pipeSquares = (ArrayList<Double>) o[1];
+
+                        Helper.log(pipeSquaresTmpFilename, thermogramName + "   " +
+                                        roundAndTrim(pipeSquares.stream().mapToDouble(Double::doubleValue).sum(), 2, 2) +
+                                        "   " + roundAndTrim(pipeSquares, 2, 2) + "\n");
+
+                        Polygon.drawPolygons(defects, Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
+                                ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
+                                thermogramFilename, defectsFilename, ExifParam.RES_Y.intValue(),
+                                ExifParam.FOCAL_LENGTH.value());
+                        System.out.println("finish " + thermogramName);
+                    }
                 }
+
+                Thread[] threads = new Thread[thermograms.length];
+                for (int i = 0; i < thermograms.length; i++) {
+                    threads[i] = new Thread(new Processing(thermograms[i],
+                            thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1], i + 1, thermograms.length),
+                            "Thread: " + thermograms[i].getName());
+                    threads[i].start();
+                }
+                for (int i = 0; i < thermograms.length; i++)
+                    try {
+                        threads[i].join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                System.out.println("main thread");
+
+                Helper.concatenateFiles(pipeSquaresFilename, pipeSquaresTmpDir);
+                Helper.concatenateFiles(squaresFilename, squaresTmpDir);
+                Helper.concatenateFiles(pipeAnglesFilename, pipeAnglesTmpDir);
+                Helper.concatenateFiles(pipeAnglesLogFilename, pipeAnglesLogTmpDir);
+
+                Helper.deleteDirectory(pipeSquaresTmpDir);
+                Helper.deleteDirectory(squaresTmpDir);
+                Helper.deleteDirectory(pipeAnglesTmpDir);
+                Helper.deleteDirectory(pipeAnglesLogTmpDir);
+
                 Helper.run(DIR_CURRENT, SCRIPT_COPY_GPS + SCRIPT_EXTENSION, OS);
             }
 

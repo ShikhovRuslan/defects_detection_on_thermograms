@@ -8,11 +8,15 @@ import polygons.Segment;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.Math.*;
 
@@ -239,10 +243,21 @@ public final class Helper {
     }
 
     /**
-     * Очищает файл с названием {@code filename}.
+     * Очищает файлы с названиями из массива {@code filenames}.
      */
-    public static void clear(String filename) {
-        write(filename, "");
+    public static void clear(String... filenames) {
+        for (String f : filenames)
+            write(f, "");
+    }
+
+    public static void deleteDirectory(String path) {
+        try (Stream<Path> walk = Files.walk(Paths.get(path))) {
+            walk.sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void writeToFile(String filename, String str, boolean append) {
@@ -253,6 +268,53 @@ public final class Helper {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void concatenateFiles(String filename, String dir) {
+        List<String> filenames = Arrays.stream(Objects.requireNonNull(new File(dir).list()))
+                .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
+        for (String f : filenames)
+            addFile(filename, dir + f, true);
+    }
+
+    public static void addFile(String filename, String src, boolean append) {
+        try {
+            FileWriter writer = new FileWriter(filename, append);
+            BufferedReader reader = new BufferedReader(new FileReader(src));
+
+            String line = reader.readLine();
+
+            while (line != null) {
+                writer.write(line + "\n");
+                line = reader.readLine();
+            }
+
+            writer.flush();
+
+            reader.close();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void createDirectories(String... dirs) {
+        for (String dir : dirs)
+            try {
+                Files.createDirectory(Paths.get(dir));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    }
+
+    public static String shortFilenameWithoutExtension(String filename) {
+        return filename.substring(filename.lastIndexOf('/') + 1, filename.lastIndexOf('.'));
+    }
+
+    public static String addPostfixToFilename(String dir, String srcFilename, String postfix) {
+        String srcShortFilenameWithoutExtension = shortFilenameWithoutExtension(srcFilename);
+        String srcExtension = srcFilename.substring(srcFilename.lastIndexOf('.'));
+        return Helper.filename(dir, srcShortFilenameWithoutExtension + postfix + srcExtension);
     }
 
     /**
@@ -326,7 +388,7 @@ public final class Helper {
         int j0 = 0;
         for (int i = 0; i < table.length; i++)
             for (int j = 0; j < table[0].length; j++) {
-                table[i][j] = new Integer(allData.get(i0)[j0]);
+                table[i][j] = Integer.parseInt(allData.get(i0)[j0]);
                 if (j0 + 1 < allData.get(i0).length - 1)
                     j0++;
                 else {
