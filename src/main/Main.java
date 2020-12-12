@@ -1079,8 +1079,8 @@ public class Main {
                             var pipeSquares = (ArrayList<Double>) o[1];
 
                             Helper.log(pipeSquaresTmpFilename, thermogramName + "   " +
-                                    roundAndTrim(pipeSquares.stream().mapToDouble(Double::doubleValue).sum(), 2, 2) +
-                                    "   " + roundAndTrim(pipeSquares, 2, 2) + "\n");
+                                        roundAndTrim(pipeSquares.stream().mapToDouble(Double::doubleValue).sum(), 2, 2) +
+                                        "   " + roundAndTrim(pipeSquares, 2, 2) + "\n");
 
                             Polygon.drawPolygons(defects, Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
                                     ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
