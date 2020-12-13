@@ -250,14 +250,15 @@ public final class Helper {
             write(f, "");
     }
 
-    public static void deleteDirectory(String path) {
-        try (Stream<Path> walk = Files.walk(Paths.get(path))) {
-            walk.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public static void deleteDirectories(String... paths) {
+        for (String path : paths)
+            try (Stream<Path> walk = Files.walk(Paths.get(path))) {
+                walk.sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
     }
 
     private static void writeToFile(String filename, String str, boolean append) {
