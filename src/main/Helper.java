@@ -8,6 +8,7 @@ import polygons.Segment;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -221,9 +222,13 @@ public final class Helper {
         return indexMax;
     }
 
-    public static String filename(Object... dir) {
+    /**
+     * Возвращает имя файла путём последовательного соединения строковых представлений объектов, не равных {@code null},
+     * из массива {@code dirs}, которые разделяются слешем {@code /}.
+     */
+    public static String filename(Object... dirs) {
         StringBuilder filename = new StringBuilder();
-        for (Object o : dir) filename.append("/").append(o);
+        for (Object dir : dirs) if(dir != null) filename.append("/").append(dir);
         return filename.substring(1);
     }
 
@@ -250,6 +255,15 @@ public final class Helper {
             write(f, "");
     }
 
+    public static void clear(StringBuilder... filenames) {
+        clear(Arrays.stream(filenames)
+                .map(String::new)
+                .toArray(String[]::new));
+    }
+
+    /**
+     * Удаляет папки из массива {@code paths}.
+     */
     public static void deleteDirectories(String... paths) {
         for (String path : paths)
             try (Stream<Path> walk = Files.walk(Paths.get(path))) {
@@ -261,6 +275,10 @@ public final class Helper {
             }
     }
 
+    /**
+     * Записывает строку {@code str+"\n"} в файл с именем {@code filename}, причём если {@code append} равен
+     * {@code true}, то строка добавляется в конец файла.
+     */
     private static void writeToFile(String filename, String str, boolean append) {
         try {
             FileWriter writer = new FileWriter(filename, append);
@@ -271,6 +289,11 @@ public final class Helper {
         }
     }
 
+    /**
+     * Осуществляет конкатенацию файлов. Конкретнее, в конец файла с именем {@code filename} последовательно добавляет
+     * содержимое файлов из папки с именем {@code dir}, файлы берутся в естественном порядке их имён. Эта папка должна
+     * содержать только файлы.
+     */
     public static void concatenateFiles(String filename, String dir) {
         List<String> filenames = Arrays.stream(Objects.requireNonNull(new File(dir).list()))
                 .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
@@ -278,6 +301,10 @@ public final class Helper {
             addFile(filename, dir + f, true);
     }
 
+    /**
+     * Записывает содержимое файла с именем {@code src} в файл с именем {@code filename}, причём если {@code append}
+     * равен {@code true}, то содержимое добавляется в конец файла.
+     */
     public static void addFile(String filename, String src, boolean append) {
         try {
             FileWriter writer = new FileWriter(filename, append);
@@ -299,19 +326,31 @@ public final class Helper {
         }
     }
 
-    public static void createDirectories(String... dirs) {
+    /**
+     * Создаёт несуществующие папки из массива {@code dirs}.
+     *
+     * @throws IOException если какая-либо папка из этого массива не создана
+     */
+    public static void createDirectories(String... dirs) throws IOException {
         for (String dir : dirs)
             try {
                 Files.createDirectory(Paths.get(dir));
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (java.nio.file.FileAlreadyExistsException e) {
+                System.out.println("Папка " + Paths.get(dir) + " уже существует.");
             }
     }
 
+    /**
+     * Извлекает (краткое) имя файла без расширения из файла с (полным) именем {@code filename}.
+     */
     public static String shortFilenameWithoutExtension(String filename) {
         return filename.substring(filename.lastIndexOf('/') + 1, filename.lastIndexOf('.'));
     }
 
+    /**
+     * Создаёт полное имя файла в папке {@code dir}, чьё краткое имя равно краткому имени файла {@code srcFilename} с
+     * приписанным постфиксом {@code postfix}.
+     */
     public static String addPostfixToFilename(String dir, String srcFilename, String postfix) {
         String srcShortFilenameWithoutExtension = shortFilenameWithoutExtension(srcFilename);
         String srcExtension = srcFilename.substring(srcFilename.lastIndexOf('.'));
@@ -389,8 +428,7 @@ public final class Helper {
         int j0 = 0;
         for (int i = 0; i < table.length; i++)
             for (int j = 0; j < table[0].length; j++) {
-                //table[i][j] = Integer.parseInt(allData.get(i0)[j0]);
-                table[i][j] = new Integer(allData.get(i0)[j0]);
+                table[i][j] = Integer.parseInt(allData.get(i0)[j0]);
                 if (j0 + 1 < allData.get(i0).length - 1)
                     j0++;
                 else {
@@ -506,5 +544,69 @@ public final class Helper {
         } catch (IOException | InterruptedException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    /**
+     * Для каждого файла из массива {@code filenames} создаёт папку, которая расположена в той же папке, что и сам файл,
+     * и название которой равно {@code prefix +} краткое имя файла без расширения.
+     * Возвращает массив созданных папок.
+     */
+    public static String[] directoriesNearFiles(String prefix, String... filenames) throws IOException {
+        var dirs = new ArrayList<String>();
+        for(String f : filenames)
+            dirs.add(filename(
+                    f.substring(0, f.lastIndexOf('/') + 1) + prefix + shortFilenameWithoutExtension(f) + "/"));
+        String[] dirs0 = dirs.toArray(new String[0]);
+        createDirectories(dirs0);
+        return dirs0;
+    }
+
+    public static String[] directoriesNearFiles(String prefix, StringBuilder... filenames) throws IOException {
+        return directoriesNearFiles(prefix, Arrays.stream(filenames)
+                        .map(String::new)
+                        .toArray(String[]::new));
+    }
+
+    /**
+     * Возвращает число в виде строки, которое получается путём округления числа {@code num} до {@code k} позиций после
+     * запятой, причём если получается целое число, то лишние символы {@code .0} отсекаются.
+     */
+    public static String roundAndTrim(double num, int k) {
+        return (round(num * pow(10, k)) / pow(10, k) + "").replaceAll("\\.0$", "");
+    }
+
+    /**
+     * Возвращает строку, состоящую из {@code l} пробелов. Если {@code l<=0}, то возвращает пустую строку.
+     */
+    public static String spaces(int l) {
+        return " ".repeat(Math.max(0, l));
+    }
+
+    /**
+     * Дополняет строку, возвращаемую методом <code>{@link #roundAndTrim roundAndTrim}(num, k)</code>, пробелами
+     * следующим образом:
+     * <ul>
+     * <li>если целая часть короче {@code a}, то в начало вставляются пробелы, чтобы дополнить длину целой части до
+     * {@code a},</li>
+     * <li>если число дробное и дробная часть короче {@code k}, то в конец вставляются пробелы, чтобы дополнить длину
+     * дробной части до {@code k},</li>
+     * <li>если число целое, то в конец вставляется {@code k+1} пробел.</li>
+     * </ul>
+     */
+    public static String roundAndAppend(double num, int k, int a) {
+        String s = roundAndTrim(num, k);
+        if (!s.contains("."))
+            return spaces(a - s.length()) + s + spaces(k + 1);
+        else
+            return spaces(a - s.substring(0, s.indexOf('.')).length()) + s +
+                    spaces(k - s.substring(s.indexOf('.') + 1).length());
+    }
+
+    /**
+     * Возвращает список строк, полученный применением к каждому числу {@code num} списка {@code list} метода
+     * <code>{@link #roundAndAppend roundAndAppend}(num, k, a)</code>.
+     */
+    public static List<String> roundAndAppend(List<Double> list, int k, int a) {
+        return list.stream().map(d -> roundAndAppend(d, k, a)).collect(Collectors.toCollection(ArrayList::new));
     }
 }

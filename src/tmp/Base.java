@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
@@ -294,6 +295,12 @@ public class Base {
         return new Object[]{jumps.get(jumps.size() - 1), averageEndTemperature, angle};
     }
 
+    public static double sq(Polygon<Pixel> polygon, double height, double focalLength, double pixelSize) {
+        List<Pixel> v = polygon.getVertices();
+        return Thermogram.earthDistance(v.get(0), v.get(1), height, focalLength, pixelSize) *
+                Thermogram.earthDistance(v.get(1), v.get(2), height, focalLength, pixelSize);
+    }
+
     int f(List<Integer> list) {
         int ind;
         try {
@@ -314,6 +321,30 @@ public class Base {
     }
 
     public static void main(String[] args) {
+
+        System.out.println(Helper.filename("a", "b", null, "d"));
+
+        /*String a = "-";
+        String b = "-";
+
+        String[] sss= new String[]{a, b};
+        Arrays.stream(sss).sequential().forEach(s -> s+="+++");
+        System.out.println(a + "   " + b);
+
+        StringBuilder a2 = new StringBuilder("-");
+        StringBuilder b2 = new StringBuilder("-");
+
+        StringBuilder[] sss2= new StringBuilder[]{a2, b2};
+        Arrays.stream(sss2).sequential().forEach(s -> s.append("+++"));
+        System.out.println(a2 + "   " + b2);*/
+
+        /*for(String s : new String[]{a, b})
+            s = "0000" + "";*/
+
+        /*double num = 1.10100042;
+        int k = 6;
+        String s = round(num * pow(10, k)) / pow(10, k) + "";
+        System.out.println(s);*/
         //Helper.clear("/home/ruslan/geo/a_test/output files/pipe_squares.txt");
         /*Helper.addFile("/home/ruslan/geo/a_test/output files/pipe_squares.txt",
                 "/home/ruslan/geo/a_test/output files/tmp/pipe_squares___DJI_0299_R.txt", true);*/

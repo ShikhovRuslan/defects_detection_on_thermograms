@@ -102,7 +102,7 @@ public class Thermogram {
     /**
      * Вычисляет расстояние в метрах между точками Земли, которые проектируются в пиксели {@code a} и {@code b}.
      */
-    static double earthDistance(Pixel a, Pixel b, double height, double focalLength, double pixelSize) {
+    public static double earthDistance(Pixel a, Pixel b, double height, double focalLength, double pixelSize) {
         return reverseScale(height, focalLength) * matrixDistance(a, b, pixelSize);
     }
 
