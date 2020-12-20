@@ -262,16 +262,16 @@ public final class Helper {
     }
 
     /**
-     * Удаляет папки из массива {@code paths}.
+     * Удаляет папки из массива {@code dirs}.
+     *
+     * @throws IOException если I/O error произошла во время доступа к какой-либо папке
      */
-    public static void deleteDirectories(String... paths) {
-        for (String path : paths)
-            try (Stream<Path> walk = Files.walk(Paths.get(path))) {
+    public static void deleteDirectories(String... dirs) throws IOException {
+        for (String dir : dirs)
+            try (Stream<Path> walk = Files.walk(Paths.get(dir))) {
                 walk.sorted(Comparator.reverseOrder())
                         .map(Path::toFile)
                         .forEach(File::delete);
-            } catch (IOException e) {
-                e.printStackTrace();
             }
     }
 
@@ -561,6 +561,9 @@ public final class Helper {
         return dirs0;
     }
 
+    /**
+     * @see #directoriesNearFiles(String, String...)
+     */
     public static String[] directoriesNearFiles(String prefix, StringBuilder... filenames) throws IOException {
         return directoriesNearFiles(prefix, Arrays.stream(filenames)
                 .map(String::new)
@@ -610,27 +613,57 @@ public final class Helper {
         return list.stream().map(d -> roundAndAppend(d, k, a)).collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public static String[][] createTmpFiles(int n, String[] info, StringBuilder... outputFiles) throws IOException {
-        String[] tmpDirs = Helper.directoriesNearFiles("tmp__", outputFiles);
-
+    /**
+     * Для заданного массива файлов создаёт временные папки и имена временных файлов.
+     * <p>
+     * Очищает файлы из массива {@code outputFiles}.
+     * <p>
+     * Для каждого файла из {@code outputFiles} создаёт папку, которая расположена в той же папке, что и сам
+     * файл, и название которой равно {@code tmp__ +} краткое имя файла без расширения.
+     * <p>
+     * Возвращает таблицу строк, каждая строка которой (представляющая собой массив строк) соответствует файлу из
+     * {@code outputFiles}, а именно:
+     * <ul>
+     *     <li> {@code 0}-й элемент этого массива строк содержит созданную папку,</li>
+     *     <li> все последующие элементы содержат полные имена файлов в упомянутой выше папке, чьи краткие имена равны
+     *     краткому имени файла из {@code outputFiles} с приписанными постфиксами из массива {@code postfixes}.</li>
+     * </ul>
+     *
+     * @throws IOException если какая-либо папка не была создана
+     */
+    public static String[][] createTmpFiles(String[] postfixes, StringBuilder... outputFiles) throws IOException {
         Helper.clear(outputFiles);
 
-        var tmpFiles = new StringBuilder[outputFiles.length][n+1];
+        String[] tmpDirs = Helper.directoriesNearFiles("tmp__", outputFiles);
+        int n = postfixes.length;
+
+        var tmpFiles = new StringBuilder[outputFiles.length][n + 1];
         for (int i = 0; i < outputFiles.length; i++) {
             tmpFiles[i][0] = new StringBuilder(tmpDirs[i]);
-            for (int j = 1; j <= n; j++) {
+            for (int j = 1; j <= n; j++)
                 tmpFiles[i][j] = new StringBuilder().insert(0, Helper.addPostfixToFilename(tmpDirs[i],
-                        outputFiles[i].toString(),
-                        "__" + String.format("%0" + (n + "").length() + "d", j) +
-                                "__" + info[j-1]));
-            }
+                        outputFiles[i].toString(), postfixes[j - 1]));
         }
 
-        var tmpFiles0 = new String[outputFiles.length][n+1];
+        var tmpFiles0 = new String[outputFiles.length][n + 1];
         for (int i = 0; i < outputFiles.length; i++)
             tmpFiles0[i] = Arrays.stream(tmpFiles[i])
                     .map(String::new)
                     .toArray(String[]::new);
         return tmpFiles0;
+    }
+
+    /**
+     * В конец каждого файла с именем из массива {@code filenames} последовательно добавляет содержимое файлов из
+     * соответствующей папки из массива {@code dirs} (файлы берутся в естественном порядке их имён) и удаляет эту папку.
+     *
+     * @throws IOException если какая-либо папка не удалена
+     * @see #concatenateFiles(String, String)
+     */
+    public static void concatenateAndDelete(StringBuilder[] filenames, String[] dirs) throws IOException {
+        for (int i = 0; i < filenames.length; i++) {
+            Helper.concatenateFiles(filenames[i].toString(), dirs[i]);
+            Helper.deleteDirectories(dirs[i]);
+        }
     }
 }

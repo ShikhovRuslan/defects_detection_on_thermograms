@@ -14,6 +14,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.lang.Math.*;
 import static java.lang.Math.abs;
@@ -897,7 +899,11 @@ public class Main {
         }
 
         Helper.concatenateFiles(pipeAnglesLogFilename, pipeAnglesLogTmpDir);
-        Helper.deleteDirectories(pipeAnglesLogTmpDir);
+        try {
+            Helper.deleteDirectories(pipeAnglesLogTmpDir);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         var boundingDefects = new ArrayList<Rectangle<Pixel>>();
         var slopingDefects = new ArrayList<Polygon<Pixel>>();
@@ -991,8 +997,12 @@ public class Main {
                                     Property.SUBDIR_AUXILIARY}[i].value(),
                             new String[]{PIPE_SQUARES, SQUARES, PIPE_ANGLES, PIPE_ANGLES_LOG}[i]));
 
-                String[][] tmpFiles = Helper.createTmpFiles(thermograms.length,
-                        Arrays.stream(thermograms).map(Thermogram::getName).toArray(String[]::new), outputFiles);
+                String[][] tmpFiles = Helper.createTmpFiles(
+                        IntStream.range(0, thermograms.length)
+                                .mapToObj(i -> "__" + String.format("%0" + (thermograms.length + "").length() + "d", i + 1) +
+                                        "__" + thermograms[i].getName())
+                                .toArray(String[]::new),
+                        outputFiles);
 
                 class Processing implements Runnable {
                     final int i; // номер термограммы, подлежащей обработке
@@ -1047,20 +1057,6 @@ public class Main {
                                     thermogramFilename.substring(0, thermogramFilename.length() - EXTENSION.length()) +
                                             EXTENSION.toUpperCase());
 
-                        /*var postfix = "__" + String.format("%0" + (thermograms.length + "").length() + "d", i + 1) +
-                                "__" + thermogramName;
-
-                        var pipeSquaresTmpFilename = new StringBuilder();
-                        var squaresTmpFilename = new StringBuilder();
-                        var pipeAnglesTmpFilename = new StringBuilder();
-                        var pipeAnglesLogTmpFilename = new StringBuilder();
-
-                        var tmpFiles = new StringBuilder[]{pipeSquaresTmpFilename, squaresTmpFilename, pipeAnglesTmpFilename,
-                                pipeAnglesLogTmpFilename};
-                        for (int i = 0; i < outputFiles.length; i++)
-                            tmpFiles[i].insert(0, Helper.addPostfixToFilename(tmpDirs[i], outputFiles[i].toString(),
-                                    postfix));*/
-
                         Object[] o;
                         try {
                             o = defects(thermogram, overlap, Property.T_MIN.doubleValue(), Property.T_MAX.doubleValue(),
@@ -1096,7 +1092,7 @@ public class Main {
                 Thread[] threads = new Thread[thermograms.length];
                 for (int i = 0; i < thermograms.length; i++) {
                     threads[i] = new Thread(new Processing(i,
-                            tmpFiles[0][i+1], tmpFiles[1][i+1], tmpFiles[2][i+1], tmpFiles[3][i+1]),
+                            tmpFiles[0][i + 1], tmpFiles[1][i + 1], tmpFiles[2][i + 1], tmpFiles[3][i + 1]),
                             "Thermogram: " + thermograms[i].getName());
                     threads[i].start();
                 }
@@ -1109,10 +1105,9 @@ public class Main {
                     }
                 System.out.println("Обработка термограмм завершена.");
 
-                for (int i = 0; i < outputFiles.length; i++) {
-                    Helper.concatenateFiles(outputFiles[i].toString(), tmpFiles[i][0]);
-                    Helper.deleteDirectories(tmpFiles[i][0]);
-                }
+                Helper.concatenateAndDelete(outputFiles, IntStream.range(0, outputFiles.length)
+                        .mapToObj(i -> tmpFiles[i][0])
+                        .toArray(String[]::new));
 
                 Helper.run(DIR_CURRENT, SCRIPT_COPY_GPS + SCRIPT_EXTENSION, OS);
             }
