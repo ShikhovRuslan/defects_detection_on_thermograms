@@ -984,29 +984,30 @@ public class Main {
                 for (int i = 0; i < 10; i++)
                     params[i] = Property.values()[Property.values().length - 10 + i].doubleValue();
 
-                var pipeSquaresFilename = new StringBuilder();
-                var squaresFilename = new StringBuilder();
-                var pipeAnglesFilename = new StringBuilder();
-                var pipeAnglesLogFilename = new StringBuilder();
-
-                var outputFiles = new StringBuilder[]{pipeSquaresFilename, squaresFilename, pipeAnglesFilename,
-                        pipeAnglesLogFilename};
-
+                var outputFiles = new StringBuilder[4];
                 for (int i = 0; i < outputFiles.length; i++)
-                    outputFiles[i].insert(0, Helper.filename(DIR_CURRENT,
+                    outputFiles[i] = new StringBuilder().insert(0, Helper.filename(DIR_CURRENT,
                             new Property[]{Property.SUBDIR_OUTPUT, Property.SUBDIR_AUXILIARY, Property.SUBDIR_AUXILIARY,
                                     Property.SUBDIR_AUXILIARY}[i].value(),
                             new String[]{PIPE_SQUARES, SQUARES, PIPE_ANGLES, PIPE_ANGLES_LOG}[i]));
 
-                String[] tmpDirs = Helper.directoriesNearFiles("tmp__", outputFiles);
-
-                Helper.clear(outputFiles);
+                String[][] tmpFiles = Helper.createTmpFiles(thermograms.length,
+                        Arrays.stream(thermograms).map(Thermogram::getName).toArray(String[]::new), outputFiles);
 
                 class Processing implements Runnable {
                     final int i; // номер термограммы, подлежащей обработке
+                    final String pipeSquaresTmpFilename;
+                    final String squaresTmpFilename;
+                    final String pipeAnglesTmpFilename;
+                    final String pipeAnglesLogTmpFilename;
 
-                    Processing(int i) {
+                    public Processing(int i, String pipeSquaresTmpFilename, String squaresTmpFilename,
+                                      String pipeAnglesTmpFilename, String pipeAnglesLogTmpFilename) {
                         this.i = i;
+                        this.pipeSquaresTmpFilename = pipeSquaresTmpFilename;
+                        this.squaresTmpFilename = squaresTmpFilename;
+                        this.pipeAnglesTmpFilename = pipeAnglesTmpFilename;
+                        this.pipeAnglesLogTmpFilename = pipeAnglesLogTmpFilename;
                     }
 
                     @Override
@@ -1046,7 +1047,7 @@ public class Main {
                                     thermogramFilename.substring(0, thermogramFilename.length() - EXTENSION.length()) +
                                             EXTENSION.toUpperCase());
 
-                        var postfix = "__" + String.format("%0" + (thermograms.length + "").length() + "d", i + 1) +
+                        /*var postfix = "__" + String.format("%0" + (thermograms.length + "").length() + "d", i + 1) +
                                 "__" + thermogramName;
 
                         var pipeSquaresTmpFilename = new StringBuilder();
@@ -1058,7 +1059,7 @@ public class Main {
                                 pipeAnglesLogTmpFilename};
                         for (int i = 0; i < outputFiles.length; i++)
                             tmpFiles[i].insert(0, Helper.addPostfixToFilename(tmpDirs[i], outputFiles[i].toString(),
-                                    postfix));
+                                    postfix));*/
 
                         Object[] o;
                         try {
@@ -1067,8 +1068,8 @@ public class Main {
                                     thermogramFilename.toString(), rawDefectsFilename.toString(),
                                     realTempsFilename.toString(), SEPARATOR_REAL,
                                     Property.PIXEL_SIZE.doubleValue() / 1000_000, ExifParam.FOCAL_LENGTH.value(),
-                                    ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(), squaresTmpFilename.toString(),
-                                    pipeAnglesTmpFilename.toString(), pipeAnglesLogTmpFilename.toString());
+                                    ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(), squaresTmpFilename,
+                                    pipeAnglesTmpFilename, pipeAnglesLogTmpFilename);
                         } catch (Exception e) {
                             System.out.println("Термограмма " + thermogramName + " не обработана.");
                             e.printStackTrace();
@@ -1094,8 +1095,9 @@ public class Main {
 
                 Thread[] threads = new Thread[thermograms.length];
                 for (int i = 0; i < thermograms.length; i++) {
-                    threads[i] = new Thread(new Processing(i),
-                            "Thread: " + thermograms[i].getName());
+                    threads[i] = new Thread(new Processing(i,
+                            tmpFiles[0][i+1], tmpFiles[1][i+1], tmpFiles[2][i+1], tmpFiles[3][i+1]),
+                            "Thermogram: " + thermograms[i].getName());
                     threads[i].start();
                 }
 
@@ -1107,10 +1109,10 @@ public class Main {
                     }
                 System.out.println("Обработка термограмм завершена.");
 
-                for (int i = 0; i < outputFiles.length; i++)
-                    Helper.concatenateFiles(outputFiles[i].toString(), tmpDirs[i]);
-
-                Helper.deleteDirectories(tmpDirs);
+                for (int i = 0; i < outputFiles.length; i++) {
+                    Helper.concatenateFiles(outputFiles[i].toString(), tmpFiles[i][0]);
+                    Helper.deleteDirectories(tmpFiles[i][0]);
+                }
 
                 Helper.run(DIR_CURRENT, SCRIPT_COPY_GPS + SCRIPT_EXTENSION, OS);
             }

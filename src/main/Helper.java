@@ -228,7 +228,7 @@ public final class Helper {
      */
     public static String filename(Object... dirs) {
         StringBuilder filename = new StringBuilder();
-        for (Object dir : dirs) if(dir != null) filename.append("/").append(dir);
+        for (Object dir : dirs) if (dir != null) filename.append("/").append(dir);
         return filename.substring(1);
     }
 
@@ -553,7 +553,7 @@ public final class Helper {
      */
     public static String[] directoriesNearFiles(String prefix, String... filenames) throws IOException {
         var dirs = new ArrayList<String>();
-        for(String f : filenames)
+        for (String f : filenames)
             dirs.add(filename(
                     f.substring(0, f.lastIndexOf('/') + 1) + prefix + shortFilenameWithoutExtension(f) + "/"));
         String[] dirs0 = dirs.toArray(new String[0]);
@@ -563,8 +563,8 @@ public final class Helper {
 
     public static String[] directoriesNearFiles(String prefix, StringBuilder... filenames) throws IOException {
         return directoriesNearFiles(prefix, Arrays.stream(filenames)
-                        .map(String::new)
-                        .toArray(String[]::new));
+                .map(String::new)
+                .toArray(String[]::new));
     }
 
     /**
@@ -608,5 +608,29 @@ public final class Helper {
      */
     public static List<String> roundAndAppend(List<Double> list, int k, int a) {
         return list.stream().map(d -> roundAndAppend(d, k, a)).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public static String[][] createTmpFiles(int n, String[] info, StringBuilder... outputFiles) throws IOException {
+        String[] tmpDirs = Helper.directoriesNearFiles("tmp__", outputFiles);
+
+        Helper.clear(outputFiles);
+
+        var tmpFiles = new StringBuilder[outputFiles.length][n+1];
+        for (int i = 0; i < outputFiles.length; i++) {
+            tmpFiles[i][0] = new StringBuilder(tmpDirs[i]);
+            for (int j = 1; j <= n; j++) {
+                tmpFiles[i][j] = new StringBuilder().insert(0, Helper.addPostfixToFilename(tmpDirs[i],
+                        outputFiles[i].toString(),
+                        "__" + String.format("%0" + (n + "").length() + "d", j) +
+                                "__" + info[j-1]));
+            }
+        }
+
+        var tmpFiles0 = new String[outputFiles.length][n+1];
+        for (int i = 0; i < outputFiles.length; i++)
+            tmpFiles0[i] = Arrays.stream(tmpFiles[i])
+                    .map(String::new)
+                    .toArray(String[]::new);
+        return tmpFiles0;
     }
 }
