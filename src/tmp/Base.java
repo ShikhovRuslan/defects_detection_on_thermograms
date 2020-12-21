@@ -5,6 +5,7 @@ import polygons.Point;
 import polygons.Segment;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -322,7 +323,25 @@ public class Base {
 
     public static void main(String[] args) {
 
-        System.out.println(Helper.filename("a", "b", null, "d"));
+        //Helper.write("/home/ruslan/geo/a_test/rest/a.txt", "");
+
+        try {
+            FileWriter writer = new FileWriter("/home/ruslan/geo/a_test/rest/1a.txt", true);
+            writer.write("new" + "\n");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            FileWriter writer = new FileWriter("/home/ruslan/geo/a_test/rest/1b.txt", true);
+            writer.write("new" + "\n");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //System.out.println(Helper.filename("a", "b", null, "d"));
 
         /*String a = "-";
         String b = "-";

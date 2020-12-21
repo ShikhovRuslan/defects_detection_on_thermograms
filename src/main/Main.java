@@ -833,7 +833,7 @@ public class Main {
                                     int minPixelSquare, double diameter, double[] params, String thermogramFilename,
                                     String rawDefectsFilename, String realTempsFilename, char separatorReal,
                                     double pixelSize, double focalLength, int resX, int resY, String squaresFilename,
-                                    String pipeAnglesFilename, String pipeAnglesLogFilename) {
+                                    String pipeAnglesFilename, String pipeAnglesLogFilename) throws IOException {
 
         int distance = (int) params[0];
         double tMinPseudo = params[1];
@@ -864,27 +864,21 @@ public class Main {
         List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, pixelSize, resY, tMinPseudo,
                 minPixelSquare, distance, focalLength, overlap, enlargedPolygons, maxDiff, k);
 
-        String pipeAnglesLogTmpDir = Helper.filename(pipeAnglesLogFilename.substring(0,
-                pipeAnglesLogFilename.lastIndexOf('/')), "/tmp__" +
-                Helper.shortFilenameWithoutExtension(pipeAnglesLogFilename) + "/");
-        try {
-            Helper.createDirectories(pipeAnglesLogTmpDir);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String[][] tmpFiles = Helper.createTmpFiles(
+                IntStream.range(0, enlargedPolygons.size())
+                        .mapToObj(i -> "__" + String.format("%0" + (enlargedPolygons.size() + "").length() + "d", i + 1))
+                        .toArray(String[]::new),
+                new StringBuilder(pipeAnglesLogFilename));
 
         var pipeAngles = new ArrayList<>(Arrays.asList(new Double[enlargedPolygons.size()]));
         var threads = new Thread[enlargedPolygons.size()];
         var lock = new ReentrantReadWriteLock();
         for (int i = 0; i < enlargedPolygons.size(); i++) {
             int ii = i;
-            var postfix = "__" + String.format("%0" + (enlargedPolygons.size() + "").length() + "d", i + 1);
-            String pipeAnglesLogTmpFilename = Helper.addPostfixToFilename(pipeAnglesLogTmpDir, pipeAnglesLogFilename,
-                    postfix);
             threads[i] = new Thread(() -> pipeAngles.set(ii,
                     findPipeAngle(middles.get(ii), enlargedPolygons.get(ii), ii + 1, thermogram, diameter,
                             coef, tempJump, numberEndPixels, dec, eps, maxIter, realTable, rawDefectsFilename,
-                            lock, pipeAnglesLogTmpFilename, pixelSize, focalLength, resX, resY)),
+                            lock, tmpFiles[0][ii + 1], pixelSize, focalLength, resX, resY)),
                     "Processing defect " + (ii + 1) + ": " + enlargedPolygons.get(ii) + ", " +
                             "parent thread: " + Thread.currentThread().getName());
             threads[i].start();
@@ -898,12 +892,8 @@ public class Main {
             }
         }
 
-        Helper.concatenateFiles(pipeAnglesLogFilename, pipeAnglesLogTmpDir);
-        try {
-            Helper.deleteDirectories(pipeAnglesLogTmpDir);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Helper.concatenateAndDelete(new StringBuilder[]{new StringBuilder(pipeAnglesLogFilename)},
+                new String[]{tmpFiles[0][0]});
 
         var boundingDefects = new ArrayList<Rectangle<Pixel>>();
         var slopingDefects = new ArrayList<Polygon<Pixel>>();

@@ -8,7 +8,6 @@ import polygons.Segment;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -236,15 +235,43 @@ public final class Helper {
      * Записывает строку {@code str} (вместе с символом новой строки) в конец файла с названием {@code filename}.
      */
     public static void log(String filename, String str) {
-        writeToFile(filename, str, true);
+        writelnToFile(filename, str, true);
     }
 
     /**
-     * Записывает строку {@code str} (вместе с символом новой строки) в файл с названием {@code filename}, перезаписывая
-     * его.
+     * Записывает строку {@code str+"\n"} в файл с названием {@code filename}, перезаписывая его.
+     */
+    public static void writeln(String filename, String str) {
+        write(filename, str + "\n");
+    }
+
+    /**
+     * Записывает строку {@code str} в файл с названием {@code filename}, перезаписывая его.
      */
     public static void write(String filename, String str) {
         writeToFile(filename, str, false);
+    }
+
+    /**
+     * Записывает строку {@code str+"\n"} в файл с именем {@code filename}, причём если {@code append} равен
+     * {@code true}, то строка добавляется в конец файла.
+     */
+    private static void writelnToFile(String filename, String str, boolean append) {
+        writeToFile(filename, str + "\n", append);
+    }
+
+    /**
+     * Записывает строку {@code str} в файл с именем {@code filename}, причём если {@code append} равен {@code true}, то
+     * строка добавляется в конец файла.
+     */
+    private static void writeToFile(String filename, String str, boolean append) {
+        try {
+            FileWriter writer = new FileWriter(filename, append);
+            writer.write(str);
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -273,20 +300,6 @@ public final class Helper {
                         .map(Path::toFile)
                         .forEach(File::delete);
             }
-    }
-
-    /**
-     * Записывает строку {@code str+"\n"} в файл с именем {@code filename}, причём если {@code append} равен
-     * {@code true}, то строка добавляется в конец файла.
-     */
-    private static void writeToFile(String filename, String str, boolean append) {
-        try {
-            FileWriter writer = new FileWriter(filename, append);
-            writer.write(str + "\n");
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
