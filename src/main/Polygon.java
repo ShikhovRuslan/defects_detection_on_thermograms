@@ -3,6 +3,7 @@ package main;
 import org.apache.commons.lang3.ArrayUtils;
 import polygons.Segment;
 import polygons.Point;
+import tmp.Base;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -119,7 +120,8 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     /**
      * Определяет, пересекаются ли многоугольники {@code polygon1} и {@code polygon2}.
      */
-    public static boolean intersects(Polygon<Point> polygon1, Polygon<Point> polygon2, double focalLength) {
+    public static boolean intersects(Polygon<Point> polygon1, Polygon<Point> polygon2, double focalLength,
+                                     boolean isSloping) {
         List<Point> v1 = polygon1.getVertices();
         List<Point> v2 = polygon2.getVertices();
         Segment[] s1 = getSides(polygon1);
@@ -131,10 +133,14 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
         for (Point v : v1)
             for (Segment s : s2)
-                if (s.contains(v)) return true;
+                if (isSloping ? Base.pointInSegment(new Pixel(v.getI(), v.getJ()),
+                        new Pixel(s.getA().getI(), s.getA().getJ()), new Pixel(s.getB().getI(), s.getB().getJ())) :
+                        s.contains(v)) return true;
         for (Point v : v2)
             for (Segment s : s1)
-                if (s.contains(v)) return true;
+                if (isSloping ? Base.pointInSegment(new Pixel(v.getI(), v.getJ()),
+                        new Pixel(s.getA().getI(), s.getA().getJ()), new Pixel(s.getB().getI(), s.getB().getJ())) :
+                        s.contains(v)) return true;
 
         for (Segment side : getSides(polygon1))
             if (side.intersectsSideOf(polygon2)) return true;
@@ -636,7 +642,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         Polygon<Point> no = new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
 
         for (Polygon<Point> p : polygons)
-            if (intersects(connectingRectanglePoint, p, focalLength)) return no;
+            if (intersects(connectingRectanglePoint, p, focalLength, false)) return no;
 
         if (otherBoarder.containsVertexFrom(first) || otherBoarder.containsVertexFrom(second))
             return no;

@@ -3,6 +3,7 @@ package main;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import polygons.Point;
 import polygons.Segment;
+import tmp.Base;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -27,6 +28,7 @@ import static java.lang.Math.abs;
  * https://exiftool.org/forum/index.php?topic=4898.90.
  */
 public class Main {
+    private static int n = 0;
     //
     // Краткие имена скриптов.
     //
@@ -931,6 +933,44 @@ public class Main {
         for (int t = indicesOfPipeAnglesToRemove.size() - 1; t >= 0; t--)
             pipeAngles.remove(indicesOfPipeAnglesToRemove.get(t).intValue());
 
+        // Корректировка.
+        List<Integer> indices = IntStream.rangeClosed(0, defects.size() - 1).boxed().collect(Collectors.toList());
+        indices.stream()
+                .flatMap(i -> indices.stream()
+                        .filter(j -> j > i)
+                        .peek(j -> {
+                            Polygon<Pixel> p1 = defects.get(i);
+                            Polygon<Pixel> p2 = defects.get(j);
+
+                            if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
+                                return;
+
+                            if (Polygon.intersects(Polygon.toPolygonPoint(p1, focalLength, resY),
+                                    Polygon.toPolygonPoint(p2, focalLength, resY), focalLength, true)) {
+
+                                Base.processInner(p1, p2);
+                                Base.processTwoOpposite(p1, p2);
+                                Base.processTwoSequentialParallel(p1, p2, pipeAngles.get(i), pipeAngles.get(j));
+                                Base.processTwoSequentialPerpendicular(p1, p2, pipeAngles.get(i), pipeAngles.get(j));
+                                Base.processOneOne(p1, p2, pipeAngles.get(i), pipeAngles.get(j));
+
+                                if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
+                                        Polygon.intersects(Polygon.toPolygonPoint(p1, focalLength, resY),
+                                                Polygon.toPolygonPoint(p2, focalLength, resY), focalLength, true))
+
+                                    System.out.println("Дефекты на термограмме " + thermogram.getName() +
+                                            " по-прежнему пересекаются:\n" + "1. " + p1 + "\n2. " + p2 + ".");
+                            }
+                        }))
+                .collect(Collectors.toList());
+
+        for (int i = defects.size() - 1; i >= 0; i--) {
+            if (defects.get(i).getVertices().get(0) == null) {
+                defects.remove(i);
+                pipeAngles.remove(i);
+            }
+        }
+
         double totalSquare = squares.stream().mapToDouble(Double::doubleValue).sum();
 
         Helper.log(squaresFilename, thermogram.getName() + "   " + Helper.roundAndAppend(totalSquare, 2, 2) + "   " +
@@ -1066,7 +1106,7 @@ public class Main {
                         var defects = (ArrayList<Polygon<Pixel>>) o[0];
                         var pipeSquares = (ArrayList<Double>) o[1];
 
-                        Helper.log(pipeSquaresTmpFilename.toString(), thermogramName + "   " +
+                        Helper.log(pipeSquaresTmpFilename, thermogramName + "   " +
                                 Helper.roundAndAppend(pipeSquares.stream().mapToDouble(Double::doubleValue).sum(), 2, 2) +
                                 "   " + Helper.roundAndAppend(pipeSquares, 2, 2) + "\n");
 
@@ -1075,7 +1115,13 @@ public class Main {
                                 thermogramFilename.toString(), defectsFilename.toString(), ExifParam.RES_Y.intValue(),
                                 ExifParam.FOCAL_LENGTH.value());
 
-                        System.out.println("finish " + thermogramName);
+                        synchronized (Main.class) {
+                            n++;
+                            System.out.println("finish " + thermogramName + "   [ " +
+                                    Helper.roundAndAppend(Math.floor(100 * (100. * n / thermograms.length)) / 100, 2, 3) +
+                                    " % обработано,  осталось " + String.format("%" + (thermograms.length + "").length() + "d",
+                                    thermograms.length - n) + " ]");
+                        }
                     }
                 }
 
