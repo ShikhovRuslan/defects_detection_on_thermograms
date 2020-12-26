@@ -934,6 +934,7 @@ public class Main {
             pipeAngles.remove(indicesOfPipeAnglesToRemove.get(t).intValue());
 
         // Корректировка.
+        var defectsChanged = new HashSet<Integer>();
         List<Integer> indices = IntStream.rangeClosed(0, defects.size() - 1).boxed().collect(Collectors.toList());
         indices.stream()
                 .flatMap(i -> indices.stream()
@@ -948,11 +949,24 @@ public class Main {
                             if (Polygon.intersects(Polygon.toPolygonPoint(p1, focalLength, resY),
                                     Polygon.toPolygonPoint(p2, focalLength, resY), focalLength, true)) {
 
-                                Base.processInner(p1, p2);
-                                Base.processTwoOpposite(p1, p2);
-                                Base.processTwoSequentialParallel(p1, p2, pipeAngles.get(i), pipeAngles.get(j));
-                                Base.processTwoSequentialPerpendicular(p1, p2, pipeAngles.get(i), pipeAngles.get(j));
-                                Base.processOneOne(p1, p2, pipeAngles.get(i), pipeAngles.get(j));
+                                boolean p1Changed = false;
+                                boolean p2Changed = false;
+
+                                boolean[][] changes = new boolean[][]{
+                                        Base.processInner(p1, p2),
+                                        Base.processTwoOpposite(p1, p2),
+                                        Base.processTwoSequentialParallel(p1, p2, pipeAngles.get(i), pipeAngles.get(j)),
+                                        Base.processTwoSequentialPerpendicular(p1, p2, pipeAngles.get(i), pipeAngles.get(j)),
+                                        Base.processOneOne(p1, p2, pipeAngles.get(i), pipeAngles.get(j))
+                                };
+
+                                for (boolean[] b : changes) {
+                                    p1Changed = p1Changed || b[0];
+                                    p2Changed = p2Changed || b[1];
+                                }
+
+                                if (p1Changed) defectsChanged.add(i);
+                                if (p2Changed) defectsChanged.add(j);
 
                                 if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
                                         Polygon.intersects(Polygon.toPolygonPoint(p1, focalLength, resY),
@@ -964,10 +978,24 @@ public class Main {
                         }))
                 .collect(Collectors.toList());
 
+        for (int i : defectsChanged) {
+            Polygon<Pixel> d = defects.get(i);
+            if (d.getVertices().get(0) != null) {
+                double s1 = Rectangle.squarePolygonWithoutOverlap(d, overlap, focalLength);
+                double s2 = Rectangle.squarePolygonWithoutOverlap(d, thermogramPolygon, focalLength);
+                double s = Thermogram.toEarthSquare(s1 - s2, thermogram.getHeight(), focalLength, pixelSize);
+                double ps = PI * s;
+                squares.set(i, s);
+                pipeSquares.set(i, ps);
+            }
+        }
+
         for (int i = defects.size() - 1; i >= 0; i--) {
             if (defects.get(i).getVertices().get(0) == null) {
                 defects.remove(i);
                 pipeAngles.remove(i);
+                squares.remove(i);
+                pipeSquares.remove(i);
             }
         }
 

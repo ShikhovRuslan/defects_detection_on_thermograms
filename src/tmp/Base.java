@@ -459,8 +459,8 @@ public class Base {
         return new Object[]{shift, sideToShift};
     }
 
-    public static void oneOne(Polygon<Pixel> p1, Polygon<Pixel> p2,
-                              double pipeAngle1, double pipeAngle2, int vertex1Index, int vertex2Index) {
+    public static boolean[] oneOne(Polygon<Pixel> p1, Polygon<Pixel> p2,
+                                   double pipeAngle1, double pipeAngle2, int vertex1Index, int vertex2Index) {
 
         Object[] o1 = whatToShorten(p1, p2, pipeAngle1, vertex1Index, vertex2Index);
         Object[] o2 = whatToShorten(p2, p1, pipeAngle2, vertex2Index, vertex1Index);
@@ -479,47 +479,57 @@ public class Base {
 
         if (o1.length == 2 && o2.length == 0 && shift1 > 0) {
             shorten(p1, shift1, side1ToShift, pipeAngle1);
-            return;
+            return new boolean[]{true, false};
         }
 
         if (o1.length == 0 && o2.length == 2 && shift2 > 0) {
             shorten(p2, shift2, side2ToShift, pipeAngle2);
-            return;
+            return new boolean[]{false, true};
         }
 
         if (o1.length == 0 && o2.length == 0) {
             p2.getVertices().set(0, null);
-            return;
+            return new boolean[]{false, true};
         }
 
         if (shift1 < shift2) {
-            if (shift1 > 0)
+            if (shift1 > 0) {
                 shorten(p1, shift1, side1ToShift, pipeAngle1);
+                return new boolean[]{true, false};
+            }
         } else {
-            if (shift2 > 0)
+            if (shift2 > 0) {
                 shorten(p2, shift2, side2ToShift, pipeAngle2);
+                return new boolean[]{false, true};
+            }
         }
+        return new boolean[]{false, false};
     }
 
-    public static void processInner(Polygon<Pixel> p1, Polygon<Pixel> p2) {
-        if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null) return;
+    public static boolean[] processInner(Polygon<Pixel> p1, Polygon<Pixel> p2) {
+        if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
+            return new boolean[]{false, false};
 
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
         List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
 
         if (verticesFromP1.size() == p1.getVertices().size()) {
             p1.getVertices().set(0, null);
-            return;
+            return new boolean[]{true, false};
         }
-        if (verticesFromP2.size() == p2.getVertices().size())
+        if (verticesFromP2.size() == p2.getVertices().size()) {
             p2.getVertices().set(0, null);
+            return new boolean[]{false, true};
+        }
+        return new boolean[]{false, false};
     }
 
-    public static void processTwoOpposite(Polygon<Pixel> p1, Polygon<Pixel> p2) {
+    public static boolean[] processTwoOpposite(Polygon<Pixel> p1, Polygon<Pixel> p2) {
         List<Pixel> v1 = p1.getVertices();
         List<Pixel> v2 = p2.getVertices();
 
-        if (v1.get(0) == null || v2.get(0) == null) return;
+        if (v1.get(0) == null || v2.get(0) == null)
+            return new boolean[]{false, false};
 
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
         List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
@@ -529,25 +539,30 @@ public class Base {
                 verticesFromP1.size() == 3)) {
 
             p1.getVertices().set(0, null);
+            return new boolean[]{true, false};
         }
         if (verticesFromP1.size() == 0 && (verticesFromP2.size() == 2 &&
                 abs(v2.indexOf(verticesFromP2.get(0)) - v2.indexOf(verticesFromP2.get(1))) == 2 ||
                 verticesFromP2.size() == 3)) {
 
             p2.getVertices().set(0, null);
+            return new boolean[]{false, true};
         }
+        return new boolean[]{false, false};
     }
 
-    public static void processOneOne(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1, double pipeAngle2) {
-        if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null) return;
+    public static boolean[] processOneOne(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1, double pipeAngle2) {
+        if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
+            return new boolean[]{false, false};
 
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
         List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
 
         if (verticesFromP1.size() == 1 && verticesFromP2.size() == 1)
-            oneOne(p1, p2, pipeAngle1, pipeAngle2,
+            return oneOne(p1, p2, pipeAngle1, pipeAngle2,
                     p1.getVertices().indexOf(verticesFromP1.get(0)),
                     p2.getVertices().indexOf(verticesFromP2.get(0)));
+        return new boolean[]{false, false};
     }
 
     public static String[] sidesParallel(double pipeAngle) {
@@ -558,13 +573,14 @@ public class Base {
         return pipeAngle < 90 ? new String[]{"01", "23"} : new String[]{"03", "12"};
     }
 
-    public static void processTwoSequentialParallel(Polygon<Pixel> p1, Polygon<Pixel> p2,
-                                                    double pipeAngle1, double pipeAngle2) {
+    public static boolean[] processTwoSequentialParallel(Polygon<Pixel> p1, Polygon<Pixel> p2,
+                                                         double pipeAngle1, double pipeAngle2) {
 
         List<Pixel> v1 = p1.getVertices();
         List<Pixel> v2 = p2.getVertices();
 
-        if (v1.get(0) == null || v2.get(0) == null) return;
+        if (v1.get(0) == null || v2.get(0) == null)
+            return new boolean[]{false, false};
 
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
         List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
@@ -597,8 +613,10 @@ public class Base {
                 }
             }
 
-            if (permitted && (side.equals(sides1Par[0]) || side.equals(sides1Par[1])))
+            if (permitted && (side.equals(sides1Par[0]) || side.equals(sides1Par[1]))) {
                 p1.getVertices().set(0, null);
+                return new boolean[]{true, false};
+            }
         }
         if (verticesFromP2.size() == 2 && (verticesFromP1.size() == 0 || verticesFromP1.size() == 1)) {
             String side = "" + v2.indexOf(verticesFromP2.get(0)) + v2.indexOf(verticesFromP2.get(1));
@@ -622,18 +640,22 @@ public class Base {
                 }
             }
 
-            if (permitted && (side.equals(sides2Par[0]) || side.equals(sides2Par[1])))
+            if (permitted && (side.equals(sides2Par[0]) || side.equals(sides2Par[1]))) {
                 p2.getVertices().set(0, null);
+                return new boolean[]{false, true};
+            }
         }
+        return new boolean[]{false, false};
     }
 
-    public static void processTwoSequentialPerpendicular(Polygon<Pixel> p1, Polygon<Pixel> p2,
-                                                         double pipeAngle1, double pipeAngle2) {
+    public static boolean[] processTwoSequentialPerpendicular(Polygon<Pixel> p1, Polygon<Pixel> p2,
+                                                              double pipeAngle1, double pipeAngle2) {
 
         List<Pixel> v1 = p1.getVertices();
         List<Pixel> v2 = p2.getVertices();
 
-        if (v1.get(0) == null || v2.get(0) == null) return;
+        if (v1.get(0) == null || v2.get(0) == null)
+            return new boolean[]{false, false};
 
         String[] sides1Per = sidesPerpendicular(pipeAngle1);
         String[] sides2Per = sidesPerpendicular(pipeAngle2);
@@ -647,8 +669,10 @@ public class Base {
                 Object[] o = twoSequentialPerpendicular(p1, p2, pipeAngle1,
                         v1.indexOf(verticesFromP1.get(0)), v1.indexOf(verticesFromP1.get(1)),
                         verticesFromP2.size() == 1 ? v2.indexOf(verticesFromP2.get(0)) : null);
-                if (o.length == 2)
+                if (o.length == 2 && (double) o[0] > 0) {
                     shorten(p1, (double) o[0], (String) o[1], pipeAngle1);
+                    return new boolean[]{true, false};
+                }
             }
         }
 
@@ -658,10 +682,13 @@ public class Base {
                 Object[] o = twoSequentialPerpendicular(p2, p1, pipeAngle2,
                         v2.indexOf(verticesFromP2.get(0)), v2.indexOf(verticesFromP2.get(1)),
                         verticesFromP1.size() == 1 ? v1.indexOf(verticesFromP1.get(0)) : null);
-                if (o.length == 2)
+                if (o.length == 2 && (double) o[0] > 0) {
                     shorten(p2, (double) o[0], (String) o[1], pipeAngle2);
+                    return new boolean[]{false, true};
+                }
             }
         }
+        return new boolean[]{false, false};
     }
 
     public static Object[] twoSequentialPerpendicular(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1,
