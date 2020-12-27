@@ -506,6 +506,11 @@ public class Base {
         return new boolean[]{false, false};
     }
 
+    /**
+     * Если один многоугольник принадлежит другому (т. е. все вершины принадлежат другому), то у него в качестве 0-й
+     * вершины устанавливается значение {@code null}.
+     * Редактируется не более одного многоугольника. Порядок просмотра - порядок в списке параметров.
+     */
     public static boolean[] processInner(Polygon<Pixel> p1, Polygon<Pixel> p2) {
         if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
             return new boolean[]{false, false};
@@ -513,17 +518,25 @@ public class Base {
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
         List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
 
+        // Все вершины p1 принадлежат p2.
         if (verticesFromP1.size() == p1.getVertices().size()) {
             p1.getVertices().set(0, null);
             return new boolean[]{true, false};
         }
+
+        // Все вершины p2 принадлежат p1.
         if (verticesFromP2.size() == p2.getVertices().size()) {
             p2.getVertices().set(0, null);
             return new boolean[]{false, true};
         }
+
         return new boolean[]{false, false};
     }
 
+    /**
+     * Если один многоугольник имеет 2 противоположные или 3 вершины, которые принадлежат другому, то у него в качестве
+     * 0-й вершины устанавливается значение {@code null}.
+     */
     public static boolean[] processTwoOpposite(Polygon<Pixel> p1, Polygon<Pixel> p2) {
         List<Pixel> v1 = p1.getVertices();
         List<Pixel> v2 = p2.getVertices();
@@ -534,20 +547,22 @@ public class Base {
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
         List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
 
-        if (verticesFromP2.size() == 0 && (verticesFromP1.size() == 2 &&
+        if ((verticesFromP1.size() == 2 &&
                 abs(v1.indexOf(verticesFromP1.get(0)) - v1.indexOf(verticesFromP1.get(1))) == 2 ||
                 verticesFromP1.size() == 3)) {
 
             p1.getVertices().set(0, null);
             return new boolean[]{true, false};
         }
-        if (verticesFromP1.size() == 0 && (verticesFromP2.size() == 2 &&
+
+        if ((verticesFromP2.size() == 2 &&
                 abs(v2.indexOf(verticesFromP2.get(0)) - v2.indexOf(verticesFromP2.get(1))) == 2 ||
                 verticesFromP2.size() == 3)) {
 
             p2.getVertices().set(0, null);
             return new boolean[]{false, true};
         }
+
         return new boolean[]{false, false};
     }
 
@@ -573,172 +588,129 @@ public class Base {
         return pipeAngle < 90 ? new String[]{"01", "23"} : new String[]{"03", "12"};
     }
 
+    public static boolean sideParallelToPipe(Pixel v1, Pixel v2, Polygon<Pixel> polygon, double pipeAngle) {
+        int v1Index = polygon.getVertices().indexOf(v1);
+        int v2Index = polygon.getVertices().indexOf(v2);
+        return Arrays.asList(sidesParallel(pipeAngle)).contains("" + min(v1Index, v2Index) + max(v1Index, v2Index));
+    }
+
+    public static boolean sidePerpendicularToPipe(Pixel v1, Pixel v2, Polygon<Pixel> polygon, double pipeAngle) {
+        int v1Index = polygon.getVertices().indexOf(v1);
+        int v2Index = polygon.getVertices().indexOf(v2);
+        return Arrays.asList(sidesPerpendicular(pipeAngle)).contains("" + min(v1Index, v2Index) + max(v1Index, v2Index));
+    }
+
+    /**
+     *
+     */
     public static boolean[] processTwoSequentialParallel(Polygon<Pixel> p1, Polygon<Pixel> p2,
                                                          double pipeAngle1, double pipeAngle2) {
 
-        List<Pixel> v1 = p1.getVertices();
-        List<Pixel> v2 = p2.getVertices();
-
-        if (v1.get(0) == null || v2.get(0) == null)
+        if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
             return new boolean[]{false, false};
 
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
         List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
 
-        String[] sides1Par = sidesParallel(pipeAngle1);
-        String[] sides2Par = sidesParallel(pipeAngle2);
+        if (verticesFromP1.size() == 2 &&
+                sideParallelToPipe(verticesFromP1.get(0), verticesFromP1.get(1), p1, pipeAngle1) &&
+                checkInteriorIntersection(p1, p2, -1)) {
 
-        String[] sides1Per = sidesPerpendicular(pipeAngle1);
-        String[] sides2Per = sidesPerpendicular(pipeAngle2);
-
-        if (verticesFromP1.size() == 2 && (verticesFromP2.size() == 0 || verticesFromP2.size() == 1)) {
-            String side = "" + v1.indexOf(verticesFromP1.get(0)) + v1.indexOf(verticesFromP1.get(1));
-
-            boolean permitted = false;
-            for (int i = 0; i < p2.getVertices().size(); i++) {
-                if (!permitted) {
-                    Pixel a = p2.getVertices().get(i);
-                    Pixel b = p2.getVertices().get(i + 1 < p2.getVertices().size() ? i + 1 : 0);
-
-                    for (String s : sides1Per) {
-                        Pixel intersect = segmentsIntersect(a, b,
-                                p1.getVertices().get(s.charAt(0) - '0'),
-                                p1.getVertices().get(s.charAt(1) - '0'));
-                        if (intersect.getI() != -1
-                                && !intersect.equals(verticesFromP1.get(0)) && !intersect.equals(verticesFromP1.get(1))) {
-                            permitted = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (permitted && (side.equals(sides1Par[0]) || side.equals(sides1Par[1]))) {
-                p1.getVertices().set(0, null);
-                return new boolean[]{true, false};
-            }
+            p1.getVertices().set(0, null);
+            return new boolean[]{true, false};
         }
-        if (verticesFromP2.size() == 2 && (verticesFromP1.size() == 0 || verticesFromP1.size() == 1)) {
-            String side = "" + v2.indexOf(verticesFromP2.get(0)) + v2.indexOf(verticesFromP2.get(1));
 
-            boolean permitted = false;
-            for (int i = 0; i < p1.getVertices().size(); i++) {
-                if (!permitted) {
-                    Pixel a = p1.getVertices().get(i);
-                    Pixel b = p1.getVertices().get(i + 1 < p1.getVertices().size() ? i + 1 : 0);
+        if (verticesFromP2.size() == 2 &&
+                sideParallelToPipe(verticesFromP2.get(0), verticesFromP2.get(1), p2, pipeAngle2) &&
+                checkInteriorIntersection(p1, p2, -1)) {
 
-                    for (String s : sides2Per) {
-                        Pixel intersect = segmentsIntersect(a, b,
-                                p2.getVertices().get(s.charAt(0) - '0'),
-                                p2.getVertices().get(s.charAt(1) - '0'));
-                        if (intersect.getI() != -1
-                                && !intersect.equals(verticesFromP2.get(0)) && !intersect.equals(verticesFromP2.get(1))) {
-                            permitted = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (permitted && (side.equals(sides2Par[0]) || side.equals(sides2Par[1]))) {
-                p2.getVertices().set(0, null);
-                return new boolean[]{false, true};
-            }
+            p2.getVertices().set(0, null);
+            return new boolean[]{false, true};
         }
+
         return new boolean[]{false, false};
     }
 
     public static boolean[] processTwoSequentialPerpendicular(Polygon<Pixel> p1, Polygon<Pixel> p2,
                                                               double pipeAngle1, double pipeAngle2) {
 
-        List<Pixel> v1 = p1.getVertices();
-        List<Pixel> v2 = p2.getVertices();
-
-        if (v1.get(0) == null || v2.get(0) == null)
+        if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
             return new boolean[]{false, false};
-
-        String[] sides1Per = sidesPerpendicular(pipeAngle1);
-        String[] sides2Per = sidesPerpendicular(pipeAngle2);
 
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
         List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
 
-        if (verticesFromP1.size() == 2 && (verticesFromP2.size() == 0 || verticesFromP2.size() == 1)) {
-            String side = "" + v1.indexOf(verticesFromP1.get(0)) + v1.indexOf(verticesFromP1.get(1));
-            if (side.equals(sides1Per[0]) || side.equals(sides1Per[1])) {
-                Object[] o = twoSequentialPerpendicular(p1, p2, pipeAngle1,
-                        v1.indexOf(verticesFromP1.get(0)), v1.indexOf(verticesFromP1.get(1)),
-                        verticesFromP2.size() == 1 ? v2.indexOf(verticesFromP2.get(0)) : null);
-                if (o.length == 2 && (double) o[0] > 0) {
-                    shorten(p1, (double) o[0], (String) o[1], pipeAngle1);
-                    return new boolean[]{true, false};
-                }
+        if (verticesFromP1.size() == 2 &&
+                sidePerpendicularToPipe(verticesFromP1.get(0), verticesFromP1.get(1), p1, pipeAngle1)) {
+
+            Object[] o = twoSequentialPerpendicular(p1, p2, pipeAngle1,
+                    verticesFromP1.get(0), verticesFromP1.get(1),
+                    verticesFromP2.toArray(new Pixel[0]));
+            if (o.length == 2 && (double) o[0] > 0) {
+                shorten(p1, (double) o[0], (String) o[1], pipeAngle1);
+                return new boolean[]{true, false};
             }
         }
 
-        if (verticesFromP2.size() == 2 && (verticesFromP1.size() == 0 || verticesFromP1.size() == 1)) {
-            String side = "" + v2.indexOf(verticesFromP2.get(0)) + v2.indexOf(verticesFromP2.get(1));
-            if (side.equals(sides2Per[0]) || side.equals(sides2Per[1])) {
-                Object[] o = twoSequentialPerpendicular(p2, p1, pipeAngle2,
-                        v2.indexOf(verticesFromP2.get(0)), v2.indexOf(verticesFromP2.get(1)),
-                        verticesFromP1.size() == 1 ? v1.indexOf(verticesFromP1.get(0)) : null);
-                if (o.length == 2 && (double) o[0] > 0) {
-                    shorten(p2, (double) o[0], (String) o[1], pipeAngle2);
-                    return new boolean[]{false, true};
-                }
+        if (verticesFromP2.size() == 2 &&
+                sidePerpendicularToPipe(verticesFromP2.get(0), verticesFromP2.get(1), p2, pipeAngle2)) {
+
+            Object[] o = twoSequentialPerpendicular(p2, p1, pipeAngle2,
+                    verticesFromP2.get(0), verticesFromP2.get(1),
+                    verticesFromP1.toArray(new Pixel[0]));
+            if (o.length == 2 && (double) o[0] > 0) {
+                shorten(p2, (double) o[0], (String) o[1], pipeAngle2);
+                return new boolean[]{false, true};
             }
         }
+
         return new boolean[]{false, false};
     }
 
     public static Object[] twoSequentialPerpendicular(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1,
-                                                      int vertex1Index1, int vertex1Index2, Integer vertex2Index) {
-        try {
+                                                      Pixel vertex11, Pixel vertex12, Pixel... vertices2) {
+        List<Pixel> v1 = p1.getVertices();
+        List<Pixel> v2 = p2.getVertices();
 
+        int vertex11Index = v1.indexOf(vertex11);
+        int vertex12Index = v1.indexOf(vertex12);
+        String sideToShift = "" + min(vertex11Index, vertex12Index) + max(vertex11Index, vertex12Index);
 
-            String[] sidesPer = sidesPerpendicular(pipeAngle1);
-            String[] sidesPar = sidesParallel(pipeAngle1);
+        String[] sidesPer = sidesPerpendicular(pipeAngle1);
+        String otherSide = sidesPer[sidesPer.length - 1 - Arrays.asList(sidesPer).indexOf(sideToShift)];
 
-            List<Pixel> vertices1 = p1.getVertices();
-            List<Pixel> vertices2 = p2.getVertices();
+        var intersections = new ArrayList<Pixel>();
 
-            String sideToShift = "" + min(vertex1Index1, vertex1Index2) + max(vertex1Index1, vertex1Index2);
-            String otherSide = sidesPer[sidesPer.length - 1 - Arrays.asList(sidesPer).indexOf(sideToShift)];
-            var intersections = new ArrayList<Pixel>();
+        for (int i = 0; i < v2.size(); i++) {
+            Pixel a = v2.get(i);
+            Pixel b = v2.get(i + 1 < v2.size() ? i + 1 : 0);
 
-            for (int i = 0; i < vertices2.size(); i++) {
-                Pixel a = vertices2.get(i);
-                Pixel b = vertices2.get(i + 1 < vertices2.size() ? i + 1 : 0);
+            if (segmentsIntersect(a, b,
+                    v1.get(otherSide.charAt(0) - '0'),
+                    v1.get(otherSide.charAt(1) - '0')).getI() != -1)
+                return new Object[0];
 
-                if (segmentsIntersect(a, b,
-                        vertices1.get(otherSide.charAt(0) - '0'),
-                        vertices1.get(otherSide.charAt(1) - '0')).getI() != -1)
-                    return new Object[0];
-
-                for (String side : sidesPar) {
-                    Pixel p = segmentsIntersect(a, b,
-                            vertices1.get(side.charAt(0) - '0'),
-                            vertices1.get(side.charAt(1) - '0'));
-                    if (p.getI() != -1)
-                        intersections.add(p);
-                }
+            for (String side : sidesParallel(pipeAngle1)) {
+                Pixel p = segmentsIntersect(a, b,
+                        v1.get(side.charAt(0) - '0'),
+                        v1.get(side.charAt(1) - '0'));
+                if (p.getI() != -1)
+                    intersections.add(p);
             }
-
-            Pixel end1OfSideToShift = vertices1.get(sideToShift.charAt(0) - '0');
-            Pixel end2OfSideToShift = vertices1.get(sideToShift.charAt(1) - '0');
-
-            double shift = max(vertex2Index != null ?
-                            distance(end1OfSideToShift, end2OfSideToShift, vertices2.get(vertex2Index)) : -1,
-                    intersections
-                            .stream()
-                            .mapToDouble(p -> distance(end1OfSideToShift, end2OfSideToShift, p))
-                            .max().orElseThrow(NoSuchElementException::new));
-            return new Object[]{shift, sideToShift};
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("\n\n" + min(vertex1Index1, vertex1Index2) + max(vertex1Index1, vertex1Index2) + "  " +
-                    Arrays.toString(sidesPerpendicular(pipeAngle1)) + "\n\n");
         }
-        return new Object[0];
+
+        Pixel sideToShiftEnd1 = v1.get(sideToShift.charAt(0) - '0');
+        Pixel sideToShiftEnd2 = v1.get(sideToShift.charAt(1) - '0');
+
+        double shift = max(
+                vertices2.length > 0 ? Arrays.stream(vertices2)
+                        .mapToDouble(p -> distance(sideToShiftEnd1, sideToShiftEnd2, p))
+                        .max().orElseThrow(NoSuchElementException::new) : 0,
+                intersections.size() > 0 ? intersections
+                        .stream()
+                        .mapToDouble(p -> distance(sideToShiftEnd1, sideToShiftEnd2, p))
+                        .max().orElseThrow(NoSuchElementException::new) : 0);
+        return new Object[]{shift, sideToShift};
     }
 
     static class Class {
@@ -760,10 +732,40 @@ public class Base {
         return res;
     }
 
+    public static boolean checkInteriorIntersection(Polygon<Pixel> polygon1, Polygon<Pixel> polygon2, double focalLength) {
+        return Rectangle.getIntersection(polygon1, polygon2, focalLength).square(focalLength) > 0;
+    }
+
+    public static double squarePolygon(Polygon<Pixel> polygon, Polygon<Pixel> overlap, Polygon<Pixel> bigPolygon,
+                                       double thermogramHeight, double pixelSize, double focalLength) {
+
+        double s1 = Rectangle.squarePolygonWithoutOverlap(polygon, overlap, focalLength);
+        double s2 = Rectangle.squarePolygonWithoutOverlap(polygon, bigPolygon, focalLength);
+        return Thermogram.toEarthSquare(s1 - s2, thermogramHeight, focalLength, pixelSize);
+    }
+
     public static void main(String[] args) {
 
-        Object[] o = new Object[]{12.4};
-        System.out.println(((double) o[0]) + "  " + ((Double) o[0]) + "  " + ((double) o[0] > 0));
+        Polygon<Pixel> p1 = new Polygon<>(Arrays.asList(new Pixel(10, 10), new Pixel(100, 10),
+                new Pixel(100, 20), new Pixel(10, 20)), -1);
+        Polygon<Pixel> p2 = (new Rectangle<>(new Pixel(0, 0), new Pixel(200, 15))).toPolygon();
+
+        List<Pixel> l = p2.verticesFrom(p1, -1);
+        System.out.println(l);
+        p1.getVertices().set(0, null);
+        System.out.println(l);
+
+        /*double a = 2.00000000001;
+        double b = 17.00050000404;
+        var p = new Polygon<>(Arrays.asList(
+                new Pixel(1, a * 1 + b), new Pixel(10, a * 10 + b),
+                new Pixel(100, a * 100 + b),
+                new Pixel(10000, a * 10000 + b + 1)),
+                -1);
+        System.out.println(p.square(-1));*/
+
+        /*Object[] o = new Object[]{12.4};
+        System.out.println(((double) o[0]) + "  " + ((Double) o[0]) + "  " + ((double) o[0] > 0));*/
 
         /*List<Class> list = Arrays.asList(new Class(1), new Class(2));
         //Object[] v = new ArrayList<>(list).toArray();

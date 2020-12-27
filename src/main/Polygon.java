@@ -642,6 +642,8 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         Polygon<Point> no = new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
 
         for (Polygon<Point> p : polygons)
+            // Т. к. p может быть невыпуклым, то возможен ошибочный результат true (если эти многоугольники не
+            // пересекаются, но фиксируется ошибочная принадлежность вершин connectingRectanglePoint многоугольнику p).
             if (intersects(connectingRectanglePoint, p, focalLength, false)) return no;
 
         if (otherBoarder.containsVertexFrom(first) || otherBoarder.containsVertexFrom(second))

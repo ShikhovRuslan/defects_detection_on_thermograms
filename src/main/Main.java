@@ -920,12 +920,10 @@ public class Main {
                 slopingDefects.add(sd);
                 defects.add(d);
 
-                double s1 = Rectangle.squarePolygonWithoutOverlap(d, overlap, focalLength);
-                double s2 = Rectangle.squarePolygonWithoutOverlap(d, thermogramPolygon, focalLength);
-                double s = Thermogram.toEarthSquare(s1 - s2, thermogram.getHeight(), focalLength, pixelSize);
-                double ps = PI * s;
+                double s = Base.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
+                        focalLength);
                 squares.add(s);
-                pipeSquares.add(ps);
+                pipeSquares.add(PI * s);
             } else
                 indicesOfPipeAnglesToRemove.add(i);
         }
@@ -943,21 +941,22 @@ public class Main {
                             Polygon<Pixel> p1 = defects.get(i);
                             Polygon<Pixel> p2 = defects.get(j);
 
+                            double pipeAngle1 = pipeAngles.get(i);
+                            double pipeAngle2 = pipeAngles.get(j);
+
                             if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
                                 return;
 
-                            if (Polygon.intersects(Polygon.toPolygonPoint(p1, focalLength, resY),
-                                    Polygon.toPolygonPoint(p2, focalLength, resY), focalLength, true)) {
-
+                            if(Base.checkInteriorIntersection(p1, p2, focalLength)) {
                                 boolean p1Changed = false;
                                 boolean p2Changed = false;
 
                                 boolean[][] changes = new boolean[][]{
                                         Base.processInner(p1, p2),
                                         Base.processTwoOpposite(p1, p2),
-                                        Base.processTwoSequentialParallel(p1, p2, pipeAngles.get(i), pipeAngles.get(j)),
-                                        Base.processTwoSequentialPerpendicular(p1, p2, pipeAngles.get(i), pipeAngles.get(j)),
-                                        Base.processOneOne(p1, p2, pipeAngles.get(i), pipeAngles.get(j))
+                                        Base.processTwoSequentialParallel(p1, p2, pipeAngle1, pipeAngle2),
+                                        Base.processTwoSequentialPerpendicular(p1, p2, pipeAngle1, pipeAngle2),
+                                        Base.processOneOne(p1, p2, pipeAngle1, pipeAngle2)
                                 };
 
                                 for (boolean[] b : changes) {
@@ -968,12 +967,12 @@ public class Main {
                                 if (p1Changed) defectsChanged.add(i);
                                 if (p2Changed) defectsChanged.add(j);
 
-                                if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
-                                        Polygon.intersects(Polygon.toPolygonPoint(p1, focalLength, resY),
-                                                Polygon.toPolygonPoint(p2, focalLength, resY), focalLength, true))
+                                if(p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
+                                        Base.checkInteriorIntersection(p1, p2, focalLength))
 
-                                    System.out.println("Дефекты на термограмме " + thermogram.getName() +
-                                            " по-прежнему пересекаются:\n" + "1. " + p1 + "\n2. " + p2 + ".");
+                                    System.out.println("Дефекты " + (i+1) + " и " + (j+1) + " на термограмме " +
+                                            thermogram.getName() + " по-прежнему пересекаются существенным образом:\n" +
+                                            "1. " + p1 + ",\n2. " + p2 + ".");
                             }
                         }))
                 .collect(Collectors.toList());
@@ -981,12 +980,10 @@ public class Main {
         for (int i : defectsChanged) {
             Polygon<Pixel> d = defects.get(i);
             if (d.getVertices().get(0) != null) {
-                double s1 = Rectangle.squarePolygonWithoutOverlap(d, overlap, focalLength);
-                double s2 = Rectangle.squarePolygonWithoutOverlap(d, thermogramPolygon, focalLength);
-                double s = Thermogram.toEarthSquare(s1 - s2, thermogram.getHeight(), focalLength, pixelSize);
-                double ps = PI * s;
+                double s = Base.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
+                        focalLength);
                 squares.set(i, s);
-                pipeSquares.set(i, ps);
+                pipeSquares.set(i, PI * s);
             }
         }
 
