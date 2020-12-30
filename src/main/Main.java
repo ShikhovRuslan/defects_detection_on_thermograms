@@ -15,9 +15,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -951,137 +948,31 @@ public class Main {
                             if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
                                 return;
 
-                            if (checkInteriorIntersection(p1, p2, focalLength)) {
+                            if (Rectangle.getIntersection(p1, p2, -1).square(-1) > 10) {
                                 boolean p1Changed = false;
                                 boolean p2Changed = false;
 
-
-                                /*Cons[] consumers = new Cons[]{
-                                        //(p11, p22, pipeAngle) -> Base.processTwoSequentialParallel(p1, p2, pipeAngle1)
-                                        Base::processTwoSequentialParallel
-                                };
-
-                                List<Cons<Polygon<Pixel>, Polygon<Pixel>, Double>> con = Arrays.asList(
-                                                Base::processInner,
-                                        Base::processTwoSequentialParallel,
-                                                Base::processTwoSequentialPerpendicular,
-                                        Base::processOneOne);*/
-
-                                /*TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> conditionInner =
-                                        (_p1, _p2, _pipeAngle1) -> _p2.verticesFrom(_p1, -1).size() ==
-                                                _p1.getVertices().size();
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> conditionTwoOpposite =
-                                        (_p1, _p2, _pipeAngle1) -> {
-                                            List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
-                                            List<Pixel> v1 = p1.getVertices();
-                                            return (verticesFromP1.size() == 2 &&
-                                                    abs(v1.indexOf(verticesFromP1.get(0)) -
-                                                            v1.indexOf(verticesFromP1.get(1))) == 2 ||
-                                                    verticesFromP1.size() == 3);
-                                        };
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> conditionTwoSequentialParallel =
-                                        (_p1, _p2, _pipeAngle1) -> {
-                                            List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
-                                            return verticesFromP1.size() == 2 &&
-                                                    sideParallelToPipe(verticesFromP1.get(0), verticesFromP1.get(1), p1, pipeAngle1) &&
-                                                    checkInteriorIntersection(p1, p2, -1);
-                                        };
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> actionInner =
-                                        (_p1, _p2, _pipeAngle1) -> {
-                                            _p1.getVertices().set(0, null);
-                                            return true;
-                                        };
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> actionTwoOpposite =
-                                        (_p1, _p2, _pipeAngle1) -> {
-                                            _p1.getVertices().set(0, null);
-                                            return true;
-                                        };
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> actionTwoSequentialParallel =
-                                        (_p1, _p2, _pipeAngle1) -> {
-                                            _p1.getVertices().set(0, null);
-                                            return true;
-                                        };
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> conditionTwoSequentialPerpendicular =
-                                        (_p1, _p2, _pipeAngle1) -> {
-                                            List<Pixel> verticesFromP1 = _p2.verticesFrom(_p1, -1);
-
-                                            return verticesFromP1.size() == 2 &&
-                                                    sidePerpendicularToPipe(verticesFromP1.get(0), verticesFromP1.get(1), p1, pipeAngle1);
-                                        };
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> actionTwoSequentialPerpendicular =
-                                        (_p1, _p2, _pipeAngle1) -> {
-                                            List<Pixel> verticesFromP1 = _p2.verticesFrom(_p1, -1);
-                                            List<Pixel> verticesFromP2 = _p1.verticesFrom(_p2, -1);
-
-                                            Object[] o = whatToShorten(_p1, _p2, _pipeAngle1,
-                                                    verticesFromP1.get(0),
-                                                    verticesFromP2.toArray(new Pixel[0]));
-                                            if (o.length == 2 && (double) o[0] > 0) {
-                                                shorten(p1, (double) o[0], (String) o[1], _pipeAngle1);
-                                                return true;
-                                            }
-                                            return false;
-                                        };
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> actionOne =
-                                        (_p1, _p2, _pipeAngle1) -> {
-                                            List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
-                                            List<Pixel> verticesFromP2 = p1.verticesFrom(p2, -1);
-                                            Object[] o = whatToShorten(_p1, _p2, _pipeAngle1,
-                                                    verticesFromP1.get(0),
-                                                    verticesFromP2.get(0));
-                                            if (o.length > 0 && (double) o[0] > 0) {
-                                                shorten(_p1, (double) o[0], (String) o[1], _pipeAngle1);
-                                                return true;
-                                            }
-                                            return false;
-                                        };
-
-                                TriPredicate<Polygon<Pixel>, Polygon<Pixel>, Double> conditionOne =
-                                        (_p1, _p2, _pipeAngle1) ->
-                                                p2.verticesFrom(p1, -1).size() == 1;*/
-
-
-                                /*boolean[] changes = new boolean[]{
-                                        Base.process(p1, p2, pipeAngle1, Process.INNER.condition, Process.INNER.action),
-                                        Base.process(p1, p2, pipeAngle1, conditionTwoOpposite, actionTwoOpposite),
-                                        Base.process(p1, p2, pipeAngle1, conditionTwoSequentialParallel, actionTwoSequentialParallel),
-                                        Base.process(p1, p2, pipeAngle1, conditionTwoSequentialPerpendicular, actionTwoSequentialPerpendicular),
-                                        Base.process(p1, p2, pipeAngle1, conditionOne, actionOne)
-                                };*/
-
-                                Boolean[] changes1 = Arrays.stream(Process.values())
-                                        .map(process ->
-                                                Base.process(p1, p2, pipeAngle1, process.getCondition(), process.getAction()))
+                                Boolean[] changes1 = Arrays.stream(Intersection.values())
+                                        .map(intersection ->
+                                                Base.process(p1, p2, pipeAngle1, 10, intersection.getCondition(), intersection.getAction()))
                                         .toArray(Boolean[]::new);
 
-                                Boolean[] changes2 = new Boolean[Process.values().length];
-                                if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
-                                        checkInteriorIntersection(p1, p2, focalLength)) {
-                                    changes2 = Arrays.stream(Process.values())
-                                            .map(process ->
-                                                    Base.process(p2, p1, pipeAngle2, process.getCondition(), process.getAction()))
-                                            .toArray(Boolean[]::new);
-                                }
+                                Boolean[] changes2 = Arrays.stream(Intersection.values())
+                                        .map(intersection ->
+                                                Base.process(p2, p1, pipeAngle2, 10, intersection.getCondition(), intersection.getAction()))
+                                        .toArray(Boolean[]::new);
 
                                 for (boolean b : changes1)
                                     p1Changed = p1Changed || b;
 
-                                for (Boolean b : changes2)
-                                    p2Changed = p2Changed || (b != null && b);
+                                for (boolean b : changes2)
+                                    p2Changed = p2Changed || b;
 
                                 if (p1Changed) defectsChanged.add(i);
                                 if (p2Changed) defectsChanged.add(j);
 
                                 if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
-                                        checkInteriorIntersection(p1, p2, focalLength))
+                                        Rectangle.getIntersection(p1, p2, -1).square(-1) > 10)
 
                                     System.out.println("Дефекты " + (i + 1) + " и " + (j + 1) + " на термограмме " +
                                             thermogram.getName() + " по-прежнему пересекаются существенным образом:\n" +

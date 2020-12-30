@@ -7,10 +7,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static java.lang.Math.max;
-import static java.lang.Math.min;
-import static java.lang.Math.signum;
-import static java.lang.Math.atan2;
+import static java.lang.Math.*;
 
 
 /**
@@ -124,6 +121,13 @@ public abstract class AbstractPoint {
         points.sort((p1, p2) -> (int) signum(atan2(p1.getJ() - newJ0, p1.getI() - newI0) -
                 atan2(p2.getJ() - newJ0, p2.getI() - newI0)));
         return points;
+    }
+
+    /**
+     * Возвращает расстояние между точками {@code p1} и {@code p2}.
+     */
+    public static <T extends AbstractPoint> double distance(T p1, T p2) {
+        return sqrt(pow(p1.getI() - p2.getI(), 2) + pow(p1.getJ() - p2.getJ(), 2));
     }
 
     @Override
