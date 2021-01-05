@@ -836,7 +836,9 @@ public class Main {
                                     int minPixelSquare, double diameter, double[] params, String thermogramFilename,
                                     String rawDefectsFilename, String realTempsFilename, char separatorReal,
                                     double pixelSize, double focalLength, int resX, int resY, String squaresFilename,
-                                    String pipeAnglesFilename, String pipeAnglesLogFilename) throws IOException {
+                                    String pipeAnglesFilename, String pipeAnglesLogFilename,
+                                    double minIntersectionSquare)
+            throws IOException {
 
         int distance = (int) params[0];
         double tMinPseudo = params[1];
@@ -948,36 +950,50 @@ public class Main {
                             if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
                                 return;
 
-                            if (Rectangle.getIntersection(p1, p2, -1).square(-1) > 10) {
-                                boolean p1Changed = false;
-                                boolean p2Changed = false;
+                            boolean p1Changed = false;
+                            boolean p2Changed = false;
 
-                                Boolean[] changes1 = Arrays.stream(Intersection.values())
-                                        .map(intersection ->
-                                                Base.process(p1, p2, pipeAngle1, 10, intersection.getCondition(), intersection.getAction()))
-                                        .toArray(Boolean[]::new);
+                            Intersection[] intersections = Intersection.values();
 
-                                Boolean[] changes2 = Arrays.stream(Intersection.values())
-                                        .map(intersection ->
-                                                Base.process(p2, p1, pipeAngle2, 10, intersection.getCondition(), intersection.getAction()))
-                                        .toArray(Boolean[]::new);
-
-                                for (boolean b : changes1)
-                                    p1Changed = p1Changed || b;
-
-                                for (boolean b : changes2)
-                                    p2Changed = p2Changed || b;
-
-                                if (p1Changed) defectsChanged.add(i);
-                                if (p2Changed) defectsChanged.add(j);
-
-                                if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
-                                        Rectangle.getIntersection(p1, p2, -1).square(-1) > 10)
-
-                                    System.out.println("Дефекты " + (i + 1) + " и " + (j + 1) + " на термограмме " +
-                                            thermogram.getName() + " по-прежнему пересекаются существенным образом:\n" +
-                                            "1. " + p1 + ",\n2. " + p2 + ".");
+                            // Действия, т. е. функции action, в перечислении Intersection упорядочены таким образом,
+                            // что сначала идут функции, не проверяющие величину площади пересечения (т. е. не выдающие
+                            // 1), а затем идут функции, проверяющие это. Сделано для того, чтобы функции из 1-й группы
+                            // применялись даже и в случае малости пересечения.
+                            for (Intersection intersection : intersections) {
+                                if (intersection.getCondition().test(p1, p2, pipeAngle1, minIntersectionSquare)) {
+                                    int res = intersection.getAction().apply(p1, p2, pipeAngle1,
+                                            minIntersectionSquare);
+                                    if (res == 1) return;
+                                    if (res == 0) {
+                                        p1Changed = true;
+                                        break;
+                                    }
+                                }
                             }
+
+                            if (!p1Changed) {
+                                for (Intersection intersection : intersections) {
+                                    if (intersection.getCondition().test(p2, p1, pipeAngle2, minIntersectionSquare)) {
+                                        int res = intersection.getAction().apply(p2, p1, pipeAngle2,
+                                                minIntersectionSquare);
+                                        if (res == 0) {
+                                            p2Changed = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (p1Changed) defectsChanged.add(i);
+                            if (p2Changed) defectsChanged.add(j);
+
+                            if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
+                                    Rectangle.getIntersection(p1, p2, -1).square(-1) > minIntersectionSquare)
+
+                                System.out.println("Дефекты " + (i + 1) + " и " + (j + 1) + " на термограмме " +
+                                        thermogram.getName() + " по-прежнему пересекаются существенным образом " +
+                                        "(т. е. площадь пересечения >" + minIntersectionSquare + " п.):\n" +
+                                        "1. " + p1 + ",\n2. " + p2 + ".");
                         }))
                 .collect(Collectors.toList());
 
@@ -1124,7 +1140,8 @@ public class Main {
                                     realTempsFilename.toString(), SEPARATOR_REAL,
                                     Property.PIXEL_SIZE.doubleValue() / 1000_000, ExifParam.FOCAL_LENGTH.value(),
                                     ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(), squaresTmpFilename,
-                                    pipeAnglesTmpFilename, pipeAnglesLogTmpFilename);
+                                    pipeAnglesTmpFilename, pipeAnglesLogTmpFilename,
+                                    Property.MIN_INTERSECTION_SQUARE.doubleValue());
                         } catch (Exception e) {
                             System.out.println("Термограмма " + thermogramName + " не обработана.");
                             e.printStackTrace();

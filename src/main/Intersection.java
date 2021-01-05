@@ -6,13 +6,21 @@ import static tmp.Base.*;
 
 
 /**
- * Каждая константа перечисления описывает ситуацию пересечения прямоугольников p1 и p2 и содержит два предиката:
- * {@code condition} и {@code action}. Первый предикат - условие, при котором прямоугольники пересекаются, а второй -
- * действие, которое нужно выполнить с прямоугольником p1, если первый предикат выдаёт {@code true}. Второй предикат
- * возвращает {@code boolean}, показывающий, изменился ли прямоугольник p1 (точнее, была ли предпринята попытка его
- * изменить).
+ * Каждая константа перечисления описывает ситуацию пересечения прямоугольников p1 и p2 и содержит предикат
+ * {@code condition} и функцию {@code action}. Предикат - условие, при котором прямоугольники пересекаются, а функция -
+ * действие, которое нужно выполнить с прямоугольником p1, чтобы ликвидировать пересечение внутренностей
+ * прямоугольников, если предикат выдаёт {@code true}.
  * <p>
- * Аргументы предикатов {@code condition} и {@code action}:
+ * Функция возвращает:
+ * <ul>
+ *     <li>{@code 0}, если {@code p1} изменился,</li>
+ *     <li>{@code 1}, если {@code p1} не изменился по причине малости площади пересечения (а именно, она
+ *     {@code <= minSquare}),</li>
+ *     <li>{@code 2}, если {@code p1} не изменился по причине невозможности.</li>
+ * </ul>
+ * Не все функции осуществляют проверку величины площади пересечения.
+ * <p>
+ * Аргументы предиката {@code condition} и функции {@code action}:
  * <ul>
  *     <li> {@code p1} - прямоугольник,</li>
  *     <li> {@code p2} - прямоугольник,</li>
@@ -23,13 +31,13 @@ import static tmp.Base.*;
  * Для различных констант перечисления предусмотрены 3 действия:
  * <ul>
  *     <li> {@code markToDelete} - пометить p1 для удаления (т. е. установить в качестве 0-й вершины значение
- *     {@code null}) (возвращает {@code true}),</li>
+ *     {@code null}) (возвращает {@code 0}),</li>
  *     <li> {@code markToDeleteMinSquare} - пометить p1 для удаления, если площадь пересечения {@code > minSquare}
- *      (возвращает {@code true} при выполнении этого условия),</li>
+ *      (возвращает {@code 0} при выполнении этого условия, иначе {@code 1}),</li>
  *     <li> {@code shorten} - укоротить p1, если площадь пересечения {@code > minSquare} и укорочение возможно
- *     (возвращает {@code true} при выполнении этого условия).</li>
+ *     (возвращает {@code 0} при выполнении этого условия, иначе {@code 1} при нарушении 1-го условия и {@code 2} при
+ *     нарушении 2-го).</li>
  * </ul>
- * Значение {@code false} в {@code shorten} может говорить о том, что невозможно отредактировать p1, хотя это нужно.
  */
 public enum Intersection {
     /**
@@ -46,7 +54,7 @@ public enum Intersection {
     }),
 
     /**
-     * У прямоугольника p1 имеется сторона, которая параллельна трубе и принадлежит p2.
+     * У прямоугольника p1 имеются 2 вершины, принадлежащие p2 и образующие сторону, которая параллельна трубе.
      * Действие: {@code markToDeleteMinSquare}.
      */
     PARALLEL_SIDE((p1, p2, pipeAngle1, minSquare) -> {
@@ -57,7 +65,7 @@ public enum Intersection {
     }),
 
     /**
-     * У прямоугольника p1 имеется сторона, которая перпендикулярна трубе и принадлежит p2.
+     * У прямоугольника p1 имеются 2 вершины, принадлежащие p2 и образующие сторону, которая перпендикулярна трубе.
      * Действие: {@code shorten}.
      */
     PERPENDICULAR_SIDE((p1, p2, pipeAngle1, minSquare) -> {
@@ -75,31 +83,34 @@ public enum Intersection {
             p2.verticesFrom(p1, -1).size() == 1
     );
 
-    private static final Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> markToDelete =
+    private static final Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> markToDelete =
             (p1, p2, pipeAngle1, minSquare) -> {
                 p1.getVertices().set(0, null);
-                return true;
+                return 0;
             };
 
-    private static final Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> markToDeleteMinSquare =
-            (p1, p2, pipeAngle1, minSquare) ->
-                    Rectangle.getIntersection(p1, p2, -1).square(-1) > minSquare &&
-                            markToDelete.test(p1, p2, pipeAngle1, null);
+    private static final Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> markToDeleteMinSquare =
+            (p1, p2, pipeAngle1, minSquare) -> {
+                if (Rectangle.getIntersection(p1, p2, -1).square(-1) <= minSquare)
+                    return 1;
+                else
+                    return markToDelete.apply(p1, p2, pipeAngle1, null);
+            };
 
-    private static final Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> shorten =
+    private static final Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> shorten =
             (p1, p2, pipeAngle1, minSquare) -> {
                 List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
 
                 Object[] o = findShift(p1, p2, pipeAngle1, verticesFromP1.get(0), minSquare);
                 if (o.length == 2) {
                     shorten(p1, (double) o[0], (String) o[1], pipeAngle1);
-                    return true;
+                    return 0;
                 }
-                return false;
+                return o.length == 1 ? 1 : 2;
             };
 
     private final Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> condition;
-    private Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> action;
+    private Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> action;
 
     Intersection(Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> condition) {
         this.condition = condition;
@@ -116,7 +127,11 @@ public enum Intersection {
         return condition;
     }
 
-    public Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> getAction() {
+    public Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> getAction() {
         return action;
     }
+
+//    public boolean conditionAndAction(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1, double minSquare) {
+//        return condition.test(p1, p2, pipeAngle1, minSquare) && action.test(p1, p2, pipeAngle1, minSquare);
+//    }
 }

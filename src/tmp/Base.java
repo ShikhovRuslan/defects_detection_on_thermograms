@@ -418,25 +418,16 @@ public class Base {
      * {@code vertex1} - одна из таких вершин. Находит сторону прямоугольника {@code p1}, которая перпендикулярна трубе
      * и имеет вершину {@code vertex1} свом концом.
      * <p>
-     * Если:
-     * <ul>
-     *     <li> площадь пересечения {@code <= minSquare} или</li>
-     *     <li> величина сдвига {@code >=} длине стороны прямоугольника {@code p1}, которая параллельна трубе,</li>
-     * </ul>
-     * то возвращается пустой массив.
-     * В противом случае возвращаются величина сдвига найденной стороны (который позволяет ликвидировать пересечение
+     * Если площадь пересечения {@code <= minSquare}, то возвращается массив длины {@code 1}.
+     * <p>
+     * Если величина сдвига {@code >=} длине стороны прямоугольника {@code p1}, которая параллельна трубе, то
+     * возвращается пустой массив.
+     * <p>
+     * В противном случае возвращаются величина сдвига найденной стороны (который позволяет ликвидировать пересечение
      * внутренностей прямоугольников) и сама эта сторона.
      * <p>
-     * Величина {@code minSquare} должна быть {@code >=0}, чтобы при пересечении нулевой площади возвращать пустой
-     * массив.
-     * <p>
-     * Пустой массив в возвращаемом значении интерпретируется как:
-     * <ul>
-     *     <li> отсутствие необходимости (как в 1-м случае, если площадь пересечения {@code =0}),</li>
-     *     <li> отсутствие целесообразности (как в 1-м случае, если пересечение имеет ненулевую площадь, но она мала),</li>
-     *     <li> отсутствие возможности (как во 2-м случае)</li>
-     * </ul>
-     * редактировать прямоугольник {@code p1}.
+     * Величина {@code minSquare} должна быть {@code >=0}, чтобы при пересечении нулевой площади возвращать массив длины
+     * {@code 1}.
      *
      * @param p1         прямоугольник
      * @param p2         прямоугольник
@@ -450,7 +441,7 @@ public class Base {
         Polygon<Pixel> overlap = Rectangle.getIntersection(p1, p2, -1);
 
         if (overlap.square(-1) <= minSquare)
-            return new Object[0];
+            return new Object[1];
 
         List<Pixel> v1 = p1.getVertices();
         String sideToShift = Arrays.stream(sidesPerpendicular(pipeAngle1))
@@ -491,6 +482,11 @@ public class Base {
     @FunctionalInterface
     public interface Predicate4<T, U, V, W> {
         boolean test(T t, U u, V v, W w);
+    }
+
+    @FunctionalInterface
+    public interface Function4<T, U, V, W> {
+        int apply(T t, U u, V v, W w);
     }
 
     public static boolean process(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1, double minSquare,
