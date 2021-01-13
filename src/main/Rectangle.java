@@ -123,43 +123,10 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
         return (right.getI() - left.getI() + 1) * (right.getJ() - left.getJ() + 1);
     }
 
-    /**
-     * Возвращает площадь части многоугольника {@code polygon}, которая не принадлежит многоугольнику {@code overlap}.
-     */
-    public static double squarePolygonWithoutOverlap(Polygon<Pixel> polygon, Polygon<Pixel> overlap, double focalLength) {
-        return polygon.square(focalLength) - getIntersection(polygon, overlap, focalLength).square(focalLength);
-    }
-
     @Override
     public boolean contains(T point, double focalLength) {
         return (left.getI() <= point.getI() && point.getI() <= right.getI()) &&
                 (left.getJ() <= point.getJ() && point.getJ() <= right.getJ());
-    }
-
-    /**
-     * Возвращает многоугольник, который является пересечением многоугольников {@code polygon1} и {@code polygon2}.
-     */
-    public static Polygon<Pixel> getIntersection(Polygon<Pixel> polygon1, Polygon<Pixel> polygon2, double focalLength) {
-        List<Pixel> v1 = polygon1.getVertices();
-        List<Pixel> v2 = polygon2.getVertices();
-
-        List<Pixel> vertices = new ArrayList<>();
-
-        vertices.addAll(polygon1.verticesFrom(polygon2, focalLength));
-        vertices.addAll(polygon2.verticesFrom(polygon1, focalLength));
-
-        Pixel intersection;
-        for (int i = 0; i < v1.size(); i++)
-            for (int j = 0; j < v2.size(); j++) {
-                intersection = Pixel.findIntersection(
-                        v1.get(i),
-                        v1.get(i + 1 < v1.size() ? i + 1 : 0),
-                        v2.get(j),
-                        v2.get(j + 1 < v2.size() ? j + 1 : 0));
-                if (!intersection.equals(new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE)))
-                    vertices.add(intersection);
-            }
-        return new Polygon<>(AbstractPoint.order(vertices), focalLength);
     }
 
     /**
@@ -234,20 +201,20 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
      * {@code point}, на основании таблицы {@code table} и списка уже построенных прямоугольников {@code rectangles}.
      */
     private static Rectangle<Point> makeRectangle(int[][] table, Point point, List<Rectangle<Point>> rectangles,
-                                                  double focalLength) {
+                                                  int maxLength, double focalLength) {
         int x = point.getI(), y = point.getJ();
         boolean incrementX, incrementY;
         do {
             incrementX = false;
             incrementY = false;
-            if (x + 1 < table.length &&
+            if (x + 1 < table.length && (maxLength == -1 || x + 1 - point.getI() + 1 <= maxLength) &&
                     amountOfOnes(new Rectangle<>(new Point(x + 1, point.getJ()), new Point(x + 1, y)), table)
                             > (y - point.getJ() + 1) / 2 &&
                     !Rectangle.horizontalSegmentIntersectsRectangles(x + 1, point.getJ(), y, rectangles, focalLength)) {
                 x++;
                 incrementX = true;
             }
-            if (y + 1 < table[0].length &&
+            if (y + 1 < table[0].length && (maxLength == -1 || y + 1 - point.getJ() + 1 <= maxLength) &&
                     amountOfOnes(new Rectangle<>(new Point(point.getI(), y + 1), new Point(x, y + 1)), table)
                             > (x - point.getI() + 1) / 2 &&
                     !Rectangle.verticalSegmentIntersectsRectangles(point.getI(), x, y + 1, rectangles, focalLength)) {
@@ -270,13 +237,13 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     /**
      * Возвращает список прямоугольников, созданных на основании таблицы {@code table}.
      */
-    public static List<Rectangle<Point>> findRectangles(int[][] table, double focalLength) {
+    public static List<Rectangle<Point>> findRectangles(int[][] table, int maxLength, double focalLength) {
         List<Rectangle<Point>> rectangles = new ArrayList<>();
         Rectangle<Point> rectangle;
         for (int i = 0; i < table.length; i++)
             for (int j = 0; j < table[0].length; j++)
                 if (table[i][j] == 1 && !(new Point(i, j).isInRectangles(rectangles, focalLength))) {
-                    rectangle = makeRectangle(table, new Point(i, j), rectangles, focalLength);
+                    rectangle = makeRectangle(table, new Point(i, j), rectangles, maxLength, focalLength);
                     if (!rectangle.isSegment())
                         rectangles.add(rectangle);
                 }

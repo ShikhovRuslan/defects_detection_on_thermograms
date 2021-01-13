@@ -1,14 +1,11 @@
 package tmp;
 
+import com.google.gson.*;
 import main.*;
-import polygons.Point;
 import polygons.Segment;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.function.*;
+import java.util.*;
+import java.util.function.Function;
 
 import static java.lang.Math.*;
 
@@ -147,12 +144,6 @@ public class Base {
         return newVals;
     }
 
-    public static boolean procedureNotNeeded(int diameterPixel, Polygon<Pixel> polygon) {
-        double coef = 1.33;
-        return width(polygon) >= diameterPixel && width(polygon) <= diameterPixel * coef && height(polygon) > diameterPixel ||
-                height(polygon) >= diameterPixel && height(polygon) <= diameterPixel * coef && width(polygon) > diameterPixel;
-    }
-
     public static double sss(double diameter, int n, double coef, char separator, String filename, int resX, int resY, Pixel... pixels) {
         double sum = 0;
         for (Pixel pixel : pixels)
@@ -160,134 +151,13 @@ public class Base {
         return sum / pixels.length;
     }
 
-    public static Rectangle<Pixel> boundingRectangle(Polygon<Pixel> polygon) {
-        int[] i = findMaxAndMin(polygon, Pixel::getI);
-        int[] j = findMaxAndMin(polygon, Pixel::getJ);
-        return new Rectangle<>(new Pixel(i[1], j[1]), new Pixel(i[0], j[0]));
-    }
-
     public static double realToMatrix(double distance, double height, double pixelSize, double focalLength) {
         return distance / Thermogram.reverseScale(height, focalLength) / pixelSize;
-    }
-
-    public static int[] getMinAndMax(Pixel[] pixels, List<Integer> indices, Function<Pixel, Integer> f) {
-        int min = Integer.MAX_VALUE;
-        int max = Integer.MIN_VALUE;
-        for (int i : indices) {
-            if (f.apply(pixels[i]) < min)
-                min = f.apply(pixels[i]);
-            if (f.apply(pixels[i]) > max)
-                max = f.apply(pixels[i]);
-        }
-        return new int[]{min, max};
-    }
-
-    public static int[] findMaxAndMin(Polygon<Pixel> polygon, Function<Pixel, Integer> f) {
-        int max = -1;
-        int min = 1000;
-        for (Pixel vertex : polygon.getVertices()) {
-            if (f.apply(vertex) > max)
-                max = f.apply(vertex);
-            if (f.apply(vertex) < min)
-                min = f.apply(vertex);
-        }
-        return new int[]{max, min};
-    }
-
-    public static int width(Polygon<Pixel> polygon) {
-        int[] i = findMaxAndMin(polygon, Pixel::getI);
-        return i[0] - i[1] + 1;
-    }
-
-    public static int height(Polygon<Pixel> polygon) {
-        int[] j = findMaxAndMin(polygon, Pixel::getJ);
-        return j[0] - j[1] + 1;
-    }
-
-    public static Pixel toPixel(Point point, int resY) {
-        return new Pixel(point.getJ(), resY - 1 - point.getI());
-    }
-
-    public static Polygon<Pixel> toPixelPolygon(Polygon<Point> polygon, double focalLength, int resY) {
-        List<Pixel> vertices = new ArrayList<>();
-        for (Point vertex : polygon.getVertices())
-            vertices.add(toPixel(vertex, resY));
-        return new Polygon<>(vertices, focalLength);
     }
 
     public static Pixel middle(Rectangle<Pixel> rectangle) {
         return new Pixel((rectangle.getLeft().getI() + rectangle.getRight().getI()) / 2,
                 (rectangle.getLeft().getJ() + rectangle.getRight().getJ()) / 2);
-    }
-
-    public static boolean include(Rectangle<Pixel> rectangle, Rectangle<Pixel> big) {
-        //return rectangle.getLeft().getI() >= big.getLeft().getI() && rectangle.getLeft().getJ() >= big.getLeft().getJ() &&
-        //       rectangle.getRight().getI() <= big.getRight().getI() && rectangle.getRight().getJ() <= big.getRight().getJ();
-        int leftIDiff = rectangle.getLeft().getI() - big.getLeft().getI();
-        int leftJDiff = rectangle.getLeft().getJ() - big.getLeft().getJ();
-        int rightIDiff = -rectangle.getRight().getI() + big.getRight().getI();
-        int rightJDiff = -rectangle.getRight().getJ() + big.getRight().getJ();
-
-        int maxDiff = 3;
-
-        return leftIDiff >= -maxDiff && leftJDiff >= -maxDiff && rightIDiff >= -maxDiff && rightJDiff >= -maxDiff;
-    }
-
-    public static Object[] findJump(Pixel start, double angle, double length, double tempDiff, String filename,
-                                    char separator, double height, double pixelSize, double focalLength,
-                                    int resX, int resY) {
-
-        double[][] realTable = Helper.extractTable(filename, separator);
-        List<Pixel> jumps = new ArrayList<>();
-        List<Double> temperatures = new ArrayList<>();
-        int pI = start.getI();
-        int pJ = start.getJ();
-
-        int iInc = (int) Math.round(realToMatrix(length * sin(angle * PI / 180), height, pixelSize, focalLength));
-        int jInc = (int) Math.round(realToMatrix(length * cos(angle * PI / 180), height, pixelSize, focalLength));
-
-        int iIncSign = (int) signum(iInc);
-        int jIncSign = (int) signum(jInc);
-
-        Pixel end = new Pixel(
-                pI + iInc >= 0 && pI + iInc < resX ? pI + iInc : (pI + iInc < 0 ? 0 : resX - 1),
-                pJ + jInc >= 0 && pJ + jInc < resY ? pJ + jInc : (pJ + jInc < 0 ? 0 : resY - 1));
-
-        int eI = end.getI();
-        int eJ = end.getJ();
-
-        int jPrev = -1, iPrev = -1;
-        if (iIncSign != 0 || jIncSign != 0) {
-            if (abs(eI - pI) >= abs(eJ - pJ))
-                for (int i = pI + iIncSign; iIncSign > 0 ? i <= eI : i >= eI; i = i + iIncSign) {
-                    int j = (int) round((pJ + jIncSign) +
-                            (i - (pI + iIncSign) + 0.) * (eJ - (pJ + jIncSign)) / (eI - (pI + iIncSign)));
-                    temperatures.add(realTable[resY - 1 - j][i]);
-                    if (i != pI + iIncSign &&
-                            abs(realTable[resY - 1 - j][i] - realTable[resY - 1 - jPrev][i - iIncSign]) >= tempDiff)
-                        jumps.add(new Pixel(i, j));
-                    jPrev = j;
-                }
-            else
-                for (int j = pJ + jIncSign; jIncSign > 0 ? j <= eJ : j >= eJ; j = j + jIncSign) {
-                    int i = (int) round((pI + iIncSign) +
-                            (j - (pJ + jIncSign) + 0.) * (eI - (pI + iIncSign)) / (eJ - (pJ + jIncSign)));
-                    temperatures.add(realTable[resY - 1 - j][i]);
-                    if (j != pJ + jIncSign &&
-                            abs(realTable[resY - 1 - j][i] - realTable[resY - 1 - (j - jIncSign)][iPrev]) >= tempDiff)
-                        jumps.add(new Pixel(i, j));
-                    iPrev = i;
-                }
-            if (jumps.size() == 0) return new Object[]{new Pixel(-1, -1), 0., angle};
-        } else return new Object[]{new Pixel(-2, -2), 0., angle};
-
-        double averageEndTemperature = 0;
-        int n = 2;
-        for (int i = 0; i < min(n, temperatures.size()); i++)
-            averageEndTemperature += temperatures.get(temperatures.size() - 1 - i);
-        averageEndTemperature = averageEndTemperature / min(n, temperatures.size());
-
-        return new Object[]{jumps.get(jumps.size() - 1), averageEndTemperature, angle};
     }
 
     public static double sq(Polygon<Pixel> polygon, double height, double focalLength, double pixelSize) {
@@ -296,74 +166,7 @@ public class Base {
                 Thermogram.earthDistance(v.get(1), v.get(2), height, focalLength, pixelSize);
     }
 
-    int f(List<Integer> list) {
-        int ind;
-        try {
-            ind = Helper.findIndexOfMin(list);
-        } catch (IllegalArgumentException e) {
-            return 0;
-        }
-        return ind + 1000;
-    }
-
-    public static <T> T unsafe(T elements) {
-        return elements; // unsafe! don't ever return a parameterized varargs array
-    }
-
-    public static <T> T broken(T seed) {
-        T plant = unsafe(seed); // broken! This will be an Object[] no matter what T is
-        return plant;
-    }
-
-    public static void shorten(Polygon<Pixel> polygon, double shift, String sideToShift, double pipeAngle) {
-        pipeAngle *= PI / 180;
-        Pixel[] v = polygon.getVertices().toArray(new Pixel[0]);
-
-        if (pipeAngle < PI / 2) {
-            if (sideToShift.equals("01")) {
-                v[0] = (Pixel) v[0].create(v[0].getI() + shift * cos(pipeAngle), v[0].getJ() + shift * sin(pipeAngle));
-                v[1] = (Pixel) v[1].create(v[1].getI() + shift * cos(pipeAngle), v[1].getJ() + shift * sin(pipeAngle));
-            }
-            if (sideToShift.equals("23")) {
-                v[2] = (Pixel) v[2].create(v[2].getI() - shift * cos(pipeAngle), v[2].getJ() - shift * sin(pipeAngle));
-                v[3] = (Pixel) v[3].create(v[3].getI() - shift * cos(pipeAngle), v[3].getJ() - shift * sin(pipeAngle));
-            }
-        } else {
-            if (sideToShift.equals("03")) {
-                v[0] = (Pixel) v[0].create(v[0].getI() - shift * cos(pipeAngle), v[0].getJ() - shift * sin(pipeAngle));
-                v[3] = (Pixel) v[3].create(v[3].getI() - shift * cos(pipeAngle), v[3].getJ() - shift * sin(pipeAngle));
-            }
-            if (sideToShift.equals("12")) {
-                v[1] = (Pixel) v[1].create(v[1].getI() + shift * cos(pipeAngle), v[1].getJ() + shift * sin(pipeAngle));
-                v[2] = (Pixel) v[2].create(v[2].getI() + shift * cos(pipeAngle), v[2].getJ() + shift * sin(pipeAngle));
-            }
-        }
-
-        for (int i = 0; i < polygon.getVertices().size(); i++)
-            polygon.getVertices().set(i, v[i]);
-    }
-
-    public static double distance(Pixel p1, Pixel p2, Pixel p) {
-        // Случай вертикальной прямой.
-        if (p1.getI() == p2.getI())
-            return abs(p.getI() - p1.getI());
-
-        // y=a*x+b - уравнение прямой, проходящей через точки p1 и p2.
-        double a = (p2.getJ() - p1.getJ()) / (p2.getI() - p1.getI() + 0.);
-        double b = p1.getJ() - a * p1.getI();
-
-        // Случай горизонтальной прямой.
-        if (a == 0)
-            return abs(p.getJ() - p1.getJ());
-
-        // (x0,y0) - точка пересечения упомянутой выше прямой с прямой, ей перпендикулярной и проходящей через точку p.
-        double x0 = (p.getI() + a * (p.getJ() - b)) / (a * a + 1);
-        double y0 = (b + a * (p.getI() + a * p.getJ())) / (a * a + 1);
-
-        return sqrt(pow(p.getI() - x0, 2) + pow(p.getJ() - y0, 2));
-    }
-
-    public static boolean pointInLine(Pixel p, Pixel p1, Pixel p2) {
+    /*public static boolean pointInLine(Pixel p, Pixel p1, Pixel p2) {
         // Случай вертикальной прямой.
         if (p1.getI() == p2.getI())
             return p1.getI() == p.getI();
@@ -374,31 +177,9 @@ public class Base {
         double b = p1.getJ() - a * p1.getI();
 
         return a * p.getI() + b == p.getJ();
-    }
+    }*/
 
-    public static boolean pointInSegment(Pixel p, Pixel p1, Pixel p2, boolean... inclusive) {
-        boolean include = inclusive.length > 0 && inclusive[0];
-
-        int[] ii = AbstractPoint.findMinAndMax(new Pixel[]{p1, p2}, Pixel::getI);
-        int[] jj = AbstractPoint.findMinAndMax(new Pixel[]{p1, p2}, Pixel::getJ);
-
-        // Случай вертикальной прямой.
-        if (p1.getI() == p2.getI())
-            return p1.getI() == p.getI() && (include ?
-                    jj[0] <= p.getJ() && p.getJ() <= jj[1] :
-                    jj[0] < p.getJ() && p.getJ() < jj[1]);
-
-        // Случай невертикальной прямой.
-        // y=a*x+b - уравнение прямой, проходящей через точки p1 и p2.
-        double a = (p2.getJ() - p1.getJ()) / (p2.getI() - p1.getI() + 0.);
-        double b = p1.getJ() - a * p1.getI();
-
-        return a * p.getI() + b == p.getJ() && (include ?
-                ii[0] <= p.getI() && p.getI() <= ii[1] :
-                ii[0] < p.getI() && p.getI() < ii[1]);
-    }
-
-    public static Pixel segmentsIntersect(Pixel a1, Pixel b1, Pixel a2, Pixel b2) {
+    /*public static Pixel segmentsIntersect(Pixel a1, Pixel b1, Pixel a2, Pixel b2) {
         Pixel intersection = Pixel.findIntersection(a1, b1, a2, b2);
         if (intersection.getI() != Integer.MIN_VALUE) return intersection;
 
@@ -411,73 +192,50 @@ public class Base {
         if (pointInSegment(b2, a1, b1) && !pointInLine(a2, a1, b1)) return b2;
 
         return new Pixel(-1, -1);
-    }
+    }*/
 
-    /**
-     * Прямоугольник {@code p1} имеет хотя бы одну вершину, принадлежащую прямоугольнику {@code p2}. Точка
-     * {@code vertex1} - одна из таких вершин. Находит сторону прямоугольника {@code p1}, которая перпендикулярна трубе
-     * и имеет вершину {@code vertex1} свом концом.
-     * <p>
-     * Если площадь пересечения {@code <= minSquare}, то возвращается массив длины {@code 1}.
-     * <p>
-     * Если величина сдвига {@code >=} длине стороны прямоугольника {@code p1}, которая параллельна трубе, то
-     * возвращается пустой массив.
-     * <p>
-     * В противном случае возвращаются величина сдвига найденной стороны (который позволяет ликвидировать пересечение
-     * внутренностей прямоугольников) и сама эта сторона.
-     * <p>
-     * Величина {@code minSquare} должна быть {@code >=0}, чтобы при пересечении нулевой площади возвращать массив длины
-     * {@code 1}.
-     *
-     * @param p1         прямоугольник
-     * @param p2         прямоугольник
-     * @param pipeAngle1 угол наклона трубы, соответствующий прямоугольнику {@code p1}
-     * @param vertex1    одна из вершин прямоугольника {@code p1}, принадлежащая {@code p2}
-     * @param minSquare  минимальная площадь пересечения прямоугольников
-     */
-    public static Object[] findShift(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1,
-                                     Pixel vertex1, double minSquare) {
+    /*public static Map<String, List<Rectangle<Pixel>>> readForbiddenZones(String filename) {
+        return Helper.mapFromFileWithJsonArray(filename, o -> {
+            JsonObject jRectangle = (JsonObject) o;
+            JsonObject jLeft = (JsonObject) jRectangle.get("Left");
+            JsonObject jRight = (JsonObject) jRectangle.get("Right");
+            return new Rectangle<>(
+                    new Pixel(jLeft.get("I").getAsInt(), jLeft.get("J").getAsInt()),
+                    new Pixel(jRight.get("I").getAsInt(), jRight.get("J").getAsInt()));
+        }, "Name", "ForbiddenZones");
+    }*/
 
-        Polygon<Pixel> overlap = Rectangle.getIntersection(p1, p2, -1);
+    /*public static Map<String, List<Double>> readStandardPipeAngles(String filename) {
+        return Helper.mapFromFileWithJsonArray(filename, JsonElement::getAsDouble, "Name", "CustomPipeAngles");
+    }*/
 
-        if (overlap.square(-1) <= minSquare)
-            return new Object[1];
+    /*public static Map<String, List<Double>> readStandardPipeAngles(String filename) {
+        JsonArray arrEntries = null, arrAngles;
+        JsonObject jEntry;
 
-        List<Pixel> v1 = p1.getVertices();
-        String sideToShift = Arrays.stream(sidesPerpendicular(pipeAngle1))
-                .filter(s -> s.contains(v1.indexOf(vertex1) + ""))
-                .findFirst().orElseThrow();
+        var names = new ArrayList<String>();
+        var anglesLists = new ArrayList<List<Double>>();
+        var angles = new ArrayList<Double>();
 
-        double shift = overlap.getVertices().stream()
-                .mapToDouble(p -> distance(v1.get(sideToShift.charAt(0) - '0'), v1.get(sideToShift.charAt(1) - '0'), p))
-                .max().orElseThrow(NoSuchElementException::new);
-
-        // shift >= высоте прямоугольника p1 (= длине его стороны, которая параллельна трубе).
-        if (shift >= AbstractPoint.distance(v1.get(0), pipeAngle1 < 90 ? v1.get(3) : v1.get(1)))
-            return new Object[0];
-
-        return new Object[]{shift, sideToShift};
-    }
-
-    public static String[] sidesParallel(double pipeAngle) {
-        return pipeAngle < 90 ? new String[]{"03", "12"} : new String[]{"01", "23"};
-    }
-
-    public static String[] sidesPerpendicular(double pipeAngle) {
-        return pipeAngle < 90 ? new String[]{"01", "23"} : new String[]{"03", "12"};
-    }
-
-    public static boolean sideParallelToPipe(Pixel v1, Pixel v2, Polygon<Pixel> polygon, double pipeAngle) {
-        int v1Index = polygon.getVertices().indexOf(v1);
-        int v2Index = polygon.getVertices().indexOf(v2);
-        return Arrays.asList(sidesParallel(pipeAngle)).contains("" + min(v1Index, v2Index) + max(v1Index, v2Index));
-    }
-
-    public static boolean sidePerpendicularToPipe(Pixel v1, Pixel v2, Polygon<Pixel> polygon, double pipeAngle) {
-        int v1Index = polygon.getVertices().indexOf(v1);
-        int v2Index = polygon.getVertices().indexOf(v2);
-        return Arrays.asList(sidesPerpendicular(pipeAngle)).contains("" + min(v1Index, v2Index) + max(v1Index, v2Index));
-    }
+        try {
+            arrEntries = (JsonArray) new JsonParser().parse(new FileReader(filename));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        for (Object objEntry : arrEntries) {
+            jEntry = (JsonObject) objEntry;
+            names.add(jEntry.get("Name").getAsString());
+            arrAngles = (JsonArray) jEntry.get("StandardPipeAngles");
+            for (Object objAngle : arrAngles)
+                angles.add(((JsonPrimitive) objAngle).getAsDouble());
+            anglesLists.add(new ArrayList<>(angles));
+            angles.clear();
+        }
+        Map<String, List<Double>> map = new HashMap<>();
+        for (int i = 0; i < names.size(); i++)
+            map.put(names.get(i), anglesLists.get(i));
+        return map;
+    }*/
 
     @FunctionalInterface
     public interface Predicate4<T, U, V, W> {
@@ -487,16 +245,6 @@ public class Base {
     @FunctionalInterface
     public interface Function4<T, U, V, W> {
         int apply(T t, U u, V v, W w);
-    }
-
-    public static boolean process(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1, double minSquare,
-                                  Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> condition,
-                                  Predicate4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> action) {
-
-        if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
-            return false;
-
-        return condition.test(p1, p2, pipeAngle1, minSquare) && action.test(p1, p2, pipeAngle1, minSquare);
     }
 
     static class Class {
@@ -512,25 +260,44 @@ public class Base {
         }
     }
 
-    public static List<Class> vv(List<Class> l) {
-        var res = new ArrayList<Class>();
-        if (l.get(0).i == 1) res.add(l.get(0));
-        return res;
-    }
-
     public static boolean checkInteriorIntersection(Polygon<Pixel> polygon1, Polygon<Pixel> polygon2, double focalLength) {
-        return Rectangle.getIntersection(polygon1, polygon2, focalLength).square(focalLength) > 0;
+        return Polygon.getIntersection(polygon1, polygon2, focalLength).square(focalLength) > 0;
     }
 
-    public static double squarePolygon(Polygon<Pixel> polygon, Polygon<Pixel> overlap, Polygon<Pixel> bigPolygon,
-                                       double thermogramHeight, double pixelSize, double focalLength) {
+    static class A {
+    }
 
-        double s1 = Rectangle.squarePolygonWithoutOverlap(polygon, overlap, focalLength);
-        double s2 = Rectangle.squarePolygonWithoutOverlap(polygon, bigPolygon, focalLength);
-        return Thermogram.toEarthSquare(s1 - s2, thermogramHeight, focalLength, pixelSize);
+    static class B extends A {
+        int f() {
+            return 0;
+        }
+    }
+
+    static class C extends B {
+        int f() {
+            return 1;
+        }
+
+        int g() {
+            return 44;
+        }
     }
 
     public static void main(String[] args) {
+
+        Function<? super B, Integer> f1 = o -> o.f();
+        Function<? super B, Integer> f2 = o -> ((C) o).f();
+        Function<? super B, Integer> f3 = o -> ((C) o).g();
+        f2.apply(new B());
+        f1.apply(new B());
+        /*AbstractPoint p = new Point(0,0);
+        Point p1 = new Point(5,6);
+        Point p2 = new Point(5,6);
+        try {
+            System.out.println(p.distanceToLine(p1, p2));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }*/
 
         /*Polygon<Pixel> p1 = new Polygon<>(Arrays.asList(new Pixel(10, 10), new Pixel(100, 10),
                 new Pixel(100, 20), new Pixel(10, 20)), -1);
@@ -541,14 +308,14 @@ public class Base {
         p1.getVertices().set(0, null);
         System.out.println(l);*/
 
-        double a = 2.00000000001;
+        /*double a = 2.00000000001;
         double b = 17.00050000404;
         var p = new Polygon<>(Arrays.asList(
                 new Pixel(1, a * 1 + b), new Pixel(10, a * 10 + b),
                 new Pixel(100, a * 100 + b),
                 new Pixel(10000, a * 10000 + b)),
                 -1);
-        System.out.println(p.square(-1));
+        System.out.println(p.square(-1));*/
 
         /*Object[] o = new Object[]{12.4};
         System.out.println(((double) o[0]) + "  " + ((Double) o[0]) + "  " + ((double) o[0] > 0));*/

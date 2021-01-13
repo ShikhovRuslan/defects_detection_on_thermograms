@@ -1,5 +1,6 @@
 package main;
 
+import com.google.gson.JsonElement;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import polygons.Point;
 import polygons.Segment;
@@ -15,12 +16,13 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.lang.Math.*;
 import static java.lang.Math.abs;
-import static tmp.Base.*;
 
 
 /**
@@ -64,6 +66,10 @@ public class Main {
      * Файл с запрещёнными зонами.
      */
     private final static String FORBIDDEN_ZONES = "forbidden_zones.txt";
+    /**
+     * Файл с углами наклона трубы, переопределяющими углы по умолчанию.
+     */
+    private final static String CUSTOM_PIPE_ANGLES = "custom_pipe_angles.txt";
     /**
      * Файл со справкой.
      */
@@ -308,12 +314,13 @@ public class Main {
     private static List<Polygon<Point>> realTableToEnlargedPolygons(Thermogram thermogram, double[][] realTable,
                                                                     double tMin, double tMax, int minPixelSquare,
                                                                     int distance, Polygon<Pixel> overlap,
-                                                                    double focalLength, double pixelSize, int resY) {
+                                                                    int maxLength, double focalLength, double pixelSize, int resY,
+                                                                    BiPredicate<Polygon<Point>, Polygon<Point>> condition) {
 
         int[][] binTable = Helper.findIf(realTable, num -> num > tMin && num < tMax);
         Helper.nullifyRectangles(binTable, thermogram.getForbiddenZones(), resY);
 
-        List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable, focalLength);
+        List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable, maxLength, focalLength);
         ranges.removeIf(range -> range.squarePixels() < minPixelSquare);
 
         List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength,
@@ -321,7 +328,7 @@ public class Main {
 
         try {
             return Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getName(), thermogram.getHeight(),
-                    focalLength, pixelSize, resY);
+                    focalLength, pixelSize, resY, condition);
         } catch (Exception e) {
             System.out.println("Проблема в Main.realTableToEnlargedPolygons(): ошибка в Polygon.enlargeIteratively().\n" +
                     "Берём изначальные дефекты.\n" +
@@ -334,8 +341,9 @@ public class Main {
 
     private static List<Pixel> findMiddlesOfPseudoDefects(Thermogram thermogram, double[][] realTable, double pixelSize,
                                                           int resY, double tMinPseudo, int minPixelSquare, int distance,
-                                                          double focalLength, Polygon<Pixel> overlap,
-                                                          List<Polygon<Point>> enlargedPolygons, int maxDiff, double k) {
+                                                          int maxLength, double focalLength, Polygon<Pixel> overlap,
+                                                          List<Polygon<Point>> enlargedPolygons, int maxDiff, double k,
+                                                          BiPredicate<Polygon<Point>, Polygon<Point>> condition) {
 
         var boundingRectangles = new ArrayList<Rectangle<Pixel>>();
         for (Polygon<Point> p : enlargedPolygons)
@@ -344,7 +352,7 @@ public class Main {
         List<Polygon<Point>> enlargedPolygons2;
         try {
             enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMinPseudo, 100, minPixelSquare,
-                    distance, overlap, focalLength, pixelSize, resY);
+                    distance, overlap, maxLength, focalLength, pixelSize, resY, condition);
         } catch (Exception e) {
             System.out.println("Проблема в Main.findMiddlesOfPseudoDefects(): " +
                     "ошибка в Main.realTableToEnlargedPolygons() (т. е. псевдодефекты не вычисляются).\n" +
@@ -472,7 +480,7 @@ public class Main {
         int eps1 = 2;
         int eps2 = 4;
 
-        // Многоугольник polygon является отчётливо горизонтальным (относительно термограммы).
+        /*// Многоугольник polygon является отчётливо горизонтальным (относительно термограммы).
         if (w >= d + eps2 && ((d - eps1 <= h && h <= d) || (h > d && w > h))) {
             Helper.log(pipeAnglesLogFilename, "Многоугольник является отчётливо горизонтальным => pipeAngle=0.\n\n\n");
             return 0;
@@ -482,7 +490,7 @@ public class Main {
         if (h >= d + eps2 && ((d - eps1 <= w && w <= d) || (w > d && h > w))) {
             Helper.log(pipeAnglesLogFilename, "Многоугольник является отчётливо вертикальным => pipeAngle=90.\n\n\n");
             return 90;
-        }
+        }*/
 
         // При другом l алгоритм работает некорректно, но можно адаптировать его для произвольного l, кратного n(=8).
         int l = 8;
@@ -801,31 +809,21 @@ public class Main {
             }
         }
 
-        try {
-            BufferedImage image;
-
-            lock.readLock().lock();
+        synchronized (Main.class) {
             try {
-                image = ImageIO.read(new File(rawDefectsFilename));
-            } finally {
-                lock.readLock().unlock();
-            }
+                BufferedImage image = ImageIO.read(new File(rawDefectsFilename));
 
-            for (int i = 0; i < l; i++) {
-                Helper.log(pipeAnglesLogFilename, String.format("%1$6s", angles[i]) + "  " +
-                        String.format("%1$5s", round(avEndTemp[i] * 10) / 10.) + "  " + jumpPixel[i]);
-                if (!anglesWithNoJumpPixel.contains(i))
-                    new Segment(pixel.toPoint(resY), jumpPixel[i].toPoint(resY)).draw(image, Color.BLACK);
-            }
+                for (int i = 0; i < l; i++) {
+                    Helper.log(pipeAnglesLogFilename, String.format("%1$6s", angles[i]) + "  " +
+                            String.format("%1$5s", round(avEndTemp[i] * 10) / 10.) + "  " + jumpPixel[i]);
+                    if (!anglesWithNoJumpPixel.contains(i))
+                        new Segment(pixel.toPoint(resY), jumpPixel[i].toPoint(resY)).draw(image, Color.BLACK);
+                }
 
-            lock.writeLock().lock();
-            try {
                 ImageIO.write(image, "jpg", new File(rawDefectsFilename));
-            } finally {
-                lock.writeLock().unlock();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
         Helper.log(pipeAnglesLogFilename, "\n\n");
@@ -835,9 +833,11 @@ public class Main {
     private static Object[] defects(Thermogram thermogram, Polygon<Pixel> overlap, double tMin, double tMax,
                                     int minPixelSquare, double diameter, double[] params, String thermogramFilename,
                                     String rawDefectsFilename, String realTempsFilename, char separatorReal,
-                                    double pixelSize, double focalLength, int resX, int resY, String squaresFilename,
+                                    double pixelSize, int maxLength, double focalLength, int resX, int resY,
+                                    String squaresFilename,
                                     String pipeAnglesFilename, String pipeAnglesLogFilename,
-                                    double minIntersectionSquare)
+                                    double minIntersectionSquare, BiPredicate<Polygon<Point>, Polygon<Point>> condition,
+                                    BiFunction<Double, List<Double>, Double> function, List<Double> customPipeAngles)
             throws IOException {
 
         int distance = (int) params[0];
@@ -854,7 +854,7 @@ public class Main {
         double[][] realTable = Helper.extractTable(realTempsFilename, separatorReal);
 
         List<Polygon<Point>> enlargedPolygons = realTableToEnlargedPolygons(thermogram, realTable, tMin, tMax,
-                minPixelSquare, distance, overlap, focalLength, pixelSize, resY);
+                minPixelSquare, distance, overlap, maxLength, focalLength, pixelSize, resY, condition);
 
         Polygon.drawPolygons(enlargedPolygons, Polygon.toPolygonPoint(overlap, focalLength, resY),
                 thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, rawDefectsFilename, focalLength, resY);
@@ -867,7 +867,7 @@ public class Main {
                 thermogram.getHeight(), focalLength, pixelSize);
 
         List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, pixelSize, resY, tMinPseudo,
-                minPixelSquare, distance, focalLength, overlap, enlargedPolygons, maxDiff, k);
+                minPixelSquare, distance, maxLength, focalLength, overlap, enlargedPolygons, maxDiff, k, condition);
 
         String[][] tmpFiles = Helper.createTmpFiles(
                 IntStream.range(0, enlargedPolygons.size())
@@ -880,10 +880,12 @@ public class Main {
         var lock = new ReentrantReadWriteLock();
         for (int i = 0; i < enlargedPolygons.size(); i++) {
             int ii = i;
-            threads[i] = new Thread(() -> pipeAngles.set(ii,
-                    findPipeAngle(middles.get(ii), enlargedPolygons.get(ii), ii + 1, thermogram, diameter,
-                            coef, tempJump, numberEndPixels, dec, eps, maxIter, realTable, rawDefectsFilename,
-                            lock, tmpFiles[0][ii + 1], pixelSize, focalLength, resX, resY)),
+            threads[i] = new Thread(() -> {
+                double pipeAngle = findPipeAngle(middles.get(ii), enlargedPolygons.get(ii), ii + 1, thermogram,
+                        diameter, coef, tempJump, numberEndPixels, dec, eps, maxIter, realTable, rawDefectsFilename,
+                        lock, tmpFiles[0][ii + 1], pixelSize, focalLength, resX, resY);
+                pipeAngles.set(ii, function != null ? function.apply(pipeAngle, customPipeAngles) : pipeAngle);
+            },
                     "Processing defect " + (ii + 1) + ": " + enlargedPolygons.get(ii) + ", " +
                             "parent thread: " + Thread.currentThread().getName());
             threads[i].start();
@@ -923,7 +925,7 @@ public class Main {
                 slopingDefects.add(sd);
                 defects.add(d);
 
-                double s = Base.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
+                double s = Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
                         focalLength);
                 squares.add(s);
                 pipeSquares.add(PI * s);
@@ -939,7 +941,7 @@ public class Main {
         List<Integer> indices = IntStream.rangeClosed(0, defects.size() - 1).boxed().collect(Collectors.toList());
         indices.stream()
                 .flatMap(i -> indices.stream()
-                        .filter(j -> j > i)
+                        .filter(j -> !j.equals(i))
                         .peek(j -> {
                             Polygon<Pixel> p1 = defects.get(i);
                             Polygon<Pixel> p2 = defects.get(j);
@@ -988,7 +990,7 @@ public class Main {
                             if (p2Changed) defectsChanged.add(j);
 
                             if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
-                                    Rectangle.getIntersection(p1, p2, -1).square(-1) > minIntersectionSquare)
+                                    Polygon.getIntersection(p1, p2, -1).square(-1) > minIntersectionSquare)
 
                                 System.out.println("Дефекты " + (i + 1) + " и " + (j + 1) + " на термограмме " +
                                         thermogram.getName() + " по-прежнему пересекаются существенным образом " +
@@ -1000,7 +1002,7 @@ public class Main {
         for (int i : defectsChanged) {
             Polygon<Pixel> d = defects.get(i);
             if (d.getVertices().get(0) != null) {
-                double s = Base.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
+                double s = Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
                         focalLength);
                 squares.set(i, s);
                 pipeSquares.set(i, PI * s);
@@ -1058,6 +1060,28 @@ public class Main {
                 Thermogram[] thermograms = Thermogram.readThermograms(
                         Helper.filename(DIR_CURRENT, Property.SUBDIR_OUTPUT.value(), THERMOGRAMS_INFO),
                         Helper.filename(DIR_CURRENT, FORBIDDEN_ZONES));
+
+                var customPipeAnglesLists = new ArrayList<List<Double>>();
+                List<Double> defaultPipeAngles = Arrays.asList(Property.DEFAULT_PIPE_ANGLES.doubleArrayValue());
+
+                //Map<String, List<Double>> map = Base.readStandardPipeAngles(
+                //        Helper.filename(DIR_CURRENT, CUSTOM_PIPE_ANGLES));
+                Map<String, List<Double>> map = Helper.mapFromFileWithJsonArray(
+                        Helper.filename(DIR_CURRENT, CUSTOM_PIPE_ANGLES),
+                        JsonElement::getAsDouble, "Name", "CustomPipeAngles");
+
+                for (Thermogram thermogram : thermograms) {
+                    List<Double> angles = map.get(thermogram.getName());
+                    customPipeAnglesLists.add(angles == null ? defaultPipeAngles : angles);
+                }
+
+                BiFunction<Double, List<Double>, Double> function = (pipeAngle, customPipeAngles) -> {
+                    List<Double> angleDistances = customPipeAngles.stream()
+                            .map(customPipeAngle -> min(abs(pipeAngle - customPipeAngle),
+                                    180 - abs(pipeAngle - customPipeAngle)))
+                            .collect(Collectors.toList());
+                    return customPipeAngles.get(angleDistances.indexOf(Collections.min(angleDistances)));
+                };
 
                 // Сохранение 10-ти последних параметров из конфиг. файла в массив. На этих параметрах основывается
                 // метод defects().
@@ -1132,16 +1156,43 @@ public class Main {
                                     thermogramFilename.substring(0, thermogramFilename.length() - EXTENSION.length()) +
                                             EXTENSION.toUpperCase());
 
+                        int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(
+                                Property.DIAMETER.doubleValue(), thermogram.getHeight(),
+                                Property.PIXEL_SIZE.doubleValue() / 1000_000, ExifParam.FOCAL_LENGTH.value()));
+
+                        BiPredicate<Polygon<Point>, Polygon<Point>> condition = (p1, p2) -> {
+                            int[] ii1 = p1.findMinAndMax(Point::getI);
+                            int[] jj1 = p1.findMinAndMax(Point::getJ);
+                            int[] ii2 = p2.findMinAndMax(Point::getI);
+                            int[] jj2 = p2.findMinAndMax(Point::getJ);
+                            int[] ii = new int[]{min(ii1[0], ii2[0]), max(ii1[1], ii2[1])};
+                            int[] jj = new int[]{min(jj1[0], jj2[0]), max(jj1[1], jj2[1])};
+
+                            int iLength = ii[1] - ii[0];
+                            int jLength = jj[1] - jj[0];
+
+                            return (iLength <= round(Property.K1.doubleValue() * diameterPixel) ||
+                                    jLength <= round(Property.K1.doubleValue() * diameterPixel)) &&
+                                    (iLength <= round(Property.K2.doubleValue() * diameterPixel) &&
+                                            jLength <= round(Property.K2.doubleValue() * diameterPixel));
+                        };
+
                         Object[] o;
                         try {
                             o = defects(thermogram, overlap, Property.T_MIN.doubleValue(), Property.T_MAX.doubleValue(),
                                     Property.MIN_PIXEL_SQUARE.intValue(), Property.DIAMETER.doubleValue(), params,
                                     thermogramFilename.toString(), rawDefectsFilename.toString(),
                                     realTempsFilename.toString(), SEPARATOR_REAL,
-                                    Property.PIXEL_SIZE.doubleValue() / 1000_000, ExifParam.FOCAL_LENGTH.value(),
+                                    Property.PIXEL_SIZE.doubleValue() / 1000_000,
+                                    (int) round(Property.K3.doubleValue() * diameterPixel), ExifParam.FOCAL_LENGTH.value(),
                                     ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(), squaresTmpFilename,
                                     pipeAnglesTmpFilename, pipeAnglesLogTmpFilename,
-                                    Property.MIN_INTERSECTION_SQUARE.doubleValue());
+                                    Property.MIN_INTERSECTION_SQUARE.doubleValue(),
+                                    Property.K1.doubleValue() != -1 ?
+                                            (Property.K1.doubleValue() != -2 ? condition :
+                                                    (p1, p2) -> false) : null,
+                                    Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1 ? function : null,
+                                    customPipeAnglesLists.get(i));
                         } catch (Exception e) {
                             System.out.println("Термограмма " + thermogramName + " не обработана.");
                             e.printStackTrace();

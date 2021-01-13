@@ -61,7 +61,7 @@ public enum Intersection {
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
 
         return verticesFromP1.size() == 2 &&
-                sideParallelToPipe(verticesFromP1.get(0), verticesFromP1.get(1), p1, pipeAngle1);
+                p1.sideParallelToPipe(verticesFromP1.get(0), verticesFromP1.get(1), pipeAngle1);
     }),
 
     /**
@@ -72,7 +72,7 @@ public enum Intersection {
         List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
 
         return verticesFromP1.size() == 2 &&
-                sidePerpendicularToPipe(verticesFromP1.get(0), verticesFromP1.get(1), p1, pipeAngle1);
+                p1.sidePerpendicularToPipe(verticesFromP1.get(0), verticesFromP1.get(1), pipeAngle1);
     }),
 
     /**
@@ -91,7 +91,7 @@ public enum Intersection {
 
     private static final Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> markToDeleteMinSquare =
             (p1, p2, pipeAngle1, minSquare) -> {
-                if (Rectangle.getIntersection(p1, p2, -1).square(-1) <= minSquare)
+                if (Polygon.getIntersection(p1, p2, -1).square(-1) <= minSquare)
                     return 1;
                 else
                     return markToDelete.apply(p1, p2, pipeAngle1, null);
@@ -101,9 +101,9 @@ public enum Intersection {
             (p1, p2, pipeAngle1, minSquare) -> {
                 List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
 
-                Object[] o = findShift(p1, p2, pipeAngle1, verticesFromP1.get(0), minSquare);
+                Object[] o = Polygon.findShift(p1, p2, pipeAngle1, verticesFromP1.get(0), minSquare);
                 if (o.length == 2) {
-                    shorten(p1, (double) o[0], (String) o[1], pipeAngle1);
+                    p1.shorten((double) o[0], (String) o[1], pipeAngle1);
                     return 0;
                 }
                 return o.length == 1 ? 1 : 2;

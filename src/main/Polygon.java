@@ -3,17 +3,15 @@ package main;
 import org.apache.commons.lang3.ArrayUtils;
 import polygons.Segment;
 import polygons.Point;
-import tmp.Base;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -118,6 +116,51 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     }
 
     /**
+     * Возвращает многоугольник, который является пересечением многоугольников {@code polygon1} и {@code polygon2}.
+     */
+    public static Polygon<Pixel> getIntersection(Polygon<Pixel> polygon1, Polygon<Pixel> polygon2, double focalLength) {
+        List<Pixel> v1 = polygon1.getVertices();
+        List<Pixel> v2 = polygon2.getVertices();
+
+        List<Pixel> vertices = new ArrayList<>();
+
+        vertices.addAll(polygon1.verticesFrom(polygon2, focalLength));
+        vertices.addAll(polygon2.verticesFrom(polygon1, focalLength));
+
+        Pixel intersection;
+        for (int i = 0; i < v1.size(); i++)
+            for (int j = 0; j < v2.size(); j++) {
+                intersection = Pixel.findIntersection(
+                        v1.get(i),
+                        v1.get(i + 1 < v1.size() ? i + 1 : 0),
+                        v2.get(j),
+                        v2.get(j + 1 < v2.size() ? j + 1 : 0));
+                if (!intersection.equals(new Pixel(Integer.MIN_VALUE, Integer.MIN_VALUE)))
+                    vertices.add(intersection);
+            }
+        return new Polygon<>(AbstractPoint.order(vertices), focalLength);
+    }
+
+    /**
+     * Возвращает площадь части многоугольника {@code polygon}, которая не принадлежит многоугольнику {@code overlap}.
+     */
+    public static double squarePolygonWithoutOverlap(Polygon<Pixel> polygon, Polygon<Pixel> overlap, double focalLength) {
+        return polygon.square(focalLength) - getIntersection(polygon, overlap, focalLength).square(focalLength);
+    }
+
+    /**
+     * Возвращает площадь той части многоугольника {@code polygon}, которая принадлежит {@code bigPolygon}, но не
+     * принадлежит {@code overlap}. Многоугольник {@code bigPolygon} содержит многоугольник {@code overlap}.
+     */
+    public static double squarePolygon(Polygon<Pixel> polygon, Polygon<Pixel> overlap, Polygon<Pixel> bigPolygon,
+                                       double thermogramHeight, double pixelSize, double focalLength) {
+
+        double s1 = squarePolygonWithoutOverlap(polygon, overlap, focalLength);
+        double s2 = squarePolygonWithoutOverlap(polygon, bigPolygon, focalLength);
+        return Thermogram.toEarthSquare(s1 - s2, thermogramHeight, focalLength, pixelSize);
+    }
+
+    /**
      * Определяет, пересекаются ли многоугольники {@code polygon1} и {@code polygon2}.
      */
     public static boolean intersects(Polygon<Point> polygon1, Polygon<Point> polygon2, double focalLength,
@@ -133,12 +176,12 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
         for (Point v : v1)
             for (Segment s : s2)
-                if (isSloping ? Base.pointInSegment(new Pixel(v.getI(), v.getJ()),
+                if (isSloping ? new Pixel(v.getI(), v.getJ()).inSegment(
                         new Pixel(s.getA().getI(), s.getA().getJ()), new Pixel(s.getB().getI(), s.getB().getJ())) :
                         s.contains(v)) return true;
         for (Point v : v2)
             for (Segment s : s1)
-                if (isSloping ? Base.pointInSegment(new Pixel(v.getI(), v.getJ()),
+                if (isSloping ? new Pixel(v.getI(), v.getJ()).inSegment(
                         new Pixel(s.getA().getI(), s.getA().getJ()), new Pixel(s.getB().getI(), s.getB().getJ())) :
                         s.contains(v)) return true;
 
@@ -371,39 +414,37 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
     /**
      * Выдаёт многоугольник, являющийся прямоугольником, который строится на основе текущего многоугольника путём
-     * расширения пары противоположных сторон (отличной от другой пары сторон, которые наклонены под углом
-     * {@code angle}) до длины {@code length}. Если длина этих сторон не меньше {@code length}, то выдаёт многоугольник,
-     * построенный на вершинах текущего многоугольника.
+     * расширения/сужения сторон, перпендикулярных трубе, до длины {@code length}.
      * <p>
      * Предположения:
      * - текущий многоугольник является прямоугольником,
      * - вершины упорядочены против часовой стрелки,
-     * - начальной является левая вершина в случае угла {@code angle}, отличного от {@code 0} и {@code 90}, и левая
+     * - начальной является левая вершина в случае угла {@code pipeAngle}, отличного от {@code 0} и {@code 90}, и левая
      * верхняя вершина, в противном случае.
      *
-     * @param angle угол (в град.), отсчитываемый от положительного направления оси c'x' против часовой стрелки,
-     *              принадлежащий промежутку {@code [0,180)}
+     * @param pipeAngle угол (в град.), отсчитываемый от положительного направления оси абсцисс против часовой стрелки,
+     *                  принадлежащий промежутку {@code [0,180)}
      */
-    public Polygon<T> widen(double length, double angle) {
-        angle *= PI / 180;
+    public Polygon<T> widen(double length, double pipeAngle) {
+        pipeAngle *= PI / 180;
         T[] v = (T[]) new ArrayList<>(vertices).toArray(new AbstractPoint[0]);
 
-        double sideToWiden = angle < PI / 2 ?
+        double sideToWiden = pipeAngle < PI / 2 ?
                 sqrt(pow(v[0].getI() - v[1].getI(), 2) + pow(v[0].getJ() - v[1].getJ(), 2)) :
                 sqrt(pow(v[1].getI() - v[2].getI(), 2) + pow(v[1].getJ() - v[2].getJ(), 2));
 
         double diff = (length - sideToWiden) / 2;
 
-        if (angle < PI / 2) {
-            v[0] = (T) v[0].create(v[0].getI() - diff * sin(angle), v[0].getJ() + diff * cos(angle));
-            v[3] = (T) v[3].create(v[3].getI() - diff * sin(angle), v[3].getJ() + diff * cos(angle));
-            v[1] = (T) v[1].create(v[1].getI() + diff * sin(angle), v[1].getJ() - diff * cos(angle));
-            v[2] = (T) v[2].create(v[2].getI() + diff * sin(angle), v[2].getJ() - diff * cos(angle));
+        if (pipeAngle < PI / 2) {
+            v[0] = (T) v[0].create(v[0].getI() - diff * sin(pipeAngle), v[0].getJ() + diff * cos(pipeAngle));
+            v[3] = (T) v[3].create(v[3].getI() - diff * sin(pipeAngle), v[3].getJ() + diff * cos(pipeAngle));
+            v[1] = (T) v[1].create(v[1].getI() + diff * sin(pipeAngle), v[1].getJ() - diff * cos(pipeAngle));
+            v[2] = (T) v[2].create(v[2].getI() + diff * sin(pipeAngle), v[2].getJ() - diff * cos(pipeAngle));
         } else {
-            v[0] = (T) v[0].create(v[0].getI() - diff * sin(angle), v[0].getJ() + diff * cos(angle));
-            v[3] = (T) v[3].create(v[3].getI() + diff * sin(angle), v[3].getJ() - diff * cos(angle));
-            v[1] = (T) v[1].create(v[1].getI() - diff * sin(angle), v[1].getJ() + diff * cos(angle));
-            v[2] = (T) v[2].create(v[2].getI() + diff * sin(angle), v[2].getJ() - diff * cos(angle));
+            v[0] = (T) v[0].create(v[0].getI() - diff * sin(pipeAngle), v[0].getJ() + diff * cos(pipeAngle));
+            v[3] = (T) v[3].create(v[3].getI() + diff * sin(pipeAngle), v[3].getJ() - diff * cos(pipeAngle));
+            v[1] = (T) v[1].create(v[1].getI() - diff * sin(pipeAngle), v[1].getJ() + diff * cos(pipeAngle));
+            v[2] = (T) v[2].create(v[2].getI() + diff * sin(pipeAngle), v[2].getJ() - diff * cos(pipeAngle));
         }
 
         return new Polygon<>(Arrays.asList(v.clone()), 0, 0, 0, 0);
@@ -457,7 +498,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         List<Polygon<Point>> polygons = new ArrayList<>();
         for (Rectangle<Point> rectangle : rectangles)
             polygons.add(rectangle.toPolygon(
-                    Rectangle.squarePolygonWithoutOverlap(Rectangle.toRectanglePixel(rectangle, resY)
+                    squarePolygonWithoutOverlap(Rectangle.toRectanglePixel(rectangle, resY)
                             .toPolygon(0, 0, 0, 0), overlap, focalLength),
                     height, focalLength, pixelSize
             ));
@@ -653,7 +694,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
             return no;
 
         return createPolygon(allSegments, first.pixelSquare + second.pixelSquare +
-                        Rectangle.squarePolygonWithoutOverlap(connectingRectangle, overlap, focalLength),
+                        squarePolygonWithoutOverlap(connectingRectangle, overlap, focalLength),
                 height, focalLength, pixelSize);
     }
 
@@ -706,7 +747,8 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      */
     private static List<Polygon<Point>> toBiggerPolygons(List<Polygon<Point>> polygons, int distance,
                                                          Polygon<Pixel> overlap, String thermogramName, double height,
-                                                         double focalLength, double pixelSize, int resY) {
+                                                         double focalLength, double pixelSize, int resY,
+                                                         BiPredicate<Polygon<Point>, Polygon<Point>> condition) {
         var newPolygons = new ArrayList<Polygon<Point>>();
         var processed = new ArrayList<Integer>();
 
@@ -715,6 +757,9 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 int j;
                 for (j = i + 1; j < polygons.size(); j++)
                     if (!Helper.isIn(processed, j)) {
+                        if (!(condition == null || condition.test(polygons.get(i), polygons.get(j))))
+                            continue;
+
                         int ii = i;
                         int jj = j;
                         List<Integer> indices = IntStream.rangeClosed(0, polygons.size() - 1)
@@ -780,7 +825,8 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      */
     public static List<Polygon<Point>> enlargeIteratively(List<Polygon<Point>> polygons, int distance,
                                                           Polygon<Pixel> overlap, String thermogramName, double height,
-                                                          double focalLength, double pixelSize, int resY) {
+                                                          double focalLength, double pixelSize, int resY,
+                                                          BiPredicate<Polygon<Point>, Polygon<Point>> condition) {
         List<Polygon<Point>> newPolygons = polygons;
         List<Polygon<Point>> prevPolygons;
         int count = -1; // число итераций, приводящих к укрупнению
@@ -789,7 +835,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
             prevPolygons = newPolygons;
             try {
                 newPolygons = toBiggerPolygons(prevPolygons, distance, overlap, thermogramName, height, focalLength,
-                        pixelSize, resY);
+                        pixelSize, resY, condition);
             } catch (Exception e) {
                 System.out.println("Проблема на итерации " + (count + 2) + " в Polygon.enlargeIteratively(): " +
                         "ошибка в Polygon.toBiggerPolygons().\n" +
@@ -804,6 +850,123 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         //System.out.println(count);
         //System.out.println(Arrays.toString(sizes.toArray()));
         return prevPolygons;
+    }
+
+    /**
+     * Возвращает массив длины 2 строк, каждая из которых содержит индексы двух вершин (в порядке возрастания),
+     * образующих стороны прямоугольника, параллельные трубе.
+     * Вершины прямоугольника упорядочены, как описано в методе {@link Polygon#widen(double, double)}.
+     *
+     * @see Polygon#widen
+     */
+    public static String[] sidesParallel(double pipeAngle) {
+        return pipeAngle < 90 ? new String[]{"03", "12"} : new String[]{"01", "23"};
+    }
+
+    /**
+     * Возвращает массив длины 2 строк, каждая из которых содержит индексы двух вершин (в порядке возрастания),
+     * образующих стороны прямоугольника, перпендикулярные трубе.
+     * Вершины прямоугольника упорядочены, как описано в методе {@link Polygon#widen(double, double)}.
+     *
+     * @see Polygon#widen
+     */
+    public static String[] sidesPerpendicular(double pipeAngle) {
+        return pipeAngle < 90 ? new String[]{"01", "23"} : new String[]{"03", "12"};
+    }
+
+    /**
+     * Определяет, являются ли точки {@code v1} и {@code v2} границами стороны прямоугольника {@code polygon},
+     * параллельной трубе.
+     * Вершины прямоугольника упорядочены, как описано в методе {@link Polygon#widen(double, double)}.
+     *
+     * @see Polygon#widen
+     */
+    public boolean sideParallelToPipe(T v1, T v2, double pipeAngle) {
+        int v1Index = getVertices().indexOf(v1);
+        int v2Index = getVertices().indexOf(v2);
+        return Arrays.asList(sidesParallel(pipeAngle)).contains("" + min(v1Index, v2Index) + max(v1Index, v2Index));
+    }
+
+    /**
+     * Определяет, являются ли точки {@code v1} и {@code v2} границами стороны прямоугольника {@code polygon},
+     * перпендикулярной трубе.
+     * Вершины прямоугольника упорядочены, как описано в методе {@link Polygon#widen(double, double)}.
+     *
+     * @see Polygon#widen
+     */
+    public boolean sidePerpendicularToPipe(T v1, T v2, double pipeAngle) {
+        int v1Index = getVertices().indexOf(v1);
+        int v2Index = getVertices().indexOf(v2);
+        return Arrays.asList(sidesPerpendicular(pipeAngle)).contains("" + min(v1Index, v2Index) + max(v1Index, v2Index));
+    }
+
+    /**
+     * Прямоугольник {@code p1} имеет хотя бы одну вершину, принадлежащую прямоугольнику {@code p2}. Точка
+     * {@code vertex1} - одна из таких вершин. Находит сторону прямоугольника {@code p1}, которая перпендикулярна трубе
+     * и имеет вершину {@code vertex1} свом концом.
+     * <p>
+     * Если площадь пересечения {@code <= minSquare}, то возвращается массив длины {@code 1}.
+     * <p>
+     * Если величина сдвига {@code >=} длине стороны прямоугольника {@code p1}, которая параллельна трубе, то
+     * возвращается пустой массив.
+     * <p>
+     * В противном случае возвращаются величина сдвига найденной стороны (который позволяет ликвидировать пересечение
+     * внутренностей прямоугольников) и сама эта сторона.
+     * <p>
+     * Величина {@code minSquare} должна быть {@code >=0}, чтобы при пересечении нулевой площади возвращать массив длины
+     * {@code 1}.
+     *
+     * @param p1         прямоугольник
+     * @param p2         прямоугольник
+     * @param pipeAngle1 угол наклона трубы, соответствующий прямоугольнику {@code p1}
+     * @param vertex1    одна из вершин прямоугольника {@code p1}, принадлежащая {@code p2}
+     * @param minSquare  минимальная площадь пересечения прямоугольников
+     */
+    public static Object[] findShift(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1,
+                                     Pixel vertex1, double minSquare) {
+
+        Polygon<Pixel> overlap = getIntersection(p1, p2, -1);
+
+        if (overlap.square(-1) <= minSquare)
+            return new Object[1];
+
+        List<Pixel> v1 = p1.getVertices();
+        String sideToShift = Arrays.stream(sidesPerpendicular(pipeAngle1))
+                .filter(s -> s.contains(v1.indexOf(vertex1) + ""))
+                .findFirst().orElseThrow();
+
+        double shift = overlap.getVertices().stream()
+                .mapToDouble(p -> p.distanceToLine(v1.get(sideToShift.charAt(0) - '0'), v1.get(sideToShift.charAt(1) - '0')))
+                .max().orElseThrow(NoSuchElementException::new);
+
+        // shift >= высоте прямоугольника p1 (= длине его стороны, которая параллельна трубе).
+        if (shift >= AbstractPoint.distance(v1.get(0), pipeAngle1 < 90 ? v1.get(3) : v1.get(1)))
+            return new Object[0];
+
+        return new Object[]{shift, sideToShift};
+    }
+
+    /**
+     * Редактирует прямоугольник {@code polygon}, сдвигая сторону, перпендикулярную трубе и представленную строкой
+     * {@code sideToShift}, на величину {@code shift} в сторону уменьшения площади прямоугольника. Эта строка содержит
+     * индексы концов этой стороны (в порядке возрастания).
+     * Вершины прямоугольника упорядочены, как описано в методе {@link Polygon#widen(double, double)}.
+     *
+     * @see Polygon#widen
+     */
+    public void shorten(double shift, String sideToShift, double pipeAngle) {
+        pipeAngle *= PI / 180;
+        int d = pipeAngle < PI / 2 ? (sideToShift.equals("01") ? 1 : -1) : (sideToShift.equals("12") ? 1 : -1);
+
+        int ind1 = sideToShift.charAt(0) - '0';
+        int ind2 = sideToShift.charAt(1) - '0';
+        T v1 = getVertices().get(ind1);
+        T v2 = getVertices().get(ind2);
+
+        getVertices().set(ind1,
+                (T) v1.create(v1.getI() + d * shift * cos(pipeAngle), v1.getJ() + d * shift * sin(pipeAngle)));
+        getVertices().set(ind2,
+                (T) v2.create(v2.getI() + d * shift * cos(pipeAngle), v2.getJ() + d * shift * sin(pipeAngle)));
     }
 
     @Override

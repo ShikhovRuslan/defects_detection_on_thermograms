@@ -1,6 +1,5 @@
 package main;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
 import java.util.function.Function;
@@ -128,6 +127,69 @@ public abstract class AbstractPoint {
      */
     public static <T extends AbstractPoint> double distance(T p1, T p2) {
         return sqrt(pow(p1.getI() - p2.getI(), 2) + pow(p1.getJ() - p2.getJ(), 2));
+    }
+
+    /**
+     * Возвращает расстояние от текущей точки до прямой, задаваемой точками {@code p1} и {@code p2}.
+     *
+     * @throws IllegalArgumentException если среди текущей точки и аргументов присутствуют разные типы или
+     *                                  прямая неопределена вследствие совпадения аргументов
+     */
+    public double distanceToLine(AbstractPoint p1, AbstractPoint p2) {
+        if (!getClass().equals(p1.getClass()) || !p1.getClass().equals(p2.getClass()))
+            throw new IllegalArgumentException("Среди текущей точки и аргументов присутствуют разные типы.");
+
+        if (p1.equals(p2))
+            throw new IllegalArgumentException("Прямая неопределена вследствие совпадения аргументов.");
+
+        // Случай вертикальной прямой.
+        if (p1.getI() == p2.getI())
+            return abs(getI() - p1.getI());
+
+        // y=a*x+b - уравнение прямой, проходящей через точки p1 и p2.
+        double a = (p2.getJ() - p1.getJ()) / (p2.getI() - p1.getI() + 0.);
+        double b = p1.getJ() - a * p1.getI();
+
+        // Случай горизонтальной прямой.
+        if (a == 0)
+            return abs(getJ() - p1.getJ());
+
+        // (x0,y0) - точка пересечения упомянутой выше прямой с прямой, ей перпендикулярной и проходящей через точку p.
+        double x0 = (getI() + a * (getJ() - b)) / (a * a + 1);
+        double y0 = (b + a * (getI() + a * getJ())) / (a * a + 1);
+
+        return sqrt(pow(getI() - x0, 2) + pow(getJ() - y0, 2));
+    }
+
+    /**
+     * Проверяет принадлежность текущей точки отрезку с концами {@code p1} и {@code p2} (если inclusive[0] равен
+     * {@code true}) или внутренности этого отрезка (если inclusive[0] равен {@code false} или отсутствует).
+     *
+     * @throws IllegalArgumentException если среди текущей точки и аргументов присутствуют разные типы
+     */
+    public boolean inSegment(AbstractPoint p1, AbstractPoint p2, boolean... inclusive) {
+        if (!getClass().equals(p1.getClass()) || !p1.getClass().equals(p2.getClass()))
+            throw new IllegalArgumentException("Среди текущей точки и аргументов присутствуют разные типы.");
+
+        boolean include = inclusive.length > 0 && inclusive[0];
+
+        int[] ii = findMinAndMax(new AbstractPoint[]{p1, p2}, AbstractPoint::getI);
+        int[] jj = findMinAndMax(new AbstractPoint[]{p1, p2}, AbstractPoint::getJ);
+
+        // Случай вертикальной прямой.
+        if (p1.getI() == p2.getI())
+            return p1.getI() == getI() && (include ?
+                    jj[0] <= getJ() && getJ() <= jj[1] :
+                    jj[0] < getJ() && getJ() < jj[1]);
+
+        // Случай невертикальной прямой.
+        // y=a*x+b - уравнение прямой, проходящей через точки p1 и p2.
+        double a = (p2.getJ() - p1.getJ()) / (p2.getI() - p1.getI() + 0.);
+        double b = p1.getJ() - a * p1.getI();
+
+        return a * getI() + b == getJ() && (include ?
+                ii[0] <= getI() && getI() <= ii[1] :
+                ii[0] < getI() && getI() < ii[1]);
     }
 
     @Override

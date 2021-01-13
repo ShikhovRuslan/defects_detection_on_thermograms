@@ -1,5 +1,7 @@
 package main;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.opencsv.*;
@@ -12,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -188,7 +191,7 @@ public final class Helper {
 
     /**
      * Определяет, является ли угол между прямыми с углами наклона {@code angle1} и {@code angle2} не больше значения
-     * {@code eps} град. Углы наклона (в град.) отсчитываются от положительного направления оси c'x' против часовой
+     * {@code eps} град. Углы наклона (в град.) отсчитываются от положительного направления оси абсцисс против часовой
      * стрелки и принадлежат промежутку {@code [0,180)}.
      */
     public static boolean close(double angle1, double angle2, double eps) {
@@ -381,6 +384,38 @@ public final class Helper {
             e.printStackTrace();
         }
         return jsonObject;
+    }
+
+    /**
+     * Прочитывает файл с именем {@code filename}, содержащий массив в формате JSON. Каждый элемент этого массива
+     * состоит из строки и массива в формате JSON. Все строки должны быть различны. {@code field1} и {@code field2} -
+     * названия полей.
+     * Возвращает соответствие между вышеописанными строками и списком элементов, полученных применением
+     * {@code function} к элементам массива, соответствующего этой строке.
+     * <p>
+     * Возвращает {@code null}, если произошла ошибка при чтении файла или он содержит пустой массив.
+     */
+    public static <T> Map<String, List<T>> mapFromFileWithJsonArray(String filename,
+                                                                    Function<? super JsonElement, ? extends T> function,
+                                                                    String field1, String field2) {
+        JsonArray entries;
+        try {
+            entries = (JsonArray) new JsonParser().parse(new FileReader(filename));
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Возвращается значение null.");
+            return null;
+        }
+
+        Map<String, List<T>> map = new HashMap<>();
+        for (JsonElement e : entries) {
+            JsonObject entry = (JsonObject) e;
+            var values = new ArrayList<T>();
+            for (JsonElement v : (JsonArray) entry.get(field2))
+                values.add(function.apply(v));
+            map.put(entry.get(field1).getAsString(), values);
+        }
+        return !map.isEmpty() ? map : null;
     }
 
     /**

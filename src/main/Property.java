@@ -2,6 +2,9 @@ package main;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 
@@ -35,6 +38,11 @@ public enum Property {
     T_MAX("T_MAX"),
     MIN_PIXEL_SQUARE("MIN_PIXEL_SQUARE"),
     MIN_INTERSECTION_SQUARE("MIN_INTERSECTION_SQUARE"),
+
+    K1("K1"),
+    K2("K2"),
+    K3("K3"),
+    DEFAULT_PIPE_ANGLES("DEFAULT_PIPE_ANGLES"),
 
     DISTANCE("DISTANCE"),
     T_MIN_PSEUDO("T_MIN_PSEUDO"),
@@ -88,5 +96,12 @@ public enum Property {
 
     double doubleValue() {
         return Double.parseDouble(value);
+    }
+
+    Double[] doubleArrayValue() {
+        var res = new ArrayList<Double>();
+        for (String s : value.split(", "))
+            res.add(Double.parseDouble(s));
+        return res.toArray(new Double[0]);
     }
 }

@@ -5,6 +5,7 @@ import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.DMSCoordinate;
 import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
+import tmp.Base;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -214,7 +215,17 @@ public class Thermogram {
             e.printStackTrace();
         }
         Thermogram[] tmpThermograms = gson.fromJson(bufferedReader, Thermogram[].class);
-        Map<String, List<Rectangle<Pixel>>> map = readForbiddenZones(filename2);
+
+        //Map<String, List<Rectangle<Pixel>>> map = readForbiddenZones(filename2);
+        Map<String, List<Rectangle<Pixel>>> map = Helper.mapFromFileWithJsonArray(filename2, o -> {
+            JsonObject jRectangle = (JsonObject) o;
+            JsonObject jLeft = (JsonObject) jRectangle.get("Left");
+            JsonObject jRight = (JsonObject) jRectangle.get("Right");
+            return new Rectangle<>(
+                    new Pixel(jLeft.get("I").getAsInt(), jLeft.get("J").getAsInt()),
+                    new Pixel(jRight.get("I").getAsInt(), jRight.get("J").getAsInt()));
+        }, "Name", "ForbiddenZones");
+
         Thermogram[] thermograms = new Thermogram[tmpThermograms.length];
         for (int i = 0; i < tmpThermograms.length; i++)
             thermograms[i] = new Thermogram(tmpThermograms[i].name, tmpThermograms[i].yaw, tmpThermograms[i].height,
