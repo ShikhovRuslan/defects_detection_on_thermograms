@@ -259,8 +259,8 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     }
 
     /**
-     * Ищет перпендикуляр минимальной длины среди всех перпендикуляров, опущенных из какой-либо вершины многоугольника
-     * {@code first} на сторону многоугольника {@code second}, удовлетворяющих условиям:
+     * Ищет перпендикуляры, опущенные из какой-либо вершины многоугольника {@code first} на сторону многоугольника
+     * {@code second}, удовлетворяющие условиям:
      * <ul>
      *     <li> длина перпендикуляра не превышает {@code distance},</li>
      *     <li> перпендикуляр не пересекает никакую сторону многоугольника {@code first} по единственной точке, которая
@@ -271,18 +271,18 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      *     сторону от перпендикуляра.</li>
      * </ul>
      * <p>
-     * Возвращает перпендикуляр и сторону многоугольника {@code second}, которая перпендикулярна перпендикуляру и
-     * содержит его конец.
-     * Если нет ни одного перпендикуляра, удовлетворяющего вышеприведённым условиям, то возвращает пустой массив
-     * отрезков.
+     * Возвращает массив, состоящий из найденных перпендикуляров и соответствующих им сторон многоугольника
+     * {@code second}, которые перпендикулярны перпендикулярам и содержат их концы. Этот массив упорядочен по длинам
+     * перпендикуляров (в порядке возрастания). (Этот массив может быть пустым.)
      */
-    private static Segment[] perpendicular(Polygon<Point> first, Polygon<Point> second, int distance) {
+    private static Segment[][] perpendicular(Polygon<Point> first, Polygon<Point> second, int distance) {
         var lengths = new ArrayList<Integer>();
         var perpendiculars = new ArrayList<Segment>();
         var sides = new ArrayList<Segment>();
+        Segment[] sides2 = getSides(second);
 
         for (Point vertex : first.vertices)
-            for (Segment side : getSides(second))
+            for (Segment side : sides2)
                 if (vertex.projectableTo(side, true) && vertex.distanceTo(side) <= distance) {
                     boolean union = true;
 
@@ -312,13 +312,20 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                     }
                 }
 
-        int index;
-        try {
-            index = Helper.findIndexOfMin(lengths);
-        } catch (IllegalArgumentException e) {
-            return new Segment[]{};
+        Object[][] arr = new Object[lengths.size()][3];
+        for (int i = 0; i < lengths.size(); i++) {
+            arr[i][0] = lengths.get(i);
+            arr[i][1] = perpendiculars.get(i);
+            arr[i][2] = sides.get(i);
         }
-        return new Segment[]{perpendiculars.get(index), sides.get(index)};
+        arr = Arrays.stream(arr).sorted(Comparator.comparingInt(o -> (Integer) o[0])).toArray(Object[][]::new);
+
+        Segment[][] res = new Segment[lengths.size()][2];
+        for (int i = 0; i < lengths.size(); i++) {
+            res[i][0] = (Segment) arr[i][1];
+            res[i][1] = (Segment) arr[i][2];
+        }
+        return res;
     }
 
     /**
@@ -702,35 +709,37 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
      * Возвращает многоугольник, являющийся объединением многоугольников first и second, если объединение возможно. В
      * противном случае, возвращает многоугольник, являющийся точкой (-1, -1).
      *
-     * @throws Exception если ошибка в {@link Polygon#perpendicular(Polygon, Polygon, int)},
-     *                   {@link Polygon#unite(Polygon, Polygon, Segment, Segment, List, Polygon, double, double, double, int)}
-     *                   или перпендикуляр имеет длину 0
      * @see Polygon#perpendicular(Polygon, Polygon, int)
      * @see Polygon#unite(Polygon, Polygon, Segment, Segment, List, Polygon, double, double, double, int)
      */
     private static Polygon<Point> unite2(Polygon<Point> first, Polygon<Point> second, int distance,
                                          List<Polygon<Point>> polygons, Polygon<Pixel> overlap, double height,
-                                         double focalLength, double pixelSize, int resY)
-            throws Exception {
+                                         double focalLength, double pixelSize, int resY) {
 
-        Segment[] segments = perpendicular(first, second, distance);
+        Segment[][] segments = perpendicular(first, second, distance);
 
-        if (segments.length == 2 && segments[0].isPointNotLine()) {
-            String msg = "Проблема в Polygon.unite2(): перпендикуляр имеет длину 0 (равен " + segments[0] + ").\n" +
-                    "Сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".";
-            throw new Exception(msg);
-        }
-
-        if (segments.length == 2) {
-            try {
-                return unite(first, second, segments[0], segments[1], polygons, overlap, height, focalLength,
-                        pixelSize, resY);
-            } catch (Exception e) {
-                String msg = "Проблема в Polygon.unite2(): ошибка в Polygon.unite().\n" +
-                        "Перпендикуляр: " + segments[0] + ",\n" +
-                        "сторона, вычисляемая методом Polygon.perpendicular(): " + segments[1] + ".";
-                throw new Exception(msg, e);
+        for (Segment[] segment : segments) {
+            if (segment[0].isPointNotLine()) {
+                System.out.println("Проблема в Polygon.unite2(): перпендикуляр имеет длину 0 (равен " + segment[0] +
+                        ").\n" + "Сторона, вычисляемая методом Polygon.perpendicular(): " + segment[1] + ".\n" +
+                        "Берём другой перпендикуляр, если он есть, чтобы попытаться объединить многоугольники.");
+                continue;
             }
+
+            Polygon<Point> unitedPolygon;
+            try {
+                unitedPolygon = unite(first, second, segment[0], segment[1], polygons, overlap, height,
+                        focalLength, pixelSize, resY);
+            } catch (Exception e) {
+                System.out.println("Проблема в Polygon.unite2(): ошибка в Polygon.unite().\n" +
+                        "Перпендикуляр: " + segment[0] + ",\n" +
+                        "сторона, вычисляемая методом Polygon.perpendicular(): " + segment[1] + ".\n" +
+                        "Берём другой перпендикуляр, если он есть, чтобы попытаться объединить многоугольники.");
+                continue;
+            }
+
+            if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1)))
+                return unitedPolygon;
         }
 
         return new Rectangle<>(new Point(-1, -1), new Point(-1, -1)).toPolygon();
@@ -775,36 +784,16 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                                 Stream.concat(newPolygons.stream(), polygonsNotProcessed.stream())
                                         .collect(Collectors.toList());
 
-                        Polygon<Point> unitedPolygon = null;
-
                         // Пытаемся объединить многоугольники i и j.
-                        try {
-                            unitedPolygon = unite2(polygons.get(i), polygons.get(j), distance, polygonsTmp, overlap,
-                                    height, focalLength, pixelSize, resY);
-                        } catch (Exception e) {
-                            System.out.println("Проблема в Polygon.toBiggerPolygons(): ошибка в Polygon.unite2().\n" +
-                                    "Многоугольники, являющиеся кандидатами для объединения:\n" +
-                                    "1. " + polygons.get(i) + ",\n" + "2. " + polygons.get(j) + ".\n" +
-                                    "Термограмма: " + thermogramName + ".");
-                            e.printStackTrace();
-                            System.out.println();
-                        }
+                        Polygon<Point> unitedPolygon = unite2(polygons.get(i), polygons.get(j), distance, polygonsTmp,
+                                overlap, height, focalLength, pixelSize, resY);
 
                         // Если многоугольники i и j не объединились, то пытаемся объединить их в другом порядке.
-                        try {
-                            if (unitedPolygon == null || unitedPolygon.vertices.get(0).equals(new Point(-1, -1)))
-                                unitedPolygon = unite2(polygons.get(j), polygons.get(i), distance, polygonsTmp, overlap,
-                                        height, focalLength, pixelSize, resY);
-                        } catch (Exception e) {
-                            System.out.println("Проблема в Polygon.toBiggerPolygons(): ошибка в Polygon.unite2().\n" +
-                                    "Многоугольники, являющиеся кандидатами для объединения:\n" +
-                                    "1. " + polygons.get(j) + ",\n" + "2. " + polygons.get(i) + ".\n" +
-                                    "Термограмма: " + thermogramName + ".");
-                            e.printStackTrace();
-                            System.out.println();
-                        }
+                        if (unitedPolygon.vertices.get(0).equals(new Point(-1, -1)))
+                            unitedPolygon = unite2(polygons.get(j), polygons.get(i), distance, polygonsTmp, overlap,
+                                    height, focalLength, pixelSize, resY);
 
-                        if (unitedPolygon != null && !unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
+                        if (!unitedPolygon.vertices.get(0).equals(new Point(-1, -1))) {
                             newPolygons.add(unitedPolygon);
                             processed.add(j);
                             break;

@@ -285,11 +285,17 @@ public class Base {
 
     public static void main(String[] args) {
 
-        Function<? super B, Integer> f1 = o -> o.f();
+        Object i = null;
+
+        Integer[] arr = new Integer[]{4,1,0,7,2};
+        arr = Arrays.stream(arr).sorted(Comparator.comparingInt(o -> o)).toArray(Integer[]::new);
+        System.out.println(Arrays.toString(arr));
+
+        /*Function<? super B, Integer> f1 = o -> o.f();
         Function<? super B, Integer> f2 = o -> ((C) o).f();
         Function<? super B, Integer> f3 = o -> ((C) o).g();
         f2.apply(new B());
-        f1.apply(new B());
+        f1.apply(new B());*/
         /*AbstractPoint p = new Point(0,0);
         Point p1 = new Point(5,6);
         Point p2 = new Point(5,6);
