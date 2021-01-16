@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -837,7 +838,8 @@ public class Main {
                                     String squaresFilename,
                                     String pipeAnglesFilename, String pipeAnglesLogFilename,
                                     double minIntersectionSquare, BiPredicate<Polygon<Point>, Polygon<Point>> condition,
-                                    BiFunction<Double, List<Double>, Double> function, List<Double> customPipeAngles)
+                                    BiFunction<Double, List<Double>, Double> function, List<Double> customPipeAngles,
+                                    ExecutorService executor)
             throws IOException {
 
         int distance = (int) params[0];
@@ -876,25 +878,23 @@ public class Main {
                 new StringBuilder(pipeAnglesLogFilename));
 
         var pipeAngles = new ArrayList<>(Arrays.asList(new Double[enlargedPolygons.size()]));
-        var threads = new Thread[enlargedPolygons.size()];
         var lock = new ReentrantReadWriteLock();
+        Future[] futures = new Future[enlargedPolygons.size()];
         for (int i = 0; i < enlargedPolygons.size(); i++) {
             int ii = i;
-            threads[i] = new Thread(() -> {
+            futures[i] = executor.submit(() -> {
+                Thread.currentThread().setName("Processing defect " + (ii + 1) + ": " + enlargedPolygons.get(ii) + ", " +
+                        "thermogram: " + thermogram.getName());
                 double pipeAngle = findPipeAngle(middles.get(ii), enlargedPolygons.get(ii), ii + 1, thermogram,
                         diameter, coef, tempJump, numberEndPixels, dec, eps, maxIter, realTable, rawDefectsFilename,
                         lock, tmpFiles[0][ii + 1], pixelSize, focalLength, resX, resY);
                 pipeAngles.set(ii, function != null ? function.apply(pipeAngle, customPipeAngles) : pipeAngle);
-            },
-                    "Processing defect " + (ii + 1) + ": " + enlargedPolygons.get(ii) + ", " +
-                            "parent thread: " + Thread.currentThread().getName());
-            threads[i].start();
+            });
         }
-
-        for (Thread t : threads) {
+        for (Future f : futures) {
             try {
-                t.join();
-            } catch (InterruptedException e) {
+                f.get();
+            } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
         }
@@ -1103,6 +1103,9 @@ public class Main {
                                 .toArray(String[]::new),
                         outputFiles);
 
+                ExecutorService executorThermograms = Executors.newFixedThreadPool(2);
+                ExecutorService executorDefects = Executors.newFixedThreadPool(2);
+
                 class Processing implements Runnable {
                     final int i; // номер термограммы, подлежащей обработке
                     final String pipeSquaresTmpFilename;
@@ -1123,7 +1126,7 @@ public class Main {
                     public void run() {
                         Thermogram thermogram = thermograms[i];
                         String thermogramName = thermogram.getName();
-
+                        Thread.currentThread().setName("thread-" + thermogramName);
                         System.out.println("start " + thermogramName);
 
                         Thermogram previous = thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1];
@@ -1192,7 +1195,7 @@ public class Main {
                                             (Property.K1.doubleValue() != -2 ? condition :
                                                     (p1, p2) -> false) : null,
                                     Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1 ? function : null,
-                                    customPipeAnglesLists.get(i));
+                                    customPipeAnglesLists.get(i), executorDefects);
                         } catch (Exception e) {
                             System.out.println("Термограмма " + thermogramName + " не обработана.");
                             e.printStackTrace();
@@ -1222,20 +1225,33 @@ public class Main {
                     }
                 }
 
-                Thread[] threads = new Thread[thermograms.length];
+                Future[] futures = new Future[thermograms.length];
                 for (int i = 0; i < thermograms.length; i++) {
-                    threads[i] = new Thread(new Processing(i,
-                            tmpFiles[0][i + 1], tmpFiles[1][i + 1], tmpFiles[2][i + 1], tmpFiles[3][i + 1]),
+                    futures[i] = executorThermograms.submit(new Processing(i,
+                                    tmpFiles[0][i + 1], tmpFiles[1][i + 1], tmpFiles[2][i + 1], tmpFiles[3][i + 1]),
                             "Thermogram: " + thermograms[i].getName());
-                    threads[i].start();
                 }
-
-                for (Thread t : threads)
+                for (Future f : futures) {
                     try {
-                        t.join();
-                    } catch (InterruptedException e) {
+                        f.get();
+                    } catch (InterruptedException | ExecutionException e) {
                         e.printStackTrace();
                     }
+                }
+
+                executorThermograms.shutdown();
+                try {
+                    executorThermograms.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                executorDefects.shutdown();
+                try {
+                    executorDefects.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
                 System.out.println("Обработка термограмм завершена.");
 
                 Helper.concatenateAndDelete(outputFiles, IntStream.range(0, outputFiles.length)

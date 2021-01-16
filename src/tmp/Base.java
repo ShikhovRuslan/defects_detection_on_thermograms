@@ -5,6 +5,7 @@ import main.*;
 import polygons.Segment;
 
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Function;
 
 import static java.lang.Math.*;
@@ -285,11 +286,86 @@ public class Base {
 
     public static void main(String[] args) {
 
-        Object i = null;
+        System.out.println(Runtime.getRuntime().availableProcessors());
 
-        Integer[] arr = new Integer[]{4,1,0,7,2};
+        /*ExecutorService executor = Executors.newFixedThreadPool(3);
+        ExecutorService executor2 = Executors.newFixedThreadPool(3);
+
+        Runnable[] childTasks = new Runnable[25];
+        for (int i = 0; i < childTasks.length; i++) {
+            int ii = i;
+            childTasks[i] = () -> {
+                try {
+                    Thread.sleep(100);
+                    System.out.println("childTask " + ii + " finished");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            };
+        }
+
+        Runnable[] tasks = new Runnable[50];
+        for (int i = 0; i < tasks.length; i++) {
+            int ii = i;
+            tasks[i] = () -> {
+                try {
+                    Thread.sleep(500);
+                    Future[] futures = new Future[childTasks.length];
+                    System.out.println("task " + ii + " started");
+                    for (int k = 0; k < 25; k++) {
+                        int kk = k;
+                        futures[k] = executor2.submit(() -> {
+                            try {
+                                Thread.sleep(100);
+                                System.out.println("childTask " + kk + " finished");
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                    }
+                    try {
+                        for (int k = 0; k < 25; k++) {
+                            futures[k].get();
+                        }
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                    //for(Runnable t : childTasks)
+                    //executor.shutdown();
+                    //executor.awaitTermination(1, TimeUnit.DAYS);
+                    System.out.println("task " + ii + " finished");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            };
+        }
+
+        Future[] futures = new Future[tasks.length];
+        for (int i = 0; i < tasks.length; i++)
+            futures[i] = executor.submit(tasks[i]);
+
+        try {
+            for (int k = 0; k < tasks.length; k++) {
+                futures[k].get();
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        executor.shutdown();
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+        }
+        executor2.shutdown();
+        try {
+            executor2.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+        }*/
+
+        /*Integer[] arr = new Integer[]{4,1,0,7,2};
         arr = Arrays.stream(arr).sorted(Comparator.comparingInt(o -> o)).toArray(Integer[]::new);
-        System.out.println(Arrays.toString(arr));
+        System.out.println(Arrays.toString(arr));*/
 
         /*Function<? super B, Integer> f1 = o -> o.f();
         Function<? super B, Integer> f2 = o -> ((C) o).f();
