@@ -1103,8 +1103,9 @@ public class Main {
                                 .toArray(String[]::new),
                         outputFiles);
 
-                ExecutorService executorThermograms = Executors.newFixedThreadPool(2);
-                ExecutorService executorDefects = Executors.newFixedThreadPool(2);
+                int threadPoolSize = (int) Math.ceil(Runtime.getRuntime().availableProcessors() / 2.);
+                ExecutorService executorThermograms = Executors.newFixedThreadPool(threadPoolSize);
+                ExecutorService executorDefects = Executors.newFixedThreadPool(threadPoolSize);
 
                 class Processing implements Runnable {
                     final int i; // номер термограммы, подлежащей обработке
