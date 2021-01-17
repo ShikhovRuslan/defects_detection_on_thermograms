@@ -908,33 +908,21 @@ public class Main {
         var squares = new ArrayList<Double>();
         var pipeSquares = new ArrayList<Double>();
 
-        var indicesOfPipeAnglesToRemove = new ArrayList<Integer>();
-
         for (int i = 0; i < enlargedPolygons.size(); i++) {
             Rectangle<Pixel> bd = Polygon.toPolygonPixel(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
             Polygon<Pixel> sd = Rectangle.slopeRectangle(bd,
                     pipeAngles.get(i) + (pipeAngles.get(i) >= 90 ? -90 : 0), resY);
             Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngles.get(i));
 
-            Polygon<Pixel> prev = i > 0 ? defects.get(defects.size() - 1) : null;
+            boundingDefects.add(bd);
+            slopingDefects.add(sd);
+            defects.add(d);
 
-            if (i == 0 ||
-                    d.verticesFrom(prev, focalLength).isEmpty() && prev.verticesFrom(d, focalLength).isEmpty()) {
-
-                boundingDefects.add(bd);
-                slopingDefects.add(sd);
-                defects.add(d);
-
-                double s = Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
-                        focalLength);
-                squares.add(s);
-                pipeSquares.add(PI * s);
-            } else
-                indicesOfPipeAnglesToRemove.add(i);
+            double s = Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
+                    focalLength);
+            squares.add(s);
+            pipeSquares.add(PI * s);
         }
-
-        for (int t = indicesOfPipeAnglesToRemove.size() - 1; t >= 0; t--)
-            pipeAngles.remove(indicesOfPipeAnglesToRemove.get(t).intValue());
 
         // Корректировка.
         var defectsChanged = new HashSet<Integer>();
@@ -1197,7 +1185,7 @@ public class Main {
                                                     (p1, p2) -> false) : null,
                                     Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1 ? function : null,
                                     customPipeAnglesLists.get(i), executorDefects);
-                        } catch (Exception e) {
+                        } catch (Throwable e) {
                             System.out.println("Термограмма " + thermogramName + " не обработана.");
                             e.printStackTrace();
                             System.out.println();
