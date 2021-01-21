@@ -167,13 +167,13 @@ public class Segment {
 
         if (isHorizontal()) {
             for (int j = minJ; j <= maxJ; j++)
-                if (rectangleImage.contains(new Point(j, a.getI()), 0))
+                if (rectangleImage.contains(new Point(j, a.getI()), 0, 0))
                     image.setRGB(j, a.getI(), color.getRGB());
             return;
         }
         if (isVertical()) {
             for (int i = minI; i <= maxI; i++)
-                if (rectangleImage.contains(new Point(a.getJ(), i), 0))
+                if (rectangleImage.contains(new Point(a.getJ(), i), 0, 0))
                     image.setRGB(a.getJ(), i, color.getRGB());
             return;
         }
@@ -185,7 +185,7 @@ public class Segment {
             p = minI + i * (maxI - minI + 0.) / Math.max(maxI - minI, maxJ - minJ);
             int x = (int) Math.round(A * p + B);
             int y = (int) Math.round(p);
-            if (rectangleImage.contains(new Point(x, y), 0))
+            if (rectangleImage.contains(new Point(x, y), 0, 0))
                 image.setRGB(x, y, color.getRGB());
         }
     }

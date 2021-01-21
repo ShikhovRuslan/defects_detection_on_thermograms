@@ -4,7 +4,6 @@ import com.google.gson.JsonElement;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import polygons.Point;
 import polygons.Segment;
-import tmp.Base;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -16,6 +15,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -831,6 +831,67 @@ public class Main {
         return pipeAngle;
     }
 
+    /**
+     * Значение {@code null} означает, что существенное пересечение прямоугольников с номерами {@code i} и {@code j} в
+     * списке {@code defects} (т. е. пересечение площадью {@code > minIntersectionSquare}) либо ликвидировано, либо его
+     * и не было изначально.
+     * В противном случае (т. е. при сохранении существенного пересечения), возвращает точку {@code (i, j)}.
+     * При изменении прямоугольника добавлет его номер, {@code i} или {@code j}, в множество {@code defectsChanged}.
+     * (Меняется не более одного прямоугольника.)
+     */
+    private static Point determineProblemDefects(int i, int j, List<Polygon<Pixel>> defects, List<Double> pipeAngles,
+                                                 double minIntersectionSquare, Set<Integer> defectsChanged) {
+        Polygon<Pixel> p1 = defects.get(i);
+        Polygon<Pixel> p2 = defects.get(j);
+
+        double pipeAngle1 = pipeAngles.get(i);
+        double pipeAngle2 = pipeAngles.get(j);
+
+        if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
+            return null;
+
+        boolean p1Changed = false;
+        boolean p2Changed = false;
+
+        Intersection[] intersections = Intersection.values();
+
+        // Действия, т. е. функции action, в перечислении Intersection упорядочены таким образом,
+        // что сначала идут функции, не проверяющие величину площади пересечения (т. е. не выдающие
+        // 1), а затем идут функции, проверяющие это. Сделано для того, чтобы функции из 1-й группы
+        // применялись даже и в случае малости пересечения.
+        for (Intersection intersection : intersections) {
+            if (intersection.getCondition().test(p1, p2, pipeAngle1, minIntersectionSquare)) {
+                int res = intersection.getAction().apply(p1, p2, pipeAngle1,
+                        minIntersectionSquare);
+                if (res == 1) return null;
+                if (res == 0) {
+                    p1Changed = true;
+                    break;
+                }
+            }
+        }
+
+        if (!p1Changed) {
+            for (Intersection intersection : intersections) {
+                if (intersection.getCondition().test(p2, p1, pipeAngle2, minIntersectionSquare)) {
+                    int res = intersection.getAction().apply(p2, p1, pipeAngle2,
+                            minIntersectionSquare);
+                    if (res == 0) {
+                        p2Changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (p1Changed) defectsChanged.add(i);
+        if (p2Changed) defectsChanged.add(j);
+
+        return (p1Changed || p2Changed) ||
+                Polygon.getIntersection(p1, p2, -1).square(-1) <= minIntersectionSquare ?
+                null : new Point(i, j);
+    }
+
     private static Object[] defects(Thermogram thermogram, Polygon<Pixel> overlap, double tMin, double tMax,
                                     int minPixelSquare, double diameter, double[] params, String thermogramFilename,
                                     String rawDefectsFilename, String realTempsFilename, char separatorReal,
@@ -865,8 +926,6 @@ public class Main {
                 focalLength));
         Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0), new Pixel(resX - 1, resY - 1))
                 .toPolygon();
-        double thermogramSquare = Thermogram.toEarthSquare(thermogramPolygon.square(focalLength),
-                thermogram.getHeight(), focalLength, pixelSize);
 
         List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, pixelSize, resY, tMinPseudo,
                 minPixelSquare, distance, maxLength, focalLength, overlap, enlargedPolygons, maxDiff, k, condition);
@@ -926,97 +985,92 @@ public class Main {
 
         // Корректировка.
         var defectsChanged = new HashSet<Integer>();
+        var problemDefects = new ArrayList<Point>();
         List<Integer> indices = IntStream.rangeClosed(0, defects.size() - 1).boxed().collect(Collectors.toList());
         indices.stream()
                 .flatMap(i -> indices.stream()
-                        .filter(j -> !j.equals(i))
+                        .filter(j -> j < i)
+                        .peek(j -> {
+                            Point p = determineProblemDefects(i, j, defects, pipeAngles, minIntersectionSquare,
+                                    defectsChanged);
+                            if (p != null) problemDefects.add(p);
+                        }))
+                .collect(Collectors.toList());
+
+        for (int oldSize = Integer.MAX_VALUE; oldSize > problemDefects.size(); ) {
+            oldSize = problemDefects.size();
+            for (int i = oldSize - 1; i >= 0; i--) {
+                Point p = problemDefects.get(i);
+                if (determineProblemDefects(p.getI(), p.getJ(), defects, pipeAngles, minIntersectionSquare,
+                        defectsChanged) == null)
+                    problemDefects.remove(i);
+            }
+        }
+
+        /*AtomicReference<Double> totalIntersectionSquarePixel = new AtomicReference<>(0.);
+        indices.stream()
+                .flatMap(i -> indices.stream()
+                        .filter(j -> j < i)
                         .peek(j -> {
                             Polygon<Pixel> p1 = defects.get(i);
                             Polygon<Pixel> p2 = defects.get(j);
-
-                            double pipeAngle1 = pipeAngles.get(i);
-                            double pipeAngle2 = pipeAngles.get(j);
-
-                            if (p1.getVertices().get(0) == null || p2.getVertices().get(0) == null)
-                                return;
-
-                            boolean p1Changed = false;
-                            boolean p2Changed = false;
-
-                            Intersection[] intersections = Intersection.values();
-
-                            // Действия, т. е. функции action, в перечислении Intersection упорядочены таким образом,
-                            // что сначала идут функции, не проверяющие величину площади пересечения (т. е. не выдающие
-                            // 1), а затем идут функции, проверяющие это. Сделано для того, чтобы функции из 1-й группы
-                            // применялись даже и в случае малости пересечения.
-                            for (Intersection intersection : intersections) {
-                                if (intersection.getCondition().test(p1, p2, pipeAngle1, minIntersectionSquare)) {
-                                    int res = intersection.getAction().apply(p1, p2, pipeAngle1,
-                                            minIntersectionSquare);
-                                    if (res == 1) return;
-                                    if (res == 0) {
-                                        p1Changed = true;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (!p1Changed) {
-                                for (Intersection intersection : intersections) {
-                                    if (intersection.getCondition().test(p2, p1, pipeAngle2, minIntersectionSquare)) {
-                                        int res = intersection.getAction().apply(p2, p1, pipeAngle2,
-                                                minIntersectionSquare);
-                                        if (res == 0) {
-                                            p2Changed = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (p1Changed) defectsChanged.add(i);
-                            if (p2Changed) defectsChanged.add(j);
-
+                            double tmp;
                             if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
-                                    Polygon.getIntersection(p1, p2, -1).square(-1) > minIntersectionSquare)
+                                    (tmp = Polygon.getIntersection(p1, p2, -1).square(-1)) >
+                                            minIntersectionSquare) {
 
+                                totalIntersectionSquarePixel.updateAndGet(v -> v + tmp);
                                 System.out.println("Дефекты " + (i + 1) + " и " + (j + 1) + " на термограмме " +
                                         thermogram.getName() + " по-прежнему пересекаются существенным образом " +
                                         "(т. е. площадь пересечения >" + minIntersectionSquare + " п.):\n" +
                                         "1. " + p1 + ",\n2. " + p2 + ".");
+                            }
                         }))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList());*/
 
-        for (int i : defectsChanged) {
-            Polygon<Pixel> d = defects.get(i);
-            if (d.getVertices().get(0) != null) {
-                double s = Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
-                        focalLength);
-                squares.set(i, s);
-                pipeSquares.set(i, PI * s);
+        double totalIntersectionSquarePixel = 0;
+        for (Point p : problemDefects) {
+            Polygon<Pixel> p1 = defects.get(p.getI());
+            Polygon<Pixel> p2 = defects.get(p.getJ());
+            double s;
+            if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
+                    (s = Polygon.getIntersection(p1, p2, -1).square(-1)) >
+                            minIntersectionSquare) {
+
+                totalIntersectionSquarePixel += s;
+                System.out.println("Дефекты " + (p.getI() + 1) + " и " + (p.getJ() + 1) + " на термограмме " +
+                        thermogram.getName() + " по-прежнему пересекаются существенным образом " +
+                        "(т. е. площадь пересечения >" + minIntersectionSquare + " п.):\n" +
+                        "1. " + p1 + ",\n2. " + p2 + ".");
             }
         }
 
-        for (int i = defects.size() - 1; i >= 0; i--) {
-            if (defects.get(i).getVertices().get(0) == null) {
-                defects.remove(i);
-                pipeAngles.remove(i);
-                squares.remove(i);
-                pipeSquares.remove(i);
-            }
-        }
+        for (int i = defects.size() - 1; i >= 0; i--)
+            if (defectsChanged.contains(i))
+                if (defects.get(i).getVertices().get(0) == null) {
+                    defects.remove(i);
+                    pipeAngles.remove(i);
+                    squares.remove(i);
+                    pipeSquares.remove(i);
+                } else {
+                    double s = Polygon.squarePolygon(defects.get(i), overlap, thermogramPolygon, thermogram.getHeight(),
+                            pixelSize, focalLength);
+                    squares.set(i, s);
+                    pipeSquares.set(i, PI * s);
+                }
 
-        double totalSquare = squares.stream().mapToDouble(Double::doubleValue).sum();
+        double totalIntersectionSquare = Thermogram.toEarthSquare(totalIntersectionSquarePixel, thermogram.getHeight(),
+                focalLength, pixelSize);
+        double totalSquare = squares.stream().mapToDouble(Double::doubleValue).sum() - totalIntersectionSquare;
+        double totalPipeSquare = pipeSquares.stream().mapToDouble(Double::doubleValue).sum() - PI * totalIntersectionSquare;
 
-        Helper.log(squaresFilename, thermogram.getName() + "   " + Helper.roundAndAppend(totalSquare, 2, 2) + "   " +
-                Helper.roundAndAppend(totalSquare * 100 / thermogramSquare, 2, 2) + "   " +
-                Helper.roundAndAppend(squares, 2, 2) + "\n");
-
-        Helper.log(pipeAnglesFilename, thermogram.getName() + "   " + Helper.roundAndAppend(pipeAngles, 2, 3) + "\n");
-
-        Object[] o = new Object[2];
+        Object[] o = new Object[6];
         o[0] = defects;
         o[1] = pipeSquares;
+        o[2] = squares;
+        o[3] = pipeAngles;
+        o[4] = totalPipeSquare;
+        o[5] = totalSquare;
         return o;
     }
 
@@ -1052,8 +1106,6 @@ public class Main {
                 var customPipeAnglesLists = new ArrayList<List<Double>>();
                 List<Double> defaultPipeAngles = Arrays.asList(Property.DEFAULT_PIPE_ANGLES.doubleArrayValue());
 
-                //Map<String, List<Double>> map = Base.readStandardPipeAngles(
-                //        Helper.filename(DIR_CURRENT, CUSTOM_PIPE_ANGLES));
                 Map<String, List<Double>> map = Helper.mapFromFileWithJsonArray(
                         Helper.filename(DIR_CURRENT, CUSTOM_PIPE_ANGLES),
                         JsonElement::getAsDouble, "Name", "CustomPipeAngles");
@@ -1091,11 +1143,13 @@ public class Main {
                                 .toArray(String[]::new),
                         outputFiles);
 
+                var unprocessedThermograms = new ArrayList<Thermogram>();
+
                 int threadPoolSize = (int) Math.ceil(Runtime.getRuntime().availableProcessors() / 2.);
                 ExecutorService executorThermograms = Executors.newFixedThreadPool(threadPoolSize);
                 ExecutorService executorDefects = Executors.newFixedThreadPool(threadPoolSize);
 
-                class Processing implements Runnable {
+                class Processing implements Callable<double[]> {
                     final int i; // номер термограммы, подлежащей обработке
                     final String pipeSquaresTmpFilename;
                     final String squaresTmpFilename;
@@ -1112,7 +1166,7 @@ public class Main {
                     }
 
                     @Override
-                    public void run() {
+                    public double[] call() {
                         Thermogram thermogram = thermograms[i];
                         String thermogramName = thermogram.getName();
                         Thread.currentThread().setName("thread-" + thermogramName);
@@ -1186,18 +1240,38 @@ public class Main {
                                     Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1 ? function : null,
                                     customPipeAnglesLists.get(i), executorDefects);
                         } catch (Throwable e) {
+                            unprocessedThermograms.add(thermogram);
                             System.out.println("Термограмма " + thermogramName + " не обработана.");
                             e.printStackTrace();
                             System.out.println();
-                            return;
+                            return new double[0];
                         }
 
                         var defects = (ArrayList<Polygon<Pixel>>) o[0];
                         var pipeSquares = (ArrayList<Double>) o[1];
+                        var squares = (ArrayList<Double>) o[2];
+                        var pipeAngles = (ArrayList<Double>) o[3];
+                        var totalPipeSquare = (Double) o[4];
+                        var totalSquare = (Double) o[5];
+
+                        Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0),
+                                new Pixel(ExifParam.RES_X.intValue() - 1, ExifParam.RES_Y.intValue() - 1))
+                                .toPolygon();
+                        double thermogramSquare = Thermogram.toEarthSquare(thermogramPolygon.square(
+                                ExifParam.FOCAL_LENGTH.value()), thermogram.getHeight(), ExifParam.FOCAL_LENGTH.value(),
+                                Property.PIXEL_SIZE.doubleValue() / 1000_000);
 
                         Helper.log(pipeSquaresTmpFilename, thermogramName + "   " +
-                                Helper.roundAndAppend(pipeSquares.stream().mapToDouble(Double::doubleValue).sum(), 2, 2) +
-                                "   " + Helper.roundAndAppend(pipeSquares, 2, 2) + "\n");
+                                Helper.roundAndAppend(totalPipeSquare, 2, 2) + "   " +
+                                Helper.roundAndAppend(pipeSquares, 2, 2) + "\n");
+
+                        Helper.log(squaresTmpFilename, thermogramName + "   " +
+                                Helper.roundAndAppend(totalSquare, 2, 2) + "   " +
+                                Helper.roundAndAppend(totalSquare * 100 / thermogramSquare, 2, 2) + "   " +
+                                Helper.roundAndAppend(squares, 2, 2) + "\n");
+
+                        Helper.log(pipeAnglesTmpFilename, thermogramName + "   " +
+                                Helper.roundAndAppend(pipeAngles, 2, 3) + "\n");
 
                         Polygon.drawPolygons(defects, Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
                                 ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
@@ -1211,21 +1285,20 @@ public class Main {
                                     " % обработано,  осталось " + String.format("%" + (thermograms.length + "").length() + "d",
                                     thermograms.length - n) + " ]");
                         }
+
+                        return new double[]{totalPipeSquare, totalSquare};
                     }
                 }
 
-                Future[] futures = new Future[thermograms.length];
-                for (int i = 0; i < thermograms.length; i++) {
-                    futures[i] = executorThermograms.submit(new Processing(i,
-                                    tmpFiles[0][i + 1], tmpFiles[1][i + 1], tmpFiles[2][i + 1], tmpFiles[3][i + 1]),
-                            "Thermogram: " + thermograms[i].getName());
-                }
-                for (Future f : futures) {
-                    try {
-                        f.get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
-                    }
+                var tasks = new ArrayList<Callable<double[]>>();
+                for (int i = 0; i < thermograms.length; i++)
+                    tasks.add(new Processing(i,
+                            tmpFiles[0][i + 1], tmpFiles[1][i + 1], tmpFiles[2][i + 1], tmpFiles[3][i + 1]));
+                List<Future<double[]>> res = null;
+                try {
+                    res = executorThermograms.invokeAll(tasks);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
 
                 executorThermograms.shutdown();
@@ -1241,11 +1314,32 @@ public class Main {
                     e.printStackTrace();
                 }
 
-                System.out.println("Обработка термограмм завершена.");
+                if (unprocessedThermograms.size() == 0)
+                    System.out.println("Все термограммы обработаны.");
+                else {
+                    System.out.println("Следующие термограммы не обработаны:\n");
+                    for (Thermogram t : unprocessedThermograms)
+                        System.out.println(t.getName() + "\n");
+                }
+
+                double totalPipeSquare = 0;
+                double totalSquare = 0;
+                for (int i = 0; i < thermograms.length; i++) {
+                    try {
+                        double[] tmp = res.get(i).get();
+                        totalPipeSquare += tmp[0];
+                        totalSquare += tmp[1];
+                    } catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                }
 
                 Helper.concatenateAndDelete(outputFiles, IntStream.range(0, outputFiles.length)
                         .mapToObj(i -> tmpFiles[i][0])
                         .toArray(String[]::new));
+
+                Helper.log(outputFiles[0].toString(), "\ntotalPipeSquare: " + totalPipeSquare + ".");
+                Helper.log(outputFiles[1].toString(), "\ntotalSquare: " + totalSquare + ".");
 
                 Helper.run(DIR_CURRENT, SCRIPT_COPY_GPS + SCRIPT_EXTENSION, OS);
             }

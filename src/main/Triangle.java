@@ -17,10 +17,10 @@ public class Triangle<T extends AbstractPoint> extends Polygon<T> {
     }
 
     @Override
-    public boolean contains(T point, double focalLength) {
+    public boolean contains(T point, double focalLength, double eps) {
         int[] sgn = new int[3];
         for (int k = 0; k < 3; k++) {
-            if (point.isInLine(getVertices().get(k), getVertices().get(k + 1 < 3 ? k + 1 : 0)))
+            if (point.isInLine(getVertices().get(k), getVertices().get(k + 1 < 3 ? k + 1 : 0), eps))
                 return true;
             sgn[k] = (getVertices().get(k).getI() - point.getI()) *
                     (getVertices().get(k + 1 < 3 ? k + 1 : 0).getJ() - getVertices().get(k).getJ()) -

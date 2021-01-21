@@ -45,7 +45,7 @@ public enum Intersection {
      * Действие: {@code markToDelete}.
      */
     DIAGONAL((p1, p2, pipeAngle1, minSquare) -> {
-        List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
+        List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1, 1);
         List<Pixel> v1 = p1.getVertices();
 
         return (verticesFromP1.size() == 2 &&
@@ -58,7 +58,7 @@ public enum Intersection {
      * Действие: {@code markToDeleteMinSquare}.
      */
     PARALLEL_SIDE((p1, p2, pipeAngle1, minSquare) -> {
-        List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
+        List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1, 1);
 
         return verticesFromP1.size() == 2 &&
                 p1.sideParallelToPipe(verticesFromP1.get(0), verticesFromP1.get(1), pipeAngle1);
@@ -69,7 +69,7 @@ public enum Intersection {
      * Действие: {@code shorten}.
      */
     PERPENDICULAR_SIDE((p1, p2, pipeAngle1, minSquare) -> {
-        List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
+        List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1, 1);
 
         return verticesFromP1.size() == 2 &&
                 p1.sidePerpendicularToPipe(verticesFromP1.get(0), verticesFromP1.get(1), pipeAngle1);
@@ -80,7 +80,7 @@ public enum Intersection {
      * Действие: {@code shorten}.
      */
     ONE_VERTEX((p1, p2, pipeAngle1, minSquare) ->
-            p2.verticesFrom(p1, -1).size() == 1
+            p2.verticesFrom(p1, -1, 1).size() == 1
     );
 
     private static final Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> markToDelete =
@@ -99,7 +99,7 @@ public enum Intersection {
 
     private static final Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> shorten =
             (p1, p2, pipeAngle1, minSquare) -> {
-                List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1);
+                List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1, 1);
 
                 Object[] o = Polygon.findShift(p1, p2, pipeAngle1, verticesFromP1.get(0), minSquare);
                 if (o.length == 2) {

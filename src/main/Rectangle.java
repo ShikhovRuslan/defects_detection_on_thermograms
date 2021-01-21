@@ -124,9 +124,9 @@ public class Rectangle<T extends AbstractPoint> implements Figure<T> {
     }
 
     @Override
-    public boolean contains(T point, double focalLength) {
-        return (left.getI() <= point.getI() && point.getI() <= right.getI()) &&
-                (left.getJ() <= point.getJ() && point.getJ() <= right.getJ());
+    public boolean contains(T point, double focalLength, double eps) {
+        return (left.getI() <= point.getI() + eps && point.getI() - eps <= right.getI()) &&
+                (left.getJ() <= point.getJ() + eps && point.getJ() - eps <= right.getJ());
     }
 
     /**

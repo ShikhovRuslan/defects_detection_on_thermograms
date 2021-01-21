@@ -108,9 +108,9 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
     }
 
     @Override
-    public boolean contains(T point, double focalLength) {
+    public boolean contains(T point, double focalLength, double eps) {
         for (Triangle<T> triangle : toTriangles(focalLength))
-            if (triangle.contains(point, focalLength))
+            if (triangle.contains(point, focalLength, eps))
                 return true;
         return false;
     }
@@ -124,8 +124,8 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
 
         List<Pixel> vertices = new ArrayList<>();
 
-        vertices.addAll(polygon1.verticesFrom(polygon2, focalLength));
-        vertices.addAll(polygon2.verticesFrom(polygon1, focalLength));
+        vertices.addAll(polygon1.verticesFrom(polygon2, focalLength, 0));
+        vertices.addAll(polygon2.verticesFrom(polygon1, focalLength, 0));
 
         Pixel intersection;
         for (int i = 0; i < v1.size(); i++)
@@ -188,7 +188,7 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
         for (Segment side : getSides(polygon1))
             if (side.intersectsSideOf(polygon2)) return true;
 
-        return !polygon1.verticesFrom(polygon2, focalLength).isEmpty() || !polygon2.verticesFrom(polygon1, focalLength).isEmpty();
+        return !polygon1.verticesFrom(polygon2, focalLength, 0).isEmpty() || !polygon2.verticesFrom(polygon1, focalLength, 0).isEmpty();
     }
 
     /**

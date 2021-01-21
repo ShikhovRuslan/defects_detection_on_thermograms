@@ -94,13 +94,17 @@ public abstract class AbstractPoint {
     /**
      * Определяет принадлежность текущей точки отрезку с концами {@code p1} и {@code p2}.
      */
-    public <T extends AbstractPoint> boolean isInLine(T p1, T p2) {
+    public <T extends AbstractPoint> boolean isInLine(T p1, T p2, double eps) {
         if (p1.getI() == p2.getI())
-            return i == p1.getI() && min(p1.getJ(), p2.getJ()) <= j && j <= max(p1.getJ(), p2.getJ());
+            return i >= p1.getI() - eps && i <= p1.getI() + eps && min(p1.getJ(), p2.getJ()) - eps <= j && j <= max(p1.getJ(), p2.getJ()) + eps;
         // Прямая, содержащая отрезок (в случае невертикального отрезка): y = a*x + b.
         double a = (p1.getJ() - p2.getJ()) / (p1.getI() - p2.getI() + 0.);
         double b = p1.getJ() - a * p1.getI();
-        return j == a * i + b && min(p1.getI(), p2.getI()) <= i && i <= max(p1.getI(), p2.getI());
+        if (this.equals(new Pixel(211, 329)) &&
+                (p1.equals(new Pixel(210, 331)) && p2.equals(new Pixel(221, 308)) ||
+                        p2.equals(new Pixel(210, 331)) && p1.equals(new Pixel(221, 308))))
+            System.out.println(a + "  " + b);
+        return j >= a * i + b - eps && j <= a * i + b + eps && min(p1.getI(), p2.getI()) - eps <= i && i <= max(p1.getI(), p2.getI()) + eps;
     }
 
     /**

@@ -82,7 +82,7 @@ public class Point extends AbstractPoint {
      */
     public boolean isInRectangles(List<Rectangle<Point>> rectangles, double focalLength) {
         for (Rectangle<Point> rectangle : rectangles)
-            if (rectangle.contains(this, focalLength))
+            if (rectangle.contains(this, focalLength, 0))
                 return true;
         return false;
     }
