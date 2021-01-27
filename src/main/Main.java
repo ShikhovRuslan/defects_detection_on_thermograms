@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import polygons.Point;
 import polygons.Segment;
+import tmp.Base;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -15,7 +16,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -982,6 +982,46 @@ public class Main {
             squares.add(s);
             pipeSquares.add(PI * s);
         }
+
+        int n;
+        do {
+            n = 0;
+            for (int i = 0; i < defects.size(); i++) {
+                for (int kk = 0; kk < defects.size(); kk++) {
+                    boolean corrected = false;
+                    for (int ll = kk + 1; ll < defects.size(); ll++) {
+                        if (!Helper.close(pipeAngles.get(kk), pipeAngles.get(ll), 45)) {
+                        } else if (Helper.close(pipeAngles.get(i), pipeAngles.get(kk), 45) &&
+                                Helper.close(pipeAngles.get(i), pipeAngles.get(ll), 45)) {
+                        } else if (Base.testPair(defects.get(i), defects.get(kk), defects.get(ll),
+                                pipeAngles.get(kk), pipeAngles.get(ll), realTable, resY)) {
+
+                            double pipeAngle = Base.bisectorInclination(
+                                    pipeAngles.get(kk) + (pipeAngles.get(kk) > 90 ? -180 : 0),
+                                    pipeAngles.get(ll) + (pipeAngles.get(ll) > 90 ? -180 : 0));
+                            pipeAngle = pipeAngle + (pipeAngle < 0 ? 180 : 0);
+                            pipeAngles.set(i, pipeAngle);
+                            Polygon<Pixel> sd = Rectangle.slopeRectangle(boundingDefects.get(i),
+                                    pipeAngle + (pipeAngle >= 90 ? -90 : 0), resY);
+                            Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngle);
+
+                            slopingDefects.set(i, sd);
+                            defects.set(i, d);
+
+                            double s = Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(),
+                                    pixelSize, focalLength);
+                            squares.set(i, s);
+                            pipeSquares.set(i, PI * s);
+                            corrected = true;
+                            n++;
+                            break;
+                        }
+                    }
+                    if (corrected) break;
+                }
+            }
+            System.out.println("n=" + n + thermogram.getName());
+        } while (n > 0);
 
         // Корректировка.
         var defectsChanged = new HashSet<Integer>();

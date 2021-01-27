@@ -15,6 +15,10 @@ public class Point extends AbstractPoint {
         super(i, j);
     }
 
+    public Point(double iD, double jD) {
+        super(iD, jD);
+    }
+
     @Override
     public Point create(int i, int j) {
         return new Point(i, j);
