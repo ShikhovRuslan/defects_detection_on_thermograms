@@ -398,6 +398,62 @@ public class Base {
         return min > 0;
     }
 
+    public static double check(Polygon<Pixel> defect, double minLengthwiseDistance, double maxTransverseDistance) {
+        var distances = new ArrayList<Double>();
+        double no = -1;
+        List<Pixel> vertices = defect.getVertices();
+        var inclinations = new ArrayList<Double>();
+
+        for (int i = 0; i < vertices.size(); i++)
+            for (int j = i + 1; j < vertices.size(); j++) {
+                distances.add(AbstractPoint.distance(vertices.get(i), vertices.get(j)));
+                if (vertices.get(i).getI() == vertices.get(j).getI())
+                    inclinations.add(90.);
+                else {
+                    double m = atan(coefs(vertices.get(i), vertices.get(j))[0]) * 180 / PI;
+                    inclinations.add(m < 0 ? m + 180 : m);
+                }
+            }
+
+        if (distances.stream().max(Double::compareTo).orElse(no) < minLengthwiseDistance)
+            return no;
+
+        inclinations.sort(Comparator.comparingDouble(o -> distances.get(inclinations.indexOf(o))));
+        int n = 3;
+        double[] a = new double[n];
+        for (int k = 0; k < n; k++)
+            a[k] = inclinations.get(inclinations.size() - k - 1);
+        double sinSum = 0;
+        double cosSum = 0;
+        for (int i = 0; i < n; i++) {
+            sinSum += sin((n - i) * a[i] * PI / 180);
+            cosSum += cos((n - i) * a[i] * PI / 180);
+        }
+        double average = atan2(sinSum, cosSum) * 180 / PI;
+        average = average < 0 ? average + 180 : average;
+        average = average == 180 ? 0 : average;
+
+        var distances2 = new ArrayList<Double>();
+        for (int i = 0; i < vertices.size(); i++)
+            for (int j = i + 1; j < vertices.size(); j++) {
+                double aa;
+                Pixel p1 = vertices.get(j), p2;
+                if (average == 90) {
+                    p2 = new Pixel(p1.getI(), -1);
+                } else {
+                    aa = 90 < average && average < 180 ? average - 180 : average;
+                    p2 = new Pixel(-1, tan(aa * PI / 180) * (-1) + (p1.getJ() - tan(aa * PI / 180) * p1.getI()));
+                }
+                distances2.add(vertices.get(i).distanceToLine(p1, p2));
+            }
+
+        if (distances2.stream().max(Double::compareTo).orElse(no) > maxTransverseDistance)
+            return no;
+
+        return average;
+    }
+
+
     public static void main(String[] args) throws IOException {
 
         /*Pixel centre2 = new Pixel(0, 1);
