@@ -390,7 +390,7 @@ public class Base {
         double[] temperatures = new double[points.size()];
         for (int i = 0; i < points.size(); i++) {
             temperatures[i] = realTable[points.get(i).getI()][points.get(i).getJ()];
-            System.out.println(temperatures[i]);
+            //System.out.println(temperatures[i]);
         }
 
         double min = Arrays.stream(temperatures).min().orElse(-1);
@@ -398,7 +398,7 @@ public class Base {
         return min > 0;
     }
 
-    public static double check(Polygon<Pixel> defect, double minLengthwiseDistance, double maxTransverseDistance) {
+    public synchronized static double check(Polygon<Pixel> defect, double minLengthwiseDistance, double maxTransverseDistance) {
         var distances = new ArrayList<Double>();
         double no = -1;
         List<Pixel> vertices = defect.getVertices();
@@ -418,7 +418,30 @@ public class Base {
         if (distances.stream().max(Double::compareTo).orElse(no) < minLengthwiseDistance)
             return no;
 
-        inclinations.sort(Comparator.comparingDouble(o -> distances.get(inclinations.indexOf(o))));
+        if (inclinations.contains(100.61965527615513)) {
+            System.out.println("= =========================   FOUND\n");
+            System.out.println(Thread.currentThread().getName());
+            System.out.println(distances.size() + "   " + inclinations.size());
+            System.out.println(distances + "\n");
+            System.out.println(inclinations + "\n");
+        }
+
+        try {
+            inclinations.sort(Comparator.comparingDouble(o -> {
+                if (o.equals(100.61965527615513) && inclinations.indexOf(o) == -1) {
+                    System.out.println("-------  " + o);
+                    System.out.println(Thread.currentThread().getName());
+                    System.out.println(distances.size() + "   " + inclinations.size());
+                    System.out.println(distances + "\n");
+                    System.out.println(inclinations + "\n");
+                    //throw new IllegalArgumentException();
+                }
+                return distances.get(inclinations.indexOf(o));
+            }));
+        } catch (Exception e) {
+            //throw new Error();
+        }
+
         int n = 3;
         double[] a = new double[n];
         for (int k = 0; k < n; k++)

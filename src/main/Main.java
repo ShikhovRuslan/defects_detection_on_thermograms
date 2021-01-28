@@ -482,7 +482,7 @@ public class Main {
         int eps1 = 2;
         int eps2 = 4;
 
-        // Многоугольник polygon является отчётливо горизонтальным (относительно термограммы).
+        /*// Многоугольник polygon является отчётливо горизонтальным (относительно термограммы).
         if (w >= d + eps2 && ((d - eps1 <= h && h <= d) || (h > d && w > h))) {
             Helper.log(pipeAnglesLogFilename, "Многоугольник является отчётливо горизонтальным => pipeAngle=0.\n\n\n");
             return 0;
@@ -496,7 +496,7 @@ public class Main {
 
         double res = Base.check(Polygon.toPolygonPixel(polygon, focalLength, resY),
                 2 * d, 1.5 * d);
-        if (res != -1) return res;
+        if (res != -1) return res;*/
 
         // При другом l алгоритм работает некорректно, но можно адаптировать его для произвольного l, кратного n(=8).
         int l = 8;
@@ -927,7 +927,7 @@ public class Main {
         Polygon.drawPolygons(enlargedPolygons, Polygon.toPolygonPoint(overlap, focalLength, resY),
                 thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, rawDefectsFilename, focalLength, resY);
 
-        for (int i = 0; i < enlargedPolygons.size(); i++)
+        /*for (int i = 0; i < enlargedPolygons.size(); i++)
             try {
                 BufferedImage image = ImageIO.read(new File(thermogramFilename));
                 draw(enlargedPolygons.get(i), image, Color.BLACK);
@@ -935,7 +935,7 @@ public class Main {
                         thermogram.getName() + "-" + (i + 1) + ".jpg"));
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
 
         int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize,
                 focalLength));
@@ -1035,7 +1035,6 @@ public class Main {
                     if (corrected) break;
                 }
             }
-            System.out.println("n=" + n + thermogram.getName());
         } while (n > 0);
 
         // Корректировка.
