@@ -180,6 +180,7 @@ public class Main {
         THERMOGRAMS_RAW_TEMPERATURES,
         CSV,
         DEFECTS,
+        ALL,
         HELP;
 
         private static void help() {
@@ -200,6 +201,7 @@ public class Main {
                 case "-trt" -> THERMOGRAMS_RAW_TEMPERATURES;
                 case "-csv" -> CSV;
                 case "-d" -> DEFECTS;
+                case "-all" -> ALL;
                 default -> HELP;
             };
         }
@@ -1128,277 +1130,299 @@ public class Main {
         return o;
     }
 
+    public static void actionGlobalParams() {
+        Helper.run(DIR_CURRENT, SCRIPT_GLOBAL_PARAMS + SCRIPT_EXTENSION, OS);
+    }
+
+    public static void actionThermogramsInfo() {
+        Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_INFO + SCRIPT_EXTENSION, OS);
+    }
+
+    public static void actionThermogramsRawTemperatures() {
+        Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_RAW_TEMPERATURES + SCRIPT_EXTENSION, OS);
+    }
+
+    public static void actionCsv() {
+        File[] files = new File(Property.DIR_THERMOGRAMS.value()).listFiles();
+        String[] thermogramsNames = new String[files.length];
+        for (int i = 0; i < files.length; i++)
+            thermogramsNames[i] = files[i].getName().substring(0, files[i].getName().indexOf('.'));
+        for (String thermogramName : thermogramsNames)
+            Helper.rawFileToRealFile(DIR_CURRENT + "/" + Property.SUBDIR_RAW_TEMPS.value() +
+                            "/" + thermogramName + Property.POSTFIX_RAW_TEMPS.value() + EXTENSION_RAW,
+                    DIR_CURRENT + "/" + Property.SUBDIR_REAL_TEMPS.value() +
+                            "/" + thermogramName + Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL,
+                    ExifParam.RES_Y.intValue(), ExifParam.RES_X.intValue(), SEPARATOR_RAW, SEPARATOR_REAL,
+                    Arrays.copyOfRange(ExifParam.readValues(), 1, ExifParam.readValues().length));
+    }
+
+    public static void actionDefects() throws IOException {
+        Thermogram[] thermograms = Thermogram.readThermograms(
+                Helper.filename(DIR_CURRENT, Property.SUBDIR_OUTPUT.value(), THERMOGRAMS_INFO),
+                Helper.filename(DIR_CURRENT, FORBIDDEN_ZONES));
+
+        var customPipeAnglesLists = new ArrayList<List<Double>>();
+        List<Double> defaultPipeAngles = Arrays.asList(Property.DEFAULT_PIPE_ANGLES.doubleArrayValue());
+
+        Map<String, List<Double>> map = Helper.mapFromFileWithJsonArray(
+                Helper.filename(DIR_CURRENT, CUSTOM_PIPE_ANGLES),
+                JsonElement::getAsDouble, "Name", "CustomPipeAngles");
+
+        for (Thermogram thermogram : thermograms) {
+            List<Double> angles = map.get(thermogram.getName());
+            customPipeAnglesLists.add(angles == null ? defaultPipeAngles : angles);
+        }
+
+        BiFunction<Double, List<Double>, Double> function = (pipeAngle, customPipeAngles) -> {
+            List<Double> angleDistances = customPipeAngles.stream()
+                    .map(customPipeAngle -> min(abs(pipeAngle - customPipeAngle),
+                            180 - abs(pipeAngle - customPipeAngle)))
+                    .collect(Collectors.toList());
+            return customPipeAngles.get(angleDistances.indexOf(Collections.min(angleDistances)));
+        };
+
+        // Сохранение 10-ти последних параметров из конфиг. файла в массив. На этих параметрах основывается
+        // метод defects().
+        double[] params = new double[10];
+        for (int i = 0; i < 10; i++)
+            params[i] = Property.values()[Property.values().length - 10 + i].doubleValue();
+
+        var outputFiles = new StringBuilder[4];
+        for (int i = 0; i < outputFiles.length; i++)
+            outputFiles[i] = new StringBuilder().insert(0, Helper.filename(DIR_CURRENT,
+                    new Property[]{Property.SUBDIR_OUTPUT, Property.SUBDIR_AUXILIARY, Property.SUBDIR_AUXILIARY,
+                            Property.SUBDIR_AUXILIARY}[i].value(),
+                    new String[]{PIPE_SQUARES, SQUARES, PIPE_ANGLES, PIPE_ANGLES_LOG}[i]));
+
+        String[][] tmpFiles = Helper.createTmpFiles(
+                IntStream.range(0, thermograms.length)
+                        .mapToObj(i -> "__" + String.format("%0" + (thermograms.length + "").length() + "d", i + 1) +
+                                "__" + thermograms[i].getName())
+                        .toArray(String[]::new),
+                outputFiles);
+
+        var unprocessedThermograms = new ArrayList<Thermogram>();
+
+        int threadPoolSize = (int) Math.ceil(Runtime.getRuntime().availableProcessors() / 2.);
+        ExecutorService executorThermograms = Executors.newFixedThreadPool(threadPoolSize);
+        ExecutorService executorDefects = Executors.newFixedThreadPool(threadPoolSize);
+
+        class Processing implements Callable<double[]> {
+            final int i; // номер термограммы, подлежащей обработке
+            final String pipeSquaresTmpFilename;
+            final String squaresTmpFilename;
+            final String pipeAnglesTmpFilename;
+            final String pipeAnglesLogTmpFilename;
+
+            public Processing(int i, String pipeSquaresTmpFilename, String squaresTmpFilename,
+                              String pipeAnglesTmpFilename, String pipeAnglesLogTmpFilename) {
+                this.i = i;
+                this.pipeSquaresTmpFilename = pipeSquaresTmpFilename;
+                this.squaresTmpFilename = squaresTmpFilename;
+                this.pipeAnglesTmpFilename = pipeAnglesTmpFilename;
+                this.pipeAnglesLogTmpFilename = pipeAnglesLogTmpFilename;
+            }
+
+            @Override
+            public double[] call() {
+                Thermogram thermogram = thermograms[i];
+                String thermogramName = thermogram.getName();
+                Thread.currentThread().setName("thread-" + thermogramName);
+                System.out.println("start " + thermogramName);
+
+                Thermogram previous = thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1];
+
+                Polygon<Pixel> overlap = thermogram.getOverlapWith(previous, ExifParam.FOCAL_LENGTH.value(),
+                        Property.PIXEL_SIZE.doubleValue() / 1000_000,
+                        new Pixel(Property.PRINCIPAL_POINT_X.intValue(), Property.PRINCIPAL_POINT_Y.intValue()),
+                        ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue());
+
+                var thermogramFilename = new StringBuilder();
+                var rawDefectsFilename = new StringBuilder();
+                var defectsFilename = new StringBuilder();
+                var realTempsFilename = new StringBuilder();
+
+                var files = new StringBuilder[]{thermogramFilename, rawDefectsFilename, defectsFilename,
+                        realTempsFilename};
+
+                for (int i = 0; i < files.length; i++)
+                    files[i].insert(0, Helper.filename(
+                            new String[]{null, DIR_CURRENT, DIR_CURRENT, DIR_CURRENT}[i],
+                            new Property[]{Property.DIR_THERMOGRAMS, Property.SUBDIR_RAW_DEFECTS,
+                                    Property.SUBDIR_DEFECTS, Property.SUBDIR_REAL_TEMPS}[i].value(),
+                            thermogramName + new String[]{EXTENSION, Property.POSTFIX_RAW_DEFECTS.value() +
+                                    EXTENSION, Property.POSTFIX_DEFECTS.value() + EXTENSION,
+                                    Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL
+                            }[i]));
+
+                if (!new File(String.valueOf(thermogramFilename)).isFile())
+                    thermogramFilename.replace(0, thermogramFilename.length(),
+                            thermogramFilename.substring(0, thermogramFilename.length() - EXTENSION.length()) +
+                                    EXTENSION.toUpperCase());
+
+                int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(
+                        Property.DIAMETER.doubleValue(), thermogram.getHeight(),
+                        Property.PIXEL_SIZE.doubleValue() / 1000_000, ExifParam.FOCAL_LENGTH.value()));
+
+                BiPredicate<Polygon<Point>, Polygon<Point>> condition = (p1, p2) -> {
+                    int[] ii1 = p1.findMinAndMax(Point::getI);
+                    int[] jj1 = p1.findMinAndMax(Point::getJ);
+                    int[] ii2 = p2.findMinAndMax(Point::getI);
+                    int[] jj2 = p2.findMinAndMax(Point::getJ);
+                    int[] ii = new int[]{min(ii1[0], ii2[0]), max(ii1[1], ii2[1])};
+                    int[] jj = new int[]{min(jj1[0], jj2[0]), max(jj1[1], jj2[1])};
+
+                    int iLength = ii[1] - ii[0];
+                    int jLength = jj[1] - jj[0];
+
+                    return (iLength <= round(Property.K1.doubleValue() * diameterPixel) ||
+                            jLength <= round(Property.K1.doubleValue() * diameterPixel)) &&
+                            (iLength <= round(Property.K2.doubleValue() * diameterPixel) &&
+                                    jLength <= round(Property.K2.doubleValue() * diameterPixel));
+                };
+
+                Object[] o;
+                try {
+                    o = defects(thermogram, overlap, Property.T_MIN.doubleValue(), Property.T_MAX.doubleValue(),
+                            Property.MIN_PIXEL_SQUARE.intValue(), Property.DIAMETER.doubleValue(), params,
+                            thermogramFilename.toString(), rawDefectsFilename.toString(),
+                            realTempsFilename.toString(), SEPARATOR_REAL,
+                            Property.PIXEL_SIZE.doubleValue() / 1000_000,
+                            (int) round(Property.K3.doubleValue() * diameterPixel), ExifParam.FOCAL_LENGTH.value(),
+                            ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(), squaresTmpFilename,
+                            pipeAnglesTmpFilename, pipeAnglesLogTmpFilename,
+                            Property.MIN_INTERSECTION_SQUARE.doubleValue(),
+                            Property.K1.doubleValue() != -1 ?
+                                    (Property.K1.doubleValue() != -2 ? condition :
+                                            (p1, p2) -> false) : null,
+                            Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1 ? function : null,
+                            customPipeAnglesLists.get(i), executorDefects);
+                } catch (Throwable e) {
+                    unprocessedThermograms.add(thermogram);
+                    System.out.println("Термограмма " + thermogramName + " не обработана.");
+                    e.printStackTrace();
+                    System.out.println();
+                    return new double[0];
+                }
+
+                var defects = (ArrayList<Polygon<Pixel>>) o[0];
+                var pipeSquares = (ArrayList<Double>) o[1];
+                var squares = (ArrayList<Double>) o[2];
+                var pipeAngles = (ArrayList<Double>) o[3];
+                var totalPipeSquare = (Double) o[4];
+                var totalSquare = (Double) o[5];
+
+                Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0),
+                        new Pixel(ExifParam.RES_X.intValue() - 1, ExifParam.RES_Y.intValue() - 1))
+                        .toPolygon();
+                double thermogramSquare = Thermogram.toEarthSquare(thermogramPolygon.square(
+                        ExifParam.FOCAL_LENGTH.value()), thermogram.getHeight(), ExifParam.FOCAL_LENGTH.value(),
+                        Property.PIXEL_SIZE.doubleValue() / 1000_000);
+
+                Helper.log(pipeSquaresTmpFilename, thermogramName + "   " +
+                        Helper.roundAndAppend(totalPipeSquare, 2, 2) + "   " +
+                        Helper.roundAndAppend(pipeSquares, 2, 2) + "\n");
+
+                Helper.log(squaresTmpFilename, thermogramName + "   " +
+                        Helper.roundAndAppend(totalSquare, 2, 2) + "   " +
+                        Helper.roundAndAppend(totalSquare * 100 / thermogramSquare, 2, 2) + "   " +
+                        Helper.roundAndAppend(squares, 2, 2) + "\n");
+
+                Helper.log(pipeAnglesTmpFilename, thermogramName + "   " +
+                        Helper.roundAndAppend(pipeAngles, 2, 3) + "\n");
+
+                Polygon.drawPolygons(defects, Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
+                        ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
+                        thermogramFilename.toString(), defectsFilename.toString(), ExifParam.RES_Y.intValue(),
+                        ExifParam.FOCAL_LENGTH.value());
+
+                synchronized (Main.class) {
+                    n++;
+                    System.out.println("finish " + thermogramName + "   [ " +
+                            Helper.roundAndAppend(Math.floor(100 * (100. * n / thermograms.length)) / 100, 2, 3) +
+                            " % обработано,  осталось " + String.format("%" + (thermograms.length + "").length() + "d",
+                            thermograms.length - n) + " ]");
+                }
+
+                return new double[]{totalPipeSquare, totalSquare};
+            }
+        }
+
+        var tasks = new ArrayList<Callable<double[]>>();
+        for (int i = 0; i < thermograms.length; i++)
+            tasks.add(new Processing(i,
+                    tmpFiles[0][i + 1], tmpFiles[1][i + 1], tmpFiles[2][i + 1], tmpFiles[3][i + 1]));
+        List<Future<double[]>> res = null;
+        try {
+            res = executorThermograms.invokeAll(tasks);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        executorThermograms.shutdown();
+        try {
+            executorThermograms.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        executorDefects.shutdown();
+        try {
+            executorDefects.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        if (unprocessedThermograms.size() == 0)
+            System.out.println("Все термограммы обработаны.");
+        else {
+            System.out.println("Следующие термограммы не обработаны:\n");
+            for (Thermogram t : unprocessedThermograms)
+                System.out.println(t.getName() + "\n");
+        }
+
+        double totalPipeSquare = 0;
+        double totalSquare = 0;
+        for (int i = 0; i < thermograms.length; i++) {
+            try {
+                double[] tmp = res.get(i).get();
+                totalPipeSquare += tmp[0];
+                totalSquare += tmp[1];
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+
+        Helper.concatenateAndDelete(outputFiles, IntStream.range(0, outputFiles.length)
+                .mapToObj(i -> tmpFiles[i][0])
+                .toArray(String[]::new));
+
+        Helper.log(outputFiles[0].toString(), "\ntotalPipeSquare: " + totalPipeSquare + ".");
+        Helper.log(outputFiles[1].toString(), "\ntotalSquare: " + totalSquare + ".");
+
+        Helper.run(DIR_CURRENT, SCRIPT_COPY_GPS + SCRIPT_EXTENSION, OS);
+    }
+
+    public static void actionHelp() {
+        Option.help();
+    }
+
     public static void main(String[] args) throws IOException {
         Option option = args.length == 1 ? Option.getByAlias(args[0]) : Option.HELP;
 
         switch (option) {
-            case GLOBAL_PARAMS -> Helper.run(DIR_CURRENT, SCRIPT_GLOBAL_PARAMS + SCRIPT_EXTENSION, OS);
-
-            case THERMOGRAMS_INFO -> Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_INFO + SCRIPT_EXTENSION, OS);
-
-            case THERMOGRAMS_RAW_TEMPERATURES -> Helper.run(DIR_CURRENT, SCRIPT_THERMOGRAMS_RAW_TEMPERATURES + SCRIPT_EXTENSION, OS);
-
-            case CSV -> {
-                File[] files = new File(Property.DIR_THERMOGRAMS.value()).listFiles();
-                String[] thermogramsNames = new String[files.length];
-                for (int i = 0; i < files.length; i++)
-                    thermogramsNames[i] = files[i].getName().substring(0, files[i].getName().indexOf('.'));
-                for (String thermogramName : thermogramsNames)
-                    Helper.rawFileToRealFile(DIR_CURRENT + "/" + Property.SUBDIR_RAW_TEMPS.value() +
-                                    "/" + thermogramName + Property.POSTFIX_RAW_TEMPS.value() + EXTENSION_RAW,
-                            DIR_CURRENT + "/" + Property.SUBDIR_REAL_TEMPS.value() +
-                                    "/" + thermogramName + Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL,
-                            ExifParam.RES_Y.intValue(), ExifParam.RES_X.intValue(), SEPARATOR_RAW, SEPARATOR_REAL,
-                            Arrays.copyOfRange(ExifParam.readValues(), 1, ExifParam.readValues().length));
+            case GLOBAL_PARAMS -> actionGlobalParams();
+            case THERMOGRAMS_INFO -> actionThermogramsInfo();
+            case THERMOGRAMS_RAW_TEMPERATURES -> actionThermogramsRawTemperatures();
+            case CSV -> actionCsv();
+            case DEFECTS -> actionDefects();
+            case ALL -> {
+                actionGlobalParams();
+                actionThermogramsInfo();
+                actionThermogramsRawTemperatures();
+                actionCsv();
+                actionDefects();
             }
-
-            case DEFECTS -> {
-                Thermogram[] thermograms = Thermogram.readThermograms(
-                        Helper.filename(DIR_CURRENT, Property.SUBDIR_OUTPUT.value(), THERMOGRAMS_INFO),
-                        Helper.filename(DIR_CURRENT, FORBIDDEN_ZONES));
-
-                var customPipeAnglesLists = new ArrayList<List<Double>>();
-                List<Double> defaultPipeAngles = Arrays.asList(Property.DEFAULT_PIPE_ANGLES.doubleArrayValue());
-
-                Map<String, List<Double>> map = Helper.mapFromFileWithJsonArray(
-                        Helper.filename(DIR_CURRENT, CUSTOM_PIPE_ANGLES),
-                        JsonElement::getAsDouble, "Name", "CustomPipeAngles");
-
-                for (Thermogram thermogram : thermograms) {
-                    List<Double> angles = map.get(thermogram.getName());
-                    customPipeAnglesLists.add(angles == null ? defaultPipeAngles : angles);
-                }
-
-                BiFunction<Double, List<Double>, Double> function = (pipeAngle, customPipeAngles) -> {
-                    List<Double> angleDistances = customPipeAngles.stream()
-                            .map(customPipeAngle -> min(abs(pipeAngle - customPipeAngle),
-                                    180 - abs(pipeAngle - customPipeAngle)))
-                            .collect(Collectors.toList());
-                    return customPipeAngles.get(angleDistances.indexOf(Collections.min(angleDistances)));
-                };
-
-                // Сохранение 10-ти последних параметров из конфиг. файла в массив. На этих параметрах основывается
-                // метод defects().
-                double[] params = new double[10];
-                for (int i = 0; i < 10; i++)
-                    params[i] = Property.values()[Property.values().length - 10 + i].doubleValue();
-
-                var outputFiles = new StringBuilder[4];
-                for (int i = 0; i < outputFiles.length; i++)
-                    outputFiles[i] = new StringBuilder().insert(0, Helper.filename(DIR_CURRENT,
-                            new Property[]{Property.SUBDIR_OUTPUT, Property.SUBDIR_AUXILIARY, Property.SUBDIR_AUXILIARY,
-                                    Property.SUBDIR_AUXILIARY}[i].value(),
-                            new String[]{PIPE_SQUARES, SQUARES, PIPE_ANGLES, PIPE_ANGLES_LOG}[i]));
-
-                String[][] tmpFiles = Helper.createTmpFiles(
-                        IntStream.range(0, thermograms.length)
-                                .mapToObj(i -> "__" + String.format("%0" + (thermograms.length + "").length() + "d", i + 1) +
-                                        "__" + thermograms[i].getName())
-                                .toArray(String[]::new),
-                        outputFiles);
-
-                var unprocessedThermograms = new ArrayList<Thermogram>();
-
-                int threadPoolSize = (int) Math.ceil(Runtime.getRuntime().availableProcessors() / 2.);
-                ExecutorService executorThermograms = Executors.newFixedThreadPool(threadPoolSize);
-                ExecutorService executorDefects = Executors.newFixedThreadPool(threadPoolSize);
-
-                class Processing implements Callable<double[]> {
-                    final int i; // номер термограммы, подлежащей обработке
-                    final String pipeSquaresTmpFilename;
-                    final String squaresTmpFilename;
-                    final String pipeAnglesTmpFilename;
-                    final String pipeAnglesLogTmpFilename;
-
-                    public Processing(int i, String pipeSquaresTmpFilename, String squaresTmpFilename,
-                                      String pipeAnglesTmpFilename, String pipeAnglesLogTmpFilename) {
-                        this.i = i;
-                        this.pipeSquaresTmpFilename = pipeSquaresTmpFilename;
-                        this.squaresTmpFilename = squaresTmpFilename;
-                        this.pipeAnglesTmpFilename = pipeAnglesTmpFilename;
-                        this.pipeAnglesLogTmpFilename = pipeAnglesLogTmpFilename;
-                    }
-
-                    @Override
-                    public double[] call() {
-                        Thermogram thermogram = thermograms[i];
-                        String thermogramName = thermogram.getName();
-                        Thread.currentThread().setName("thread-" + thermogramName);
-                        System.out.println("start " + thermogramName);
-
-                        Thermogram previous = thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1];
-
-                        Polygon<Pixel> overlap = thermogram.getOverlapWith(previous, ExifParam.FOCAL_LENGTH.value(),
-                                Property.PIXEL_SIZE.doubleValue() / 1000_000,
-                                new Pixel(Property.PRINCIPAL_POINT_X.intValue(), Property.PRINCIPAL_POINT_Y.intValue()),
-                                ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue());
-
-                        var thermogramFilename = new StringBuilder();
-                        var rawDefectsFilename = new StringBuilder();
-                        var defectsFilename = new StringBuilder();
-                        var realTempsFilename = new StringBuilder();
-
-                        var files = new StringBuilder[]{thermogramFilename, rawDefectsFilename, defectsFilename,
-                                realTempsFilename};
-
-                        for (int i = 0; i < files.length; i++)
-                            files[i].insert(0, Helper.filename(
-                                    new String[]{null, DIR_CURRENT, DIR_CURRENT, DIR_CURRENT}[i],
-                                    new Property[]{Property.DIR_THERMOGRAMS, Property.SUBDIR_RAW_DEFECTS,
-                                            Property.SUBDIR_DEFECTS, Property.SUBDIR_REAL_TEMPS}[i].value(),
-                                    thermogramName + new String[]{EXTENSION, Property.POSTFIX_RAW_DEFECTS.value() +
-                                            EXTENSION, Property.POSTFIX_DEFECTS.value() + EXTENSION,
-                                            Property.POSTFIX_REAL_TEMPS.value() + EXTENSION_REAL
-                                    }[i]));
-
-                        if (!new File(String.valueOf(thermogramFilename)).isFile())
-                            thermogramFilename.replace(0, thermogramFilename.length(),
-                                    thermogramFilename.substring(0, thermogramFilename.length() - EXTENSION.length()) +
-                                            EXTENSION.toUpperCase());
-
-                        int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(
-                                Property.DIAMETER.doubleValue(), thermogram.getHeight(),
-                                Property.PIXEL_SIZE.doubleValue() / 1000_000, ExifParam.FOCAL_LENGTH.value()));
-
-                        BiPredicate<Polygon<Point>, Polygon<Point>> condition = (p1, p2) -> {
-                            int[] ii1 = p1.findMinAndMax(Point::getI);
-                            int[] jj1 = p1.findMinAndMax(Point::getJ);
-                            int[] ii2 = p2.findMinAndMax(Point::getI);
-                            int[] jj2 = p2.findMinAndMax(Point::getJ);
-                            int[] ii = new int[]{min(ii1[0], ii2[0]), max(ii1[1], ii2[1])};
-                            int[] jj = new int[]{min(jj1[0], jj2[0]), max(jj1[1], jj2[1])};
-
-                            int iLength = ii[1] - ii[0];
-                            int jLength = jj[1] - jj[0];
-
-                            return (iLength <= round(Property.K1.doubleValue() * diameterPixel) ||
-                                    jLength <= round(Property.K1.doubleValue() * diameterPixel)) &&
-                                    (iLength <= round(Property.K2.doubleValue() * diameterPixel) &&
-                                            jLength <= round(Property.K2.doubleValue() * diameterPixel));
-                        };
-
-                        Object[] o;
-                        try {
-                            o = defects(thermogram, overlap, Property.T_MIN.doubleValue(), Property.T_MAX.doubleValue(),
-                                    Property.MIN_PIXEL_SQUARE.intValue(), Property.DIAMETER.doubleValue(), params,
-                                    thermogramFilename.toString(), rawDefectsFilename.toString(),
-                                    realTempsFilename.toString(), SEPARATOR_REAL,
-                                    Property.PIXEL_SIZE.doubleValue() / 1000_000,
-                                    (int) round(Property.K3.doubleValue() * diameterPixel), ExifParam.FOCAL_LENGTH.value(),
-                                    ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(), squaresTmpFilename,
-                                    pipeAnglesTmpFilename, pipeAnglesLogTmpFilename,
-                                    Property.MIN_INTERSECTION_SQUARE.doubleValue(),
-                                    Property.K1.doubleValue() != -1 ?
-                                            (Property.K1.doubleValue() != -2 ? condition :
-                                                    (p1, p2) -> false) : null,
-                                    Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1 ? function : null,
-                                    customPipeAnglesLists.get(i), executorDefects);
-                        } catch (Throwable e) {
-                            unprocessedThermograms.add(thermogram);
-                            System.out.println("Термограмма " + thermogramName + " не обработана.");
-                            e.printStackTrace();
-                            System.out.println();
-                            return new double[0];
-                        }
-
-                        var defects = (ArrayList<Polygon<Pixel>>) o[0];
-                        var pipeSquares = (ArrayList<Double>) o[1];
-                        var squares = (ArrayList<Double>) o[2];
-                        var pipeAngles = (ArrayList<Double>) o[3];
-                        var totalPipeSquare = (Double) o[4];
-                        var totalSquare = (Double) o[5];
-
-                        Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0),
-                                new Pixel(ExifParam.RES_X.intValue() - 1, ExifParam.RES_Y.intValue() - 1))
-                                .toPolygon();
-                        double thermogramSquare = Thermogram.toEarthSquare(thermogramPolygon.square(
-                                ExifParam.FOCAL_LENGTH.value()), thermogram.getHeight(), ExifParam.FOCAL_LENGTH.value(),
-                                Property.PIXEL_SIZE.doubleValue() / 1000_000);
-
-                        Helper.log(pipeSquaresTmpFilename, thermogramName + "   " +
-                                Helper.roundAndAppend(totalPipeSquare, 2, 2) + "   " +
-                                Helper.roundAndAppend(pipeSquares, 2, 2) + "\n");
-
-                        Helper.log(squaresTmpFilename, thermogramName + "   " +
-                                Helper.roundAndAppend(totalSquare, 2, 2) + "   " +
-                                Helper.roundAndAppend(totalSquare * 100 / thermogramSquare, 2, 2) + "   " +
-                                Helper.roundAndAppend(squares, 2, 2) + "\n");
-
-                        Helper.log(pipeAnglesTmpFilename, thermogramName + "   " +
-                                Helper.roundAndAppend(pipeAngles, 2, 3) + "\n");
-
-                        Polygon.drawPolygons(defects, Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
-                                ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
-                                thermogramFilename.toString(), defectsFilename.toString(), ExifParam.RES_Y.intValue(),
-                                ExifParam.FOCAL_LENGTH.value());
-
-                        synchronized (Main.class) {
-                            n++;
-                            System.out.println("finish " + thermogramName + "   [ " +
-                                    Helper.roundAndAppend(Math.floor(100 * (100. * n / thermograms.length)) / 100, 2, 3) +
-                                    " % обработано,  осталось " + String.format("%" + (thermograms.length + "").length() + "d",
-                                    thermograms.length - n) + " ]");
-                        }
-
-                        return new double[]{totalPipeSquare, totalSquare};
-                    }
-                }
-
-                var tasks = new ArrayList<Callable<double[]>>();
-                for (int i = 0; i < thermograms.length; i++)
-                    tasks.add(new Processing(i,
-                            tmpFiles[0][i + 1], tmpFiles[1][i + 1], tmpFiles[2][i + 1], tmpFiles[3][i + 1]));
-                List<Future<double[]>> res = null;
-                try {
-                    res = executorThermograms.invokeAll(tasks);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                executorThermograms.shutdown();
-                try {
-                    executorThermograms.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                executorDefects.shutdown();
-                try {
-                    executorDefects.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                if (unprocessedThermograms.size() == 0)
-                    System.out.println("Все термограммы обработаны.");
-                else {
-                    System.out.println("Следующие термограммы не обработаны:\n");
-                    for (Thermogram t : unprocessedThermograms)
-                        System.out.println(t.getName() + "\n");
-                }
-
-                double totalPipeSquare = 0;
-                double totalSquare = 0;
-                for (int i = 0; i < thermograms.length; i++) {
-                    try {
-                        double[] tmp = res.get(i).get();
-                        totalPipeSquare += tmp[0];
-                        totalSquare += tmp[1];
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                Helper.concatenateAndDelete(outputFiles, IntStream.range(0, outputFiles.length)
-                        .mapToObj(i -> tmpFiles[i][0])
-                        .toArray(String[]::new));
-
-                Helper.log(outputFiles[0].toString(), "\ntotalPipeSquare: " + totalPipeSquare + ".");
-                Helper.log(outputFiles[1].toString(), "\ntotalSquare: " + totalSquare + ".");
-
-                Helper.run(DIR_CURRENT, SCRIPT_COPY_GPS + SCRIPT_EXTENSION, OS);
-            }
-
-            case HELP -> Option.help();
+            case HELP -> actionHelp();
         }
     }
 }
