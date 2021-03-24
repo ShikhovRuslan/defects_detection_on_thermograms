@@ -37,8 +37,8 @@ Usage: thermograms_raw_temperatures.bat
 ```
 Usage: raw.bat %1 %2
 
-Извлекает из указанной термограммы необработанные температурные данные в файл <thermogram_name>POSTFIX_RAW_TEMPS.pgm
-в указанной папке.
+Извлекает из указанной термограммы необработанные температурные данные в файл 
+<thermogram_name>POSTFIX_RAW_TEMPS.pgm в указанной папке.
 
   %1         термограмма
   %2         папка, содержащая файл с необработанными температурными данными термограммы
@@ -49,8 +49,8 @@ Usage: raw.bat %1 %2
 ```
 > git clone https://github.com/ShikhovRuslan/defects_detection_on_thermograms.git
 ```
-* В рабочем каталоге должны находиться скрипты (с расширением `.bat` для Windows и `.sh` для Linux), файлы `config.txt`, `custom_pipe_angles.txt`, `forbidden_zones.txt` и 
-`help.txt`.
+* В рабочем каталоге должны находиться скрипты (с расширением `.bat` для Windows и `.sh` для Linux), файлы `config.txt` и `help.txt`.
+
 * Запустить файл geo.jar из вышеуказанного каталога с первыми трёмя параметрами и, дождавшись окончания работы скриптов, последовательно запустить с оставшимися двумя 
 параметрами.
 ```
@@ -65,20 +65,6 @@ Usage: java -jar geo.jar [-gp | -ti | -trt | -csv | -d]
              дефектами в папке .\SUBDIR_DEFECTS.
 ```
 
-**NOTE : You can update to your Sandbox credentials in SampleCode.java**
+* Картинки с выделенными дефектами сохраняются в папке `.\SUBDIR_DEFECTS`, а расчёты - в папке `.\SUBDIR_OUTPUT`.
 
-**For using behind proxy**
-
-Please set the JAVA environment proxy using a similar code :
-```
-    System.setProperty(Constants.HTTPS_USE_PROXY, "true");
-    System.setProperty(Constants.HTTPS_PROXY_HOST, "127.0.0.1");
-    System.setProperty(Constants.HTTPS_PROXY_PORT, "8888");
-```
-**For using proxy authentication**
-
-Please set the JAVA environment proxy credentials using a similar code :
-```
-    System.setProperty(Constants.HTTPS_PROXY_USERNAME, "exampleUsername");
-    System.setProperty(Constants.HTTPS_PROXY_PASSWORD, "examplePassword");
-```
+## Результаты
