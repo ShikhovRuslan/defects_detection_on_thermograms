@@ -10,7 +10,7 @@
 Все скрипты необходимо запускать из директории, содержащей файл `config.txt`. Кроме этого, перед запуском `thermograms_raw_temperatures.bat` нужно убедиться, что упомянутая выше 
 директория содержит скрипт `raw.bat` и папку `SUBDIR_RAW_TEMPS`.
 Файл `config.txt` содержит различные параметры, в том числе упомянутые ниже `DIR_THERMOGRAMS`, `SUBDIR_OUTPUT`, `SUBDIR_DEFECTS`, `SUBDIR_RAW_TEMPS`, `SUBDIR_REAL_TEMPS`, 
-`POSTFIX_RAW_TEMPS`.
+`POSTFIX_RAW_TEMPS`, `POSTFIX_DEFECTS`.
 ```
 Usage: global_params.bat
 
@@ -23,8 +23,8 @@ Planck F, emissivity, Reflected Apparent Temperature, Raw Thermal Image Height, 
 ```
 Usage: thermograms_info.bat
 
-Извлекает параметры термограмм из папки DIR_THERMOGRAMS: Relative Altitude, Gimbal Yaw Degree,
-GPS Latitude, GPS Longitude - из данных EXIF в файл .\SUBDIR_OUTPUT\thermograms_info.txt в виде массива JSON.
+Извлекает параметры термограмм из папки DIR_THERMOGRAMS: Relative Altitude, Gimbal Yaw Degree, GPS 
+Latitude, GPS Longitude - из данных EXIF в файл .\SUBDIR_OUTPUT\thermograms_info.txt в виде массива JSON.
 ```
 
 ```
@@ -42,6 +42,13 @@ Usage: raw.bat %1 %2
 
   %1         термограмма
   %2         папка, содержащая файл с необработанными температурными данными термограммы
+```
+
+```
+Usage: copy_gps.bat
+
+Копирует EXIF-параметры термограмм из папки DIR_THERMOGRAMS: GPS Latitude, GPS Longitude - в данные
+EXIF картинки с дефектами .\SUBDIR_DEFECTS\<thermogram_name>POSTFIX_DEFECTS.jpg.
 ```
 
 ## Запуск из командной строки
