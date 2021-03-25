@@ -66,10 +66,11 @@ Usage: java -jar geo.jar [-gp | -ti | -trt | -csv | -d]
   -gp        Запуск global_params.bat.
   -ti        Запуск thermograms_info.bat.
   -trt       Запуск thermograms_raw_temperatures.bat.
-  -csv       Для каждой термограммы из папки DIR_THERMOGRAMS конвертирует файл с необработанными температурными данными 
-             из папки .\SUBDIR_RAW_TEMPS в файл с температурами в формате CSV в папке .\SUBDIR_REAL_TEMPS.
-  -d         Для каждой термограммы из файла .\SUBDIR_OUTPUT\thermograms_info.txt создаёт изображение с выделенными 
-             дефектами в папке .\SUBDIR_DEFECTS.
+  -csv       Для каждой термограммы из папки DIR_THERMOGRAMS конвертирует файл с необработанными 
+             температурными данными из папки .\SUBDIR_RAW_TEMPS в файл с температурами в формате CSV 
+             в папке .\SUBDIR_REAL_TEMPS.
+  -d         Для каждой термограммы из файла .\SUBDIR_OUTPUT\thermograms_info.txt создаёт изображение с 
+             выделенными дефектами в папке .\SUBDIR_DEFECTS.
 ```
 
 * Картинки с выделенными дефектами сохраняются в папке `.\SUBDIR_DEFECTS`, а расчёты - в папке `.\SUBDIR_OUTPUT`.
