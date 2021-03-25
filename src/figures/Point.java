@@ -1,5 +1,7 @@
 package polygons;
 
+import figures.AbstractPoint;
+import figures.Rectangle;
 import main.*;
 
 import java.util.List;

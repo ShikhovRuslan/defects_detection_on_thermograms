@@ -1,10 +1,13 @@
 package main;
 
 import com.google.gson.JsonElement;
+import figures.AbstractPoint;
+import figures.Polygon;
+import figures.Rectangle;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import polygons.Point;
 import polygons.Segment;
-import tmp.Base;
+import thermogram.Thermogram;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -24,7 +27,6 @@ import java.util.stream.IntStream;
 
 import static java.lang.Math.*;
 import static java.lang.Math.abs;
-import static main.Polygon.draw;
 
 
 /**
@@ -34,6 +36,7 @@ import static main.Polygon.draw;
  */
 public class Main {
     private static int n = 0;
+
     //
     // Краткие имена скриптов.
     //
@@ -209,6 +212,216 @@ public class Main {
 
 
     /**
+     * Каждая константа перечисления описывает ситуацию пересечения прямоугольников p1 и p2 и содержит предикат
+     * {@code condition} и функцию {@code action}. Предикат - условие, при котором прямоугольники пересекаются, а функция -
+     * действие, которое нужно выполнить с прямоугольником p1, чтобы ликвидировать пересечение внутренностей
+     * прямоугольников, если предикат выдаёт {@code true}.
+     * <p>
+     * Функция возвращает:
+     * <ul>
+     *     <li>{@code 0}, если {@code p1} изменился,</li>
+     *     <li>{@code 1}, если {@code p1} не изменился по причине малости площади пересечения (а именно, она
+     *     {@code <= minSquare}),</li>
+     *     <li>{@code 2}, если {@code p1} не изменился по причине невозможности.</li>
+     * </ul>
+     * Не все функции осуществляют проверку величины площади пересечения.
+     * <p>
+     * Аргументы предиката {@code condition} и функции {@code action}:
+     * <ul>
+     *     <li> {@code p1} - прямоугольник,</li>
+     *     <li> {@code p2} - прямоугольник,</li>
+     *     <li> {@code pipeAngle1} - угол наклона трубы, соответствующий прямоугольнику {@code p1},</li>
+     *     <li> {@code minSquare} - минимальная площадь пересечения прямоугольников.</li>
+     * </ul>
+     * <p>
+     * Для различных констант перечисления предусмотрены 3 действия:
+     * <ul>
+     *     <li> {@code markToDelete} - пометить p1 для удаления (т. е. установить в качестве 0-й вершины значение
+     *     {@code null}) (возвращает {@code 0}),</li>
+     *     <li> {@code markToDeleteMinSquare} - пометить p1 для удаления, если площадь пересечения {@code > minSquare}
+     *      (возвращает {@code 0} при выполнении этого условия, иначе {@code 1}),</li>
+     *     <li> {@code shorten} - укоротить p1, если площадь пересечения {@code > minSquare} и укорочение возможно
+     *     (возвращает {@code 0} при выполнении этого условия, иначе {@code 1} при нарушении 1-го условия и {@code 2} при
+     *     нарушении 2-го).</li>
+     * </ul>
+     */
+    private enum Intersection {
+        /**
+         * У прямоугольника p1 имеется хотя бы одна диагональ, принадлежащая p2.
+         * Действие: {@code markToDelete}.
+         */
+        DIAGONAL((p1, p2, pipeAngle1, minSquare) -> {
+            List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1, 1);
+            List<Pixel> v1 = p1.getVertices();
+
+            return (verticesFromP1.size() == 2 &&
+                    v1.indexOf(verticesFromP1.get(1)) - v1.indexOf(verticesFromP1.get(0)) == 2 ||
+                    verticesFromP1.size() >= 3);
+        }),
+
+        /**
+         * У прямоугольника p1 имеются 2 вершины, принадлежащие p2 и образующие сторону, которая параллельна трубе.
+         * Действие: {@code markToDeleteMinSquare}.
+         */
+        PARALLEL_SIDE((p1, p2, pipeAngle1, minSquare) -> {
+            List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1, 1);
+
+            return verticesFromP1.size() == 2 &&
+                    p1.sideParallelToPipe(verticesFromP1.get(0), verticesFromP1.get(1), pipeAngle1);
+        }),
+
+        /**
+         * У прямоугольника p1 имеются 2 вершины, принадлежащие p2 и образующие сторону, которая перпендикулярна трубе.
+         * Действие: {@code shorten}.
+         */
+        PERPENDICULAR_SIDE((p1, p2, pipeAngle1, minSquare) -> {
+            List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1, 1);
+
+            return verticesFromP1.size() == 2 &&
+                    p1.sidePerpendicularToPipe(verticesFromP1.get(0), verticesFromP1.get(1), pipeAngle1);
+        }),
+
+        /**
+         * Одна вершина прямоугольника p1 принадлежит p2.
+         * Действие: {@code shorten}.
+         */
+        ONE_VERTEX((p1, p2, pipeAngle1, minSquare) ->
+                p2.verticesFrom(p1, -1, 1).size() == 1
+        );
+
+        private static final Helper.Function4<figures.Polygon<Pixel>, figures.Polygon<Pixel>, Double, Double> markToDelete =
+                (p1, p2, pipeAngle1, minSquare) -> {
+                    p1.getVertices().set(0, null);
+                    return 0;
+                };
+
+        private static final Helper.Function4<figures.Polygon<Pixel>, figures.Polygon<Pixel>, Double, Double> markToDeleteMinSquare =
+                (p1, p2, pipeAngle1, minSquare) -> {
+                    if (figures.Polygon.getIntersection(p1, p2, -1).square(-1) <= minSquare)
+                        return 1;
+                    else
+                        return markToDelete.apply(p1, p2, pipeAngle1, null);
+                };
+
+        private static final Helper.Function4<figures.Polygon<Pixel>, figures.Polygon<Pixel>, Double, Double> shorten =
+                (p1, p2, pipeAngle1, minSquare) -> {
+                    List<Pixel> verticesFromP1 = p2.verticesFrom(p1, -1, 1);
+
+                    Object[] o = figures.Polygon.findShift(p1, p2, pipeAngle1, verticesFromP1.get(0), minSquare);
+                    if (o.length == 2) {
+                        p1.shorten((double) o[0], (String) o[1], pipeAngle1);
+                        return 0;
+                    }
+                    return o.length == 1 ? 1 : 2;
+                };
+
+        private final Helper.Predicate4<figures.Polygon<Pixel>, figures.Polygon<Pixel>, Double, Double> condition;
+        private Helper.Function4<figures.Polygon<Pixel>, figures.Polygon<Pixel>, Double, Double> action;
+
+        Intersection(Helper.Predicate4<figures.Polygon<Pixel>, figures.Polygon<Pixel>, Double, Double> condition) {
+            this.condition = condition;
+        }
+
+        static {
+            DIAGONAL.action = markToDelete;
+            PARALLEL_SIDE.action = markToDeleteMinSquare;
+            PERPENDICULAR_SIDE.action = shorten;
+            ONE_VERTEX.action = shorten;
+        }
+
+        public Helper.Predicate4<figures.Polygon<Pixel>, figures.Polygon<Pixel>, Double, Double> getCondition() {
+            return condition;
+        }
+
+        public Helper.Function4<Polygon<Pixel>, Polygon<Pixel>, Double, Double> getAction() {
+            return action;
+        }
+
+        //    public boolean conditionAndAction(Polygon<Pixel> p1, Polygon<Pixel> p2, double pipeAngle1, double minSquare) {
+        //        return condition.test(p1, p2, pipeAngle1, minSquare) && action.test(p1, p2, pipeAngle1, minSquare);
+        //    }
+    }
+
+
+    public static boolean testPair(figures.Polygon<Pixel> d, figures.Polygon<Pixel> d1, figures.Polygon<Pixel> d2,
+                                   double pA1, double pA2, double[][] realTable, int resY) {
+        Pixel centre = figures.Polygon.middle(d);
+        Pixel centre1 = figures.Polygon.middle(d1);
+        Pixel centre2 = figures.Polygon.middle(d2);
+
+        //if (!Helper.close(pA1, pA2, 10)) return false;
+
+        double angle = atan2(centre1.getJ() - centre2.getJ(), centre1.getI() - centre2.getI()) * 180 / PI;
+        angle = angle < 0 ? angle + 180 : angle;
+        angle = angle == 180 ? 0 : angle;
+
+        if (!Helper.close(angle, pA1, 45)) return false;
+        if (!Helper.close(angle, pA2, 45)) return false;
+
+        int[] ii = AbstractPoint.findMinAndMax(new Pixel[]{centre1, centre2}, Pixel::getI);
+        int[] jj = AbstractPoint.findMinAndMax(new Pixel[]{centre1, centre2}, Pixel::getJ);
+        int h = 5;
+        if (!(centre.distanceToLine(centre1, centre2) <= h &&
+                ii[0] - h <= centre.getI() && centre.getI() <= ii[1] + h &&
+                jj[0] - h <= centre.getJ() && centre.getJ() <= jj[1] + h))
+            return false;
+
+        return detect(new Segment(centre1.toPoint(resY), centre2.toPoint(resY)), realTable);
+    }
+
+    /**
+     * Возвращает угол наклона биссектрисы острого угла между прямыми, чьи углы наклона равны angle1 и angle2.
+     * (Если эти прямые перпендикулярны, то берётся биссектриса, которая ближе всего к оси абсцисс. Если же эти
+     * биссектрисы равноудалены от этой оси, то берётся биссектриса, чей угол наклона положителен.)
+     * <p>
+     * Все углы отсчитываются от положительного направления оси абсцисс против часовой стрелки и принадлежат промежутку
+     * (-90,90].
+     *
+     * @throws IllegalArgumentException если хотя бы один из аргументов вне промежутка (-90,90]
+     */
+    public static double bisectorInclination(double angle1, double angle2) {
+        if (angle1 > 90 || angle1 <= -90)
+            throw new IllegalArgumentException("Angle angle1 (=" + angle1 + ") is out of range (-90,90].");
+        if (angle2 > 90 || angle2 <= -90)
+            throw new IllegalArgumentException("Angle angle2 (=" + angle2 + ") is out of range (-90,90].");
+
+        double v = (angle1 + angle2) / 2;
+        return v + (angle1 * angle2 < 0 && abs(angle1) + abs(angle2) > 90 ? (v <= 0 ? 90 : -90) : 0);
+    }
+
+    public static boolean detect(Segment segment, double[][] realTable) {
+        Point a = segment.getA();
+        Point b = segment.getB();
+        var points = new ArrayList<Point>();
+
+        int maxI = max(a.getI(), b.getI());
+        int minI = min(a.getI(), b.getI());
+        int maxJ = max(a.getJ(), b.getJ());
+        int minJ = min(a.getJ(), b.getJ());
+
+        if (a.getI() != b.getI()) {
+            double[] coefs = Segment.coefs(a, b);
+            for (int t = 0; t <= max(maxI - minI, maxJ - minJ); t++) {
+                // точка, пробегающая отрезок [minI, maxI]
+                double i = minI + t * (maxI - minI + 0.) / max(maxI - minI, maxJ - minJ);
+                points.add(new Point(i, coefs[0] * i + coefs[1]));
+            }
+        } else
+            for (int j = minJ; j <= maxJ; j++)
+                points.add(new Point(a.getI(), j));
+
+        double[] temperatures = new double[points.size()];
+        for (int i = 0; i < points.size(); i++) {
+            temperatures[i] = realTable[points.get(i).getI()][points.get(i).getJ()];
+            //System.out.println(temperatures[i]);
+        }
+
+        double min = Arrays.stream(temperatures).min().orElse(-1);
+
+        return min > 0;
+    }
+
+    /**
      * Выдаёт пиксель, который расположен на отрезке, соединяющим пиксель {@code start} и пиксель, находящийся на
      * расстоянии, эквивалентном земному расстоянию {@code length}, и угловом расстоянии {@code angle} от пикселя
      * {@code start}, температура которого отличается от температуры предыдущего пикселя не менее, чем на
@@ -315,23 +528,23 @@ public class Main {
     /**
      * Конвертирует таблицу с реальными температурами {@code realTable} в список укрупнённых многоугольников.
      */
-    private static List<Polygon<Point>> realTableToEnlargedPolygons(Thermogram thermogram, double[][] realTable,
-                                                                    double tMin, double tMax, int minPixelSquare,
-                                                                    int distance, Polygon<Pixel> overlap,
-                                                                    int maxLength, double focalLength, double pixelSize, int resY,
-                                                                    BiPredicate<Polygon<Point>, Polygon<Point>> condition) {
+    private static List<figures.Polygon<Point>> realTableToEnlargedPolygons(Thermogram thermogram, double[][] realTable,
+                                                                            double tMin, double tMax, int minPixelSquare,
+                                                                            int distance, figures.Polygon<Pixel> overlap,
+                                                                            int maxLength, double focalLength, double pixelSize, int resY,
+                                                                            BiPredicate<figures.Polygon<Point>, figures.Polygon<Point>> condition) {
 
         int[][] binTable = Helper.findIf(realTable, num -> num > tMin && num < tMax);
         Helper.nullifyRectangles(binTable, thermogram.getForbiddenZones(), resY);
 
-        List<Rectangle<Point>> ranges = Rectangle.findRectangles(binTable, maxLength, focalLength);
+        List<figures.Rectangle<Point>> ranges = figures.Rectangle.findRectangles(binTable, maxLength, focalLength);
         ranges.removeIf(range -> range.squarePixels() < minPixelSquare);
 
-        List<Polygon<Point>> polygons = Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength,
+        List<figures.Polygon<Point>> polygons = figures.Polygon.toPolygons(ranges, overlap, thermogram.getHeight(), focalLength,
                 pixelSize, resY);
 
         try {
-            return Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getName(), thermogram.getHeight(),
+            return figures.Polygon.enlargeIteratively(polygons, distance, overlap, thermogram.getName(), thermogram.getHeight(),
                     focalLength, pixelSize, resY, condition);
         } catch (Exception e) {
             System.out.println("Проблема в Main.realTableToEnlargedPolygons(): ошибка в Polygon.enlargeIteratively().\n" +
@@ -345,15 +558,15 @@ public class Main {
 
     private static List<Pixel> findMiddlesOfPseudoDefects(Thermogram thermogram, double[][] realTable, double pixelSize,
                                                           int resY, double tMinPseudo, int minPixelSquare, int distance,
-                                                          int maxLength, double focalLength, Polygon<Pixel> overlap,
-                                                          List<Polygon<Point>> enlargedPolygons, int maxDiff, double k,
-                                                          BiPredicate<Polygon<Point>, Polygon<Point>> condition) {
+                                                          int maxLength, double focalLength, figures.Polygon<Pixel> overlap,
+                                                          List<figures.Polygon<Point>> enlargedPolygons, int maxDiff, double k,
+                                                          BiPredicate<figures.Polygon<Point>, figures.Polygon<Point>> condition) {
 
-        var boundingRectangles = new ArrayList<Rectangle<Pixel>>();
-        for (Polygon<Point> p : enlargedPolygons)
-            boundingRectangles.add(Polygon.toPolygonPixel(p, focalLength, resY).boundingRectangle());
+        var boundingRectangles = new ArrayList<figures.Rectangle<Pixel>>();
+        for (figures.Polygon<Point> p : enlargedPolygons)
+            boundingRectangles.add(figures.Polygon.toPolygonPixel(p, focalLength, resY).boundingRectangle());
 
-        List<Polygon<Point>> enlargedPolygons2;
+        List<figures.Polygon<Point>> enlargedPolygons2;
         try {
             enlargedPolygons2 = realTableToEnlargedPolygons(thermogram, realTable, tMinPseudo, 100, minPixelSquare,
                     distance, overlap, maxLength, focalLength, pixelSize, resY, condition);
@@ -364,19 +577,19 @@ public class Main {
             e.printStackTrace();
             System.out.println();
             var middlesOfInitialDefects = new ArrayList<Pixel>();
-            for (Rectangle<Pixel> br : boundingRectangles)
+            for (figures.Rectangle<Pixel> br : boundingRectangles)
                 middlesOfInitialDefects.add(br.middle());
             return middlesOfInitialDefects;
         }
 
-        var boundingRectangles2 = new ArrayList<Rectangle<Pixel>>();
-        for (Polygon<Point> p : enlargedPolygons2)
-            boundingRectangles2.add(Polygon.toPolygonPixel(p, focalLength, resY).boundingRectangle());
+        var boundingRectangles2 = new ArrayList<figures.Rectangle<Pixel>>();
+        for (figures.Polygon<Point> p : enlargedPolygons2)
+            boundingRectangles2.add(figures.Polygon.toPolygonPixel(p, focalLength, resY).boundingRectangle());
 
         var middlesOfPseudoDefects = new ArrayList<Pixel>();
-        for (Rectangle<Pixel> br : boundingRectangles) {
+        for (figures.Rectangle<Pixel> br : boundingRectangles) {
             boolean added = false;
-            for (Rectangle<Pixel> br2 : boundingRectangles2)
+            for (figures.Rectangle<Pixel> br2 : boundingRectangles2)
                 if (br.isIn(br2, maxDiff)) {
                     middlesOfPseudoDefects.add((br2.squarePixels() > k * br.squarePixels() ? br2 : br).middle());
                     added = true;
@@ -468,13 +681,13 @@ public class Main {
         } else return new Pixel(-10, -10);
     }
 
-    private static double findPipeAngle(Pixel pixel, Polygon<Point> polygon, int num, Thermogram thermogram,
+    private static double findPipeAngle(Pixel pixel, figures.Polygon<Point> polygon, int num, Thermogram thermogram,
                                         double diameter, double coef, double tempJump, int numberEndPixels, double dec,
                                         double eps, int maxIter, double[][] realTable, String rawDefectsFilename,
                                         ReentrantReadWriteLock lock, String pipeAnglesLogFilename, double pixelSize,
                                         double focalLength, int resX, int resY) {
 
-        Polygon<Pixel> polygon1 = Polygon.toPolygonPixel(polygon, focalLength, resY);
+        figures.Polygon<Pixel> polygon1 = figures.Polygon.toPolygonPixel(polygon, focalLength, resY);
         double d = Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize, focalLength);
         int w = polygon1.width();
         int h = polygon1.height();
@@ -846,10 +1059,10 @@ public class Main {
      * При изменении прямоугольника добавлет его номер, {@code i} или {@code j}, в множество {@code defectsChanged}.
      * (Меняется не более одного прямоугольника.)
      */
-    private static Point determineProblemDefects(int i, int j, List<Polygon<Pixel>> defects, List<Double> pipeAngles,
+    private static Point determineProblemDefects(int i, int j, List<figures.Polygon<Pixel>> defects, List<Double> pipeAngles,
                                                  double minIntersectionSquare, Set<Integer> defectsChanged) {
-        Polygon<Pixel> p1 = defects.get(i);
-        Polygon<Pixel> p2 = defects.get(j);
+        figures.Polygon<Pixel> p1 = defects.get(i);
+        figures.Polygon<Pixel> p2 = defects.get(j);
 
         double pipeAngle1 = pipeAngles.get(i);
         double pipeAngle2 = pipeAngles.get(j);
@@ -895,17 +1108,16 @@ public class Main {
         if (p2Changed) defectsChanged.add(j);
 
         return (p1Changed || p2Changed) ||
-                Polygon.getIntersection(p1, p2, -1).square(-1) <= minIntersectionSquare ?
+                figures.Polygon.getIntersection(p1, p2, -1).square(-1) <= minIntersectionSquare ?
                 null : new Point(i, j);
     }
 
-    private static Object[] defects(Thermogram thermogram, Polygon<Pixel> overlap, double tMin, double tMax,
+    private static Object[] defects(Thermogram thermogram, figures.Polygon<Pixel> overlap, double tMin, double tMax,
                                     int minPixelSquare, double diameter, double[] params, String thermogramFilename,
                                     String rawDefectsFilename, String realTempsFilename, char separatorReal,
                                     double pixelSize, int maxLength, double focalLength, int resX, int resY,
-                                    String squaresFilename,
-                                    String pipeAnglesFilename, String pipeAnglesLogFilename,
-                                    double minIntersectionSquare, BiPredicate<Polygon<Point>, Polygon<Point>> condition,
+                                    String pipeAnglesLogFilename, double minIntersectionSquare,
+                                    BiPredicate<figures.Polygon<Point>, figures.Polygon<Point>> condition,
                                     BiFunction<Double, List<Double>, Double> function, List<Double> customPipeAngles,
                                     ExecutorService executor)
             throws IOException {
@@ -923,25 +1135,15 @@ public class Main {
 
         double[][] realTable = Helper.extractTable(realTempsFilename, separatorReal);
 
-        List<Polygon<Point>> enlargedPolygons = realTableToEnlargedPolygons(thermogram, realTable, tMin, tMax,
+        List<figures.Polygon<Point>> enlargedPolygons = realTableToEnlargedPolygons(thermogram, realTable, tMin, tMax,
                 minPixelSquare, distance, overlap, maxLength, focalLength, pixelSize, resY, condition);
 
-        Polygon.drawPolygons(enlargedPolygons, Polygon.toPolygonPoint(overlap, focalLength, resY),
+        figures.Polygon.drawPolygons(enlargedPolygons, figures.Polygon.toPolygonPoint(overlap, focalLength, resY),
                 thermogram.getForbiddenZones(), Color.BLACK, thermogramFilename, rawDefectsFilename, focalLength, resY);
-
-        /*for (int i = 0; i < enlargedPolygons.size(); i++)
-            try {
-                BufferedImage image = ImageIO.read(new File(thermogramFilename));
-                draw(enlargedPolygons.get(i), image, Color.BLACK);
-                ImageIO.write(image, "jpg", new File("/home/ruslan/geo/a_test/rest/folder/" +
-                        thermogram.getName() + "-" + (i + 1) + ".jpg"));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }*/
 
         int diameterPixel = (int) round(Thermogram.earthToDiscreteMatrix(diameter, thermogram.getHeight(), pixelSize,
                 focalLength));
-        Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0), new Pixel(resX - 1, resY - 1))
+        figures.Polygon<Pixel> thermogramPolygon = new figures.Rectangle<>(new Pixel(0, 0), new Pixel(resX - 1, resY - 1))
                 .toPolygon();
 
         List<Pixel> middles = findMiddlesOfPseudoDefects(thermogram, realTable, pixelSize, resY, tMinPseudo,
@@ -978,23 +1180,23 @@ public class Main {
         Helper.concatenateAndDelete(new StringBuilder[]{new StringBuilder(pipeAnglesLogFilename)},
                 new String[]{tmpFiles[0][0]});
 
-        var boundingDefects = new ArrayList<Rectangle<Pixel>>();
-        var slopingDefects = new ArrayList<Polygon<Pixel>>();
-        var defects = new ArrayList<Polygon<Pixel>>();
+        var boundingDefects = new ArrayList<figures.Rectangle<Pixel>>();
+        var slopingDefects = new ArrayList<figures.Polygon<Pixel>>();
+        var defects = new ArrayList<figures.Polygon<Pixel>>();
         var squares = new ArrayList<Double>();
         var pipeSquares = new ArrayList<Double>();
 
         for (int i = 0; i < enlargedPolygons.size(); i++) {
-            Rectangle<Pixel> bd = Polygon.toPolygonPixel(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
-            Polygon<Pixel> sd = Rectangle.slopeRectangle(bd,
+            figures.Rectangle<Pixel> bd = figures.Polygon.toPolygonPixel(enlargedPolygons.get(i), focalLength, resY).boundingRectangle();
+            figures.Polygon<Pixel> sd = figures.Rectangle.slopeRectangle(bd,
                     pipeAngles.get(i) + (pipeAngles.get(i) >= 90 ? -90 : 0), resY);
-            Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngles.get(i));
+            figures.Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngles.get(i));
 
             boundingDefects.add(bd);
             slopingDefects.add(sd);
             defects.add(d);
 
-            double s = Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
+            double s = figures.Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(), pixelSize,
                     focalLength);
             squares.add(s);
             pipeSquares.add(PI * s);
@@ -1010,22 +1212,22 @@ public class Main {
                         if (!Helper.close(pipeAngles.get(kk), pipeAngles.get(ll), 45)) {
                         } else if (Helper.close(pipeAngles.get(i), pipeAngles.get(kk), 45) &&
                                 Helper.close(pipeAngles.get(i), pipeAngles.get(ll), 45)) {
-                        } else if (Base.testPair(defects.get(i), defects.get(kk), defects.get(ll),
+                        } else if (testPair(defects.get(i), defects.get(kk), defects.get(ll),
                                 pipeAngles.get(kk), pipeAngles.get(ll), realTable, resY)) {
 
-                            double pipeAngle = Base.bisectorInclination(
+                            double pipeAngle = bisectorInclination(
                                     pipeAngles.get(kk) + (pipeAngles.get(kk) > 90 ? -180 : 0),
                                     pipeAngles.get(ll) + (pipeAngles.get(ll) > 90 ? -180 : 0));
                             pipeAngle = pipeAngle + (pipeAngle < 0 ? 180 : 0);
                             pipeAngles.set(i, pipeAngle);
-                            Polygon<Pixel> sd = Rectangle.slopeRectangle(boundingDefects.get(i),
+                            figures.Polygon<Pixel> sd = figures.Rectangle.slopeRectangle(boundingDefects.get(i),
                                     pipeAngle + (pipeAngle >= 90 ? -90 : 0), resY);
-                            Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngle);
+                            figures.Polygon<Pixel> d = sd.widen(diameterPixel, pipeAngle);
 
                             slopingDefects.set(i, sd);
                             defects.set(i, d);
 
-                            double s = Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(),
+                            double s = figures.Polygon.squarePolygon(d, overlap, thermogramPolygon, thermogram.getHeight(),
                                     pixelSize, focalLength);
                             squares.set(i, s);
                             pipeSquares.set(i, PI * s);
@@ -1063,34 +1265,13 @@ public class Main {
             }
         }
 
-        /*AtomicReference<Double> totalIntersectionSquarePixel = new AtomicReference<>(0.);
-        indices.stream()
-                .flatMap(i -> indices.stream()
-                        .filter(j -> j < i)
-                        .peek(j -> {
-                            Polygon<Pixel> p1 = defects.get(i);
-                            Polygon<Pixel> p2 = defects.get(j);
-                            double tmp;
-                            if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
-                                    (tmp = Polygon.getIntersection(p1, p2, -1).square(-1)) >
-                                            minIntersectionSquare) {
-
-                                totalIntersectionSquarePixel.updateAndGet(v -> v + tmp);
-                                System.out.println("Дефекты " + (i + 1) + " и " + (j + 1) + " на термограмме " +
-                                        thermogram.getName() + " по-прежнему пересекаются существенным образом " +
-                                        "(т. е. площадь пересечения >" + minIntersectionSquare + " п.):\n" +
-                                        "1. " + p1 + ",\n2. " + p2 + ".");
-                            }
-                        }))
-                .collect(Collectors.toList());*/
-
         double totalIntersectionSquarePixel = 0;
         for (Point p : problemDefects) {
-            Polygon<Pixel> p1 = defects.get(p.getI());
-            Polygon<Pixel> p2 = defects.get(p.getJ());
+            figures.Polygon<Pixel> p1 = defects.get(p.getI());
+            figures.Polygon<Pixel> p2 = defects.get(p.getJ());
             double s;
             if (p1.getVertices().get(0) != null && p2.getVertices().get(0) != null &&
-                    (s = Polygon.getIntersection(p1, p2, -1).square(-1)) >
+                    (s = figures.Polygon.getIntersection(p1, p2, -1).square(-1)) >
                             minIntersectionSquare) {
 
                 totalIntersectionSquarePixel += s;
@@ -1109,7 +1290,7 @@ public class Main {
                     squares.remove(i);
                     pipeSquares.remove(i);
                 } else {
-                    double s = Polygon.squarePolygon(defects.get(i), overlap, thermogramPolygon, thermogram.getHeight(),
+                    double s = figures.Polygon.squarePolygon(defects.get(i), overlap, thermogramPolygon, thermogram.getHeight(),
                             pixelSize, focalLength);
                     squares.set(i, s);
                     pipeSquares.set(i, PI * s);
@@ -1162,15 +1343,16 @@ public class Main {
                 Helper.filename(DIR_CURRENT, FORBIDDEN_ZONES));
 
         var customPipeAnglesLists = new ArrayList<List<Double>>();
-        List<Double> defaultPipeAngles = Arrays.asList(Property.DEFAULT_PIPE_ANGLES.doubleArrayValue());
 
-        Map<String, List<Double>> map = Helper.mapFromFileWithJsonArray(
-                Helper.filename(DIR_CURRENT, CUSTOM_PIPE_ANGLES),
-                JsonElement::getAsDouble, "Name", "CustomPipeAngles");
-
-        for (Thermogram thermogram : thermograms) {
-            List<Double> angles = map.get(thermogram.getName());
-            customPipeAnglesLists.add(angles == null ? defaultPipeAngles : angles);
+        if (Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1) {
+            List<Double> defaultPipeAngles = Arrays.asList(Property.DEFAULT_PIPE_ANGLES.doubleArrayValue());
+            Map<String, List<Double>> map = Helper.mapFromFileWithJsonArray(
+                    Helper.filename(DIR_CURRENT, CUSTOM_PIPE_ANGLES),
+                    JsonElement::getAsDouble, "Name", "CustomPipeAngles");
+            for (Thermogram thermogram : thermograms) {
+                List<Double> angles = map != null ? map.get(thermogram.getName()) : null;
+                customPipeAnglesLists.add(angles != null ? angles : defaultPipeAngles);
+            }
         }
 
         BiFunction<Double, List<Double>, Double> function = (pipeAngle, customPipeAngles) -> {
@@ -1232,7 +1414,7 @@ public class Main {
 
                 Thermogram previous = thermograms[i - 1 >= 0 ? i - 1 : thermograms.length - 1];
 
-                Polygon<Pixel> overlap = thermogram.getOverlapWith(previous, ExifParam.FOCAL_LENGTH.value(),
+                figures.Polygon<Pixel> overlap = thermogram.getOverlapWith(previous, ExifParam.FOCAL_LENGTH.value(),
                         Property.PIXEL_SIZE.doubleValue() / 1000_000,
                         new Pixel(Property.PRINCIPAL_POINT_X.intValue(), Property.PRINCIPAL_POINT_Y.intValue()),
                         ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue());
@@ -1264,7 +1446,7 @@ public class Main {
                         Property.DIAMETER.doubleValue(), thermogram.getHeight(),
                         Property.PIXEL_SIZE.doubleValue() / 1000_000, ExifParam.FOCAL_LENGTH.value()));
 
-                BiPredicate<Polygon<Point>, Polygon<Point>> condition = (p1, p2) -> {
+                BiPredicate<figures.Polygon<Point>, figures.Polygon<Point>> condition = (p1, p2) -> {
                     int[] ii1 = p1.findMinAndMax(Point::getI);
                     int[] jj1 = p1.findMinAndMax(Point::getJ);
                     int[] ii2 = p2.findMinAndMax(Point::getI);
@@ -1289,14 +1471,15 @@ public class Main {
                             realTempsFilename.toString(), SEPARATOR_REAL,
                             Property.PIXEL_SIZE.doubleValue() / 1000_000,
                             (int) round(Property.K3.doubleValue() * diameterPixel), ExifParam.FOCAL_LENGTH.value(),
-                            ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(), squaresTmpFilename,
-                            pipeAnglesTmpFilename, pipeAnglesLogTmpFilename,
+                            ExifParam.RES_X.intValue(), ExifParam.RES_Y.intValue(),
+                            pipeAnglesLogTmpFilename,
                             Property.MIN_INTERSECTION_SQUARE.doubleValue(),
                             Property.K1.doubleValue() != -1 ?
                                     (Property.K1.doubleValue() != -2 ? condition :
                                             (p1, p2) -> false) : null,
                             Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1 ? function : null,
-                            customPipeAnglesLists.get(i), executorDefects);
+                            Property.DEFAULT_PIPE_ANGLES.doubleArrayValue()[0] != -1 ? customPipeAnglesLists.get(i) : null,
+                            executorDefects);
                 } catch (Throwable e) {
                     unprocessedThermograms.add(thermogram);
                     System.out.println("Термограмма " + thermogramName + " не обработана.");
@@ -1305,14 +1488,14 @@ public class Main {
                     return new double[0];
                 }
 
-                var defects = (ArrayList<Polygon<Pixel>>) o[0];
+                var defects = (ArrayList<figures.Polygon<Pixel>>) o[0];
                 var pipeSquares = (ArrayList<Double>) o[1];
                 var squares = (ArrayList<Double>) o[2];
                 var pipeAngles = (ArrayList<Double>) o[3];
                 var totalPipeSquare = (Double) o[4];
                 var totalSquare = (Double) o[5];
 
-                Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0),
+                figures.Polygon<Pixel> thermogramPolygon = new Rectangle<>(new Pixel(0, 0),
                         new Pixel(ExifParam.RES_X.intValue() - 1, ExifParam.RES_Y.intValue() - 1))
                         .toPolygon();
                 double thermogramSquare = Thermogram.toEarthSquare(thermogramPolygon.square(
@@ -1331,7 +1514,7 @@ public class Main {
                 Helper.log(pipeAnglesTmpFilename, thermogramName + "   " +
                         Helper.roundAndAppend(pipeAngles, 2, 3) + "\n");
 
-                Polygon.drawPolygons(defects, Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
+                figures.Polygon.drawPolygons(defects, figures.Polygon.toPolygonPoint(overlap, ExifParam.FOCAL_LENGTH.value(),
                         ExifParam.RES_Y.intValue()), thermogram.getForbiddenZones(), Color.BLACK,
                         thermogramFilename.toString(), defectsFilename.toString(), ExifParam.RES_Y.intValue(),
                         ExifParam.FOCAL_LENGTH.value());

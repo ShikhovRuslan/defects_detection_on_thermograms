@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.opencsv.*;
+import figures.Rectangle;
 import javenue.csv.Csv;
 import polygons.Segment;
 
@@ -25,6 +26,9 @@ import static java.lang.Math.*;
 
 
 public final class Helper {
+    private Helper() {
+    }
+
     /**
      * Операционные системы.
      */
@@ -51,7 +55,14 @@ public final class Helper {
         }
     }
 
-    private Helper() {
+    @FunctionalInterface
+    public interface Function4<T, U, V, W> {
+        int apply(T t, U u, V v, W w);
+    }
+
+    @FunctionalInterface
+    public interface Predicate4<T, U, V, W> {
+        boolean test(T t, U u, V v, W w);
     }
 
     /**
@@ -402,12 +413,11 @@ public final class Helper {
         try {
             entries = (JsonArray) new JsonParser().parse(new FileReader(filename));
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Возвращается значение null.");
+            System.out.println("Ошибка чтения файла " + filename + ". Возвращается значение null.");
             return null;
         }
 
-        Map<String, List<T>> map = new HashMap<>();
+        var map = new HashMap<String, List<T>>();
         for (JsonElement e : entries) {
             JsonObject entry = (JsonObject) e;
             var values = new ArrayList<T>();

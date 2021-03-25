@@ -1,5 +1,6 @@
 package main;
 
+import figures.AbstractPoint;
 import polygons.Point;
 
 import static java.lang.Math.max;

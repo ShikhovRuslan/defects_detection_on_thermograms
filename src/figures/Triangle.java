@@ -1,4 +1,4 @@
-package main;
+package figures;
 
 import java.util.List;
 

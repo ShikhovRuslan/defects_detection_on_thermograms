@@ -1,15 +1,14 @@
 package polygons;
 
-import main.Helper;
-import main.Pixel;
-import main.Polygon;
-import main.Rectangle;
+import figures.AbstractPoint;
+import main.*;
+import figures.Polygon;
+import figures.Rectangle;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 
@@ -195,6 +194,11 @@ public class Segment {
      */
     public boolean isPointNotLine() {
         return a.equals(b);
+    }
+
+    public static <T extends AbstractPoint> double[] coefs(T p1, T p2) {
+        double a = (p1.getJ() - p2.getJ()) / (p1.getI() - p2.getI() + 0.);
+        return new double[]{a, p1.getJ() - a * p1.getI()};
     }
 
     /**

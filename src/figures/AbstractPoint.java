@@ -1,4 +1,6 @@
-package main;
+package figures;
+
+import main.Pixel;
 
 import java.util.List;
 import java.util.OptionalDouble;

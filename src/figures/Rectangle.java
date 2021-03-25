@@ -1,5 +1,6 @@
-package main;
+package figures;
 
+import main.Pixel;
 import polygons.Point;
 import polygons.Segment;
 

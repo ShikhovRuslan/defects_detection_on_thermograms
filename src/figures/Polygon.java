@@ -1,8 +1,11 @@
-package main;
+package figures;
 
+import main.Helper;
+import main.Pixel;
 import org.apache.commons.lang3.ArrayUtils;
 import polygons.Segment;
 import polygons.Point;
+import thermogram.Thermogram;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -956,6 +959,28 @@ public class Polygon<T extends AbstractPoint> implements Figure<T> {
                 (T) v1.create(v1.getI() + d * shift * cos(pipeAngle), v1.getJ() + d * shift * sin(pipeAngle)));
         getVertices().set(ind2,
                 (T) v2.create(v2.getI() + d * shift * cos(pipeAngle), v2.getJ() + d * shift * sin(pipeAngle)));
+    }
+
+    public static Pixel middle(Polygon<Pixel> d) {
+        Pixel u1 = d.getVertices().get(0);
+        Pixel u2 = d.getVertices().get(2);
+        Pixel v1 = d.getVertices().get(1);
+        Pixel v2 = d.getVertices().get(3);
+
+        if (u1.getI() == u2.getI()) {
+            double[] coefs = Segment.coefs(v1, v2);
+            return new Pixel(u1.getI(), coefs[0] * u1.getI() + coefs[1]);
+        }
+
+        if (v1.getI() == v2.getI()) {
+            double[] coefs = Segment.coefs(u1, u2);
+            return new Pixel(v1.getI(), coefs[0] * v1.getI() + coefs[1]);
+        }
+
+        double[] coefs1 = Segment.coefs(u1, u2);
+        double[] coefs2 = Segment.coefs(v1, v2);
+        double x = (coefs2[1] - coefs1[1]) / (coefs1[0] - coefs2[0]);
+        return new Pixel(x, coefs1[0] * x + coefs1[1]);
     }
 
     @Override

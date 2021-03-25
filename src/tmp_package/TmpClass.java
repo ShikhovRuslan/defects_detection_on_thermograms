@@ -1,26 +1,21 @@
-package tmp;
+package tmp_package;
 
-import com.google.gson.*;
+import figures.Polygon;
+import figures.Rectangle;
 import main.*;
-import main.Polygon;
-import main.Rectangle;
-import polygons.Point;
+import figures.AbstractPoint;
 import polygons.Segment;
+import thermogram.Thermogram;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.*;
-import java.util.function.Function;
 
 import static java.lang.Math.*;
 
 
-public class Base {
+public class MyClass {
     public static Segment getSegment(Pixel centre, double angle, double length, int resY) {
         Pixel a = new Pixel(centre.getI() + 0.5 * length * sin(angle),
                 centre.getJ() + 0.5 * length * cos(angle));
@@ -165,11 +160,6 @@ public class Base {
         return distance / Thermogram.reverseScale(height, focalLength) / pixelSize;
     }
 
-    public static Pixel middle(Rectangle<Pixel> rectangle) {
-        return new Pixel((rectangle.getLeft().getI() + rectangle.getRight().getI()) / 2,
-                (rectangle.getLeft().getJ() + rectangle.getRight().getJ()) / 2);
-    }
-
     public static double sq(Polygon<Pixel> polygon, double height, double focalLength, double pixelSize) {
         List<Pixel> v = polygon.getVertices();
         return Thermogram.earthDistance(v.get(0), v.get(1), height, focalLength, pixelSize) *
@@ -247,31 +237,13 @@ public class Base {
         return map;
     }*/
 
-    @FunctionalInterface
-    public interface Predicate4<T, U, V, W> {
-        boolean test(T t, U u, V v, W w);
-    }
-
-    @FunctionalInterface
-    public interface Function4<T, U, V, W> {
-        int apply(T t, U u, V v, W w);
-    }
-
-    static class Class {
-        int i;
-
-        Class(int i) {
-            this.i = i;
-        }
-
-        @Override
-        public String toString() {
-            return i + "";
-        }
-    }
-
     public static boolean checkInteriorIntersection(Polygon<Pixel> polygon1, Polygon<Pixel> polygon2, double focalLength) {
         return Polygon.getIntersection(polygon1, polygon2, focalLength).square(focalLength) > 0;
+    }
+
+    public static Pixel middle(Rectangle<Pixel> rectangle) {
+        return new Pixel((rectangle.getLeft().getI() + rectangle.getRight().getI()) / 2,
+                (rectangle.getLeft().getJ() + rectangle.getRight().getJ()) / 2);
     }
 
     static class A {
@@ -293,111 +265,6 @@ public class Base {
         }
     }
 
-    public static <T extends AbstractPoint> double[] coefs(T p1, T p2) {
-        double a = (p1.getJ() - p2.getJ()) / (p1.getI() - p2.getI() + 0.);
-        return new double[]{a, p1.getJ() - a * p1.getI()};
-    }
-
-    public static Pixel middle(Polygon<Pixel> d) {
-        Pixel u1 = d.getVertices().get(0);
-        Pixel u2 = d.getVertices().get(2);
-        Pixel v1 = d.getVertices().get(1);
-        Pixel v2 = d.getVertices().get(3);
-
-        if (u1.getI() == u2.getI()) {
-            double[] coefs = coefs(v1, v2);
-            return new Pixel(u1.getI(), coefs[0] * u1.getI() + coefs[1]);
-        }
-
-        if (v1.getI() == v2.getI()) {
-            double[] coefs = coefs(u1, u2);
-            return new Pixel(v1.getI(), coefs[0] * v1.getI() + coefs[1]);
-        }
-
-        double[] coefs1 = coefs(u1, u2);
-        double[] coefs2 = coefs(v1, v2);
-        double x = (coefs2[1] - coefs1[1]) / (coefs1[0] - coefs2[0]);
-        return new Pixel(x, coefs1[0] * x + coefs1[1]);
-    }
-
-    /**
-     * Возвращает угол наклона биссектрисы острого угла между прямыми, чьи углы наклона равны angle1 и angle2.
-     * (Если эти прямые перпендикулярны, то берётся биссектриса, которая ближе всего к оси абсцисс. Если же эти
-     * биссектрисы равноудалены от этой оси, то берётся биссектриса, чей угол наклона положителен.)
-     * <p>
-     * Все углы отсчитываются от положительного направления оси абсцисс против часовой стрелки и принадлежат промежутку
-     * (-90,90].
-     *
-     * @throws IllegalArgumentException если хотя бы один из аргументов вне промежутка (-90,90]
-     */
-    public static double bisectorInclination(double angle1, double angle2) {
-        if (angle1 > 90 || angle1 <= -90)
-            throw new IllegalArgumentException("Angle angle1 (=" + angle1 + ") is out of range (-90,90].");
-        if (angle2 > 90 || angle2 <= -90)
-            throw new IllegalArgumentException("Angle angle2 (=" + angle2 + ") is out of range (-90,90].");
-
-        double v = (angle1 + angle2) / 2;
-        return v + (angle1 * angle2 < 0 && abs(angle1) + abs(angle2) > 90 ? (v <= 0 ? 90 : -90) : 0);
-    }
-
-    public static boolean testPair(Polygon<Pixel> d, Polygon<Pixel> d1, Polygon<Pixel> d2,
-                                   double pA1, double pA2, double[][] realTable, int resY) {
-        Pixel centre = middle(d);
-        Pixel centre1 = middle(d1);
-        Pixel centre2 = middle(d2);
-
-        //if (!Helper.close(pA1, pA2, 10)) return false;
-
-        double angle = atan2(centre1.getJ() - centre2.getJ(), centre1.getI() - centre2.getI()) * 180 / PI;
-        angle = angle < 0 ? angle + 180 : angle;
-        angle = angle == 180 ? 0 : angle;
-
-        if (!Helper.close(angle, pA1, 45)) return false;
-        if (!Helper.close(angle, pA2, 45)) return false;
-
-        int[] ii = AbstractPoint.findMinAndMax(new Pixel[]{centre1, centre2}, Pixel::getI);
-        int[] jj = AbstractPoint.findMinAndMax(new Pixel[]{centre1, centre2}, Pixel::getJ);
-        int h = 5;
-        if (!(centre.distanceToLine(centre1, centre2) <= h &&
-                ii[0] - h <= centre.getI() && centre.getI() <= ii[1] + h &&
-                jj[0] - h <= centre.getJ() && centre.getJ() <= jj[1] + h))
-            return false;
-
-        return detect(new Segment(centre1.toPoint(resY), centre2.toPoint(resY)), realTable);
-    }
-
-    public static boolean detect(Segment segment, double[][] realTable) {
-        Point a = segment.getA();
-        Point b = segment.getB();
-        var points = new ArrayList<Point>();
-
-        int maxI = max(a.getI(), b.getI());
-        int minI = min(a.getI(), b.getI());
-        int maxJ = max(a.getJ(), b.getJ());
-        int minJ = min(a.getJ(), b.getJ());
-
-        if (a.getI() != b.getI()) {
-            double[] coefs = coefs(a, b);
-            for (int t = 0; t <= max(maxI - minI, maxJ - minJ); t++) {
-                // точка, пробегающая отрезок [minI, maxI]
-                double i = minI + t * (maxI - minI + 0.) / max(maxI - minI, maxJ - minJ);
-                points.add(new Point(i, coefs[0] * i + coefs[1]));
-            }
-        } else
-            for (int j = minJ; j <= maxJ; j++)
-                points.add(new Point(a.getI(), j));
-
-        double[] temperatures = new double[points.size()];
-        for (int i = 0; i < points.size(); i++) {
-            temperatures[i] = realTable[points.get(i).getI()][points.get(i).getJ()];
-            //System.out.println(temperatures[i]);
-        }
-
-        double min = Arrays.stream(temperatures).min().orElse(-1);
-
-        return min > 0;
-    }
-
     public synchronized static double check(Polygon<Pixel> defect, double minLengthwiseDistance, double maxTransverseDistance) {
         var distances = new ArrayList<Double>();
         double no = -1;
@@ -410,7 +277,7 @@ public class Base {
                 if (vertices.get(i).getI() == vertices.get(j).getI())
                     inclinations.add(90.);
                 else {
-                    double m = atan(coefs(vertices.get(i), vertices.get(j))[0]) * 180 / PI;
+                    double m = atan(Segment.coefs(vertices.get(i), vertices.get(j))[0]) * 180 / PI;
                     inclinations.add(m < 0 ? m + 180 : m);
                 }
             }

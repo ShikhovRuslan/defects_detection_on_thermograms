@@ -1,18 +1,25 @@
-package main;
+package thermogram;
 
 import com.google.gson.*;
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.DMSCoordinate;
 import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
-import tmp.Base;
+import figures.AbstractPoint;
+import figures.Polygon;
+import figures.Rectangle;
+import main.*;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static java.lang.Math.*;
 
@@ -179,8 +186,8 @@ public class Thermogram {
      * Возвращает многоугольник (в системе пиксельных координат, связанных с текущей термограммой), который является
      * пересечением текущей термограммы и термограммы {@code previous}.
      */
-    Polygon<Pixel> getOverlapWith(Thermogram previous, double focalLength, double pixelSize, Pixel principalPoint,
-                                  int resX, int resY) {
+    public Polygon<Pixel> getOverlapWith(Thermogram previous, double focalLength, double pixelSize, Pixel principalPoint,
+                                         int resX, int resY) {
         List<Pixel> vertices = new ArrayList<>();
         vertices.addAll(cornersFromOther(this, previous, focalLength, pixelSize, principalPoint, resX, resY));
         vertices.addAll(cornersFromOther(previous, this, focalLength, pixelSize, principalPoint, resX, resY));
@@ -204,7 +211,7 @@ public class Thermogram {
      * Все поля, кроме поля {@code forbiddenZones}, прочитываются из файла {@code filename1}, а поле
      * {@code forbiddenZones} - из файла {@code filename2}, содержащего массив в формате JSON.
      */
-    static Thermogram[] readThermograms(String filename1, String filename2) {
+    public static Thermogram[] readThermograms(String filename1, String filename2) {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(Thermogram.class, new ThermogramDeserializer())
                 .create();
@@ -216,7 +223,6 @@ public class Thermogram {
         }
         Thermogram[] tmpThermograms = gson.fromJson(bufferedReader, Thermogram[].class);
 
-        //Map<String, List<Rectangle<Pixel>>> map = readForbiddenZones(filename2);
         Map<String, List<Rectangle<Pixel>>> map = Helper.mapFromFileWithJsonArray(filename2, o -> {
             JsonObject jRectangle = (JsonObject) o;
             JsonObject jLeft = (JsonObject) jRectangle.get("Left");
@@ -229,7 +235,7 @@ public class Thermogram {
         Thermogram[] thermograms = new Thermogram[tmpThermograms.length];
         for (int i = 0; i < tmpThermograms.length; i++)
             thermograms[i] = new Thermogram(tmpThermograms[i].name, tmpThermograms[i].yaw, tmpThermograms[i].height,
-                    tmpThermograms[i].groundNadir, map.get(tmpThermograms[i].name));
+                    tmpThermograms[i].groundNadir, map != null ? map.get(tmpThermograms[i].name) : null);
         return thermograms;
     }
 
@@ -287,5 +293,75 @@ public class Thermogram {
     @Override
     public String toString() {
         return getClass().getName() + new GsonBuilder().setPrettyPrinting().create().toJson(this);
+    }
+
+    /**
+     * Углы термограммы в системе координат c'x'y', начиная с верхнего левого угла и заканчивая нижним левым.
+     */
+    private enum Corners {
+        /**
+         * Верхний левый угол термограммы.
+         */
+        C0(0, ExifParam.RES_Y.intValue() - 1),
+        /**
+         * Верхний правый угол термограммы.
+         */
+        C1(ExifParam.RES_X.intValue() - 1, ExifParam.RES_Y.intValue() - 1),
+        /**
+         * Нижний правый угол термограммы.
+         */
+        C2(ExifParam.RES_X.intValue() - 1, 0),
+        /**
+         * Нижний левый угол термограммы.
+         */
+        C3(0, 0);
+
+        /**
+         * Абсцисса угла термограммы.
+         */
+        private final int i;
+        /**
+         * Ордината угла термограммы.
+         */
+        private final int j;
+
+        Corners(int i, int j) {
+            this.i = i;
+            this.j = j;
+        }
+
+        /**
+         * Конвертирует текущий угол термограммы в точку.
+         */
+        private Pixel toPixel() {
+            return new Pixel(i, j);
+        }
+
+        /**
+         * Вычисляет острый угол (в градусах) между отрезком, соединяющим точку {@code point} и текущий угол
+         * термограммы, и прямой, проходящей через точку {@code point} и параллельной оси c'x'.
+         */
+        private double angle(Pixel point) {
+            return (180 / PI) * atan(abs(j - point.getJ()) / abs(i - point.getI() + 0.));
+        }
+    }
+
+    /**
+     * Используется для десериализации термограммы. Заполняются все поля, кроме поля {@code forbiddenZones}.
+     */
+    private static class ThermogramDeserializer implements JsonDeserializer<Thermogram> {
+        @Override
+        public Thermogram deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) {
+            JsonObject jsonObject = json.getAsJsonObject();
+            String name = jsonObject.get("SourceFile").getAsString().substring(
+                    jsonObject.get("SourceFile").getAsString().lastIndexOf('/') + 1)
+                    .substring(0, jsonObject.get("SourceFile").getAsString().substring(
+                            jsonObject.get("SourceFile").getAsString().lastIndexOf('/') + 1).indexOf('.'));
+            double yaw = jsonObject.get("GimbalYawDegree").getAsDouble();
+            double height = jsonObject.get("RelativeAltitude").getAsDouble();
+            double latitude = jsonObject.get("GPSLatitude").getAsDouble();
+            double longitude = jsonObject.get("GPSLongitude").getAsDouble();
+            return new Thermogram(name, -yaw - 90, height, Point.at(Coordinate.fromDegrees(latitude), Coordinate.fromDegrees(longitude)));
+        }
     }
 }
