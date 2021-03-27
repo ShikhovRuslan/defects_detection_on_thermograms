@@ -1,11 +1,8 @@
 package figures;
 
 import main.Helper;
-import main.Pixel;
 import org.apache.commons.lang3.ArrayUtils;
-import polygons.Segment;
-import polygons.Point;
-import thermogram.Thermogram;
+import main.Thermogram;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

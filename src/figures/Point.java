@@ -1,8 +1,4 @@
-package polygons;
-
-import figures.AbstractPoint;
-import figures.Rectangle;
-import main.*;
+package figures;
 
 import java.util.List;
 
@@ -11,6 +7,9 @@ import static java.lang.Math.abs;
 
 /**
  * Используется для хранения координат точек в системе координат Oxy.
+ * <p>
+ * С термограммой связана система Oxy пиксельных координат. Центр O находится в верхней левой точке термограммы. Ось Ox
+ * направлена вдоль левой стороны термограммы, а ось Oy - вдоль верхней.
  */
 public class Point extends AbstractPoint {
     public Point(int i, int j) {

@@ -71,6 +71,8 @@ Usage: java -jar geo.jar [-gp | -ti | -trt | -csv | -d]
              в папке .\SUBDIR_REAL_TEMPS.
   -d         Для каждой термограммы из файла .\SUBDIR_OUTPUT\thermograms_info.txt создаёт изображение с 
              выделенными дефектами в папке .\SUBDIR_DEFECTS.
+             Копирует EXIF-параметры термограмм из папки DIR_THERMOGRAMS: GPS Latitude, GPS Longitude - в данные
+             EXIF картинки с дефектами .\SUBDIR_DEFECTS\<thermogram_name>POSTFIX_DEFECTS.jpg.
 ```
 
 * Картинки с выделенными дефектами сохраняются в папке `.\SUBDIR_DEFECTS`, а расчёты - в папке `.\SUBDIR_OUTPUT`.

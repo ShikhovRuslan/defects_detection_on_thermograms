@@ -1,9 +1,6 @@
-package polygons;
+package figures;
 
-import figures.AbstractPoint;
 import main.*;
-import figures.Polygon;
-import figures.Rectangle;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;

@@ -1,7 +1,4 @@
-package main;
-
-import figures.AbstractPoint;
-import polygons.Point;
+package figures;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -9,6 +6,9 @@ import static java.lang.Math.min;
 
 /**
  * Используется для хранения координат точек в системе координат c'x'y'.
+ * <p>
+ * С термограммой связана система c'x'y'z' пиксельных координат. Центр c' находится в нижней левой точке термограммы.
+ * Ось c'x' направлена вдоль нижней стороны термограммы, ось c'y' - вдоль левой стороны термограммы, а ось c'z' - вверх.
  */
 public class Pixel extends AbstractPoint {
     public Pixel(int i, int j) {

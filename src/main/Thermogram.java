@@ -1,4 +1,4 @@
-package thermogram;
+package main;
 
 import com.google.gson.*;
 import com.grum.geocalc.Coordinate;
@@ -6,9 +6,9 @@ import com.grum.geocalc.DMSCoordinate;
 import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
 import figures.AbstractPoint;
+import figures.Pixel;
 import figures.Polygon;
 import figures.Rectangle;
-import main.*;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;

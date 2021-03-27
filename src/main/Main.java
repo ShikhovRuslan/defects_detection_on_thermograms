@@ -1,13 +1,11 @@
 package main;
 
 import com.google.gson.JsonElement;
-import figures.AbstractPoint;
+import figures.*;
+import figures.Point;
 import figures.Polygon;
 import figures.Rectangle;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
-import polygons.Point;
-import polygons.Segment;
-import thermogram.Thermogram;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -183,7 +181,6 @@ public class Main {
         THERMOGRAMS_RAW_TEMPERATURES,
         CSV,
         DEFECTS,
-        ALL,
         HELP;
 
         private static void help() {
@@ -204,7 +201,6 @@ public class Main {
                 case "-trt" -> THERMOGRAMS_RAW_TEMPERATURES;
                 case "-csv" -> CSV;
                 case "-d" -> DEFECTS;
-                case "-all" -> ALL;
                 default -> HELP;
             };
         }
@@ -1203,6 +1199,7 @@ public class Main {
         }
 
         int n;
+        int iter = 0;
         do {
             n = 0;
             for (int i = 0; i < defects.size(); i++) {
@@ -1239,7 +1236,9 @@ public class Main {
                     if (corrected) break;
                 }
             }
-        } while (n > 0);
+            iter++;
+            System.out.println(iter);
+        } while (n > 0 & iter <= 1);////
 
         // Корректировка.
         var defectsChanged = new HashSet<Integer>();
@@ -1598,13 +1597,6 @@ public class Main {
             case THERMOGRAMS_RAW_TEMPERATURES -> actionThermogramsRawTemperatures();
             case CSV -> actionCsv();
             case DEFECTS -> actionDefects();
-            case ALL -> {
-                actionGlobalParams();
-                actionThermogramsInfo();
-                actionThermogramsRawTemperatures();
-                actionCsv();
-                actionDefects();
-            }
             case HELP -> actionHelp();
         }
     }

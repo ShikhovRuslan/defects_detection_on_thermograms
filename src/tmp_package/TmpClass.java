@@ -1,11 +1,8 @@
 package tmp_package;
 
-import figures.Polygon;
-import figures.Rectangle;
+import figures.*;
 import main.*;
-import figures.AbstractPoint;
-import polygons.Segment;
-import thermogram.Thermogram;
+import main.Thermogram;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,8 +12,8 @@ import java.util.List;
 import static java.lang.Math.*;
 
 
-public class MyClass {
-    public static Segment getSegment(Pixel centre, double angle, double length, int resY) {
+class TmpClass {
+    static Segment getSegment(Pixel centre, double angle, double length, int resY) {
         Pixel a = new Pixel(centre.getI() + 0.5 * length * sin(angle),
                 centre.getJ() + 0.5 * length * cos(angle));
         Pixel b = new Pixel(centre.getI() - 0.5 * length * sin(angle),
@@ -24,7 +21,7 @@ public class MyClass {
         return new Segment(a.toPoint(resY), b.toPoint(resY));
     }
 
-    public static double av(Segment s, double[][] table, int resX) {
+    static double av(Segment s, double[][] table, int resX) {
         double a = (s.getB().getJ() - s.getA().getJ()) / (s.getB().getI() - s.getA().getI() + 0.);
         double b = s.getA().getJ() - a * s.getA().getI();
         double sum = 0;
@@ -44,7 +41,7 @@ public class MyClass {
         return sum / (Math.max(s.getA().getI(), s.getB().getI()) - Math.min(s.getA().getI(), s.getB().getI()) + 1 - n);
     }
 
-    public static double f(double diameter, Pixel pixel, int n, double coef, char separator, String filename, int resX, int resY) {
+    static double f(double diameter, Pixel pixel, int n, double coef, char separator, String filename, int resX, int resY) {
         double[][] realTable = Helper.extractTable(filename, separator);
         double length = coef * diameter;
         int k = -1;
@@ -62,7 +59,7 @@ public class MyClass {
         return (k / (n + 0.)) * 180;
     }
 
-    public static double[] angles(Pixel v1, Pixel v2, double diameter, int n, double coef, char separator, String filename, int resX, int resY) {
+    static double[] angles(Pixel v1, Pixel v2, double diameter, int n, double coef, char separator, String filename, int resX, int resY) {
         double a1 = f(diameter, v1, n, coef, separator, filename, resX, resY);
         double a2 = f(diameter, v2, n, coef, separator, filename, resX, resY);
         double gamma = -1000;
@@ -76,7 +73,7 @@ public class MyClass {
         return new double[]{a1, a2, gamma};
     }
 
-    public static double bisector(double a1, double a2, boolean isHorisontal) {
+    static double bisector(double a1, double a2, boolean isHorisontal) {
 //        double a1 = f(diameter, v1, n, coef, separator, filename);
 //        double a2 = f(diameter, v2, n, coef, separator, filename);
 //        double gamma;
@@ -100,8 +97,8 @@ public class MyClass {
         return b;
     }
 
-    public static double vert(Rectangle<Pixel> rectangle,
-                              double diameter, int n, double coef, char separator, String filename, int resX, int resY) {
+    static double vert(Rectangle<Pixel> rectangle,
+                       double diameter, int n, double coef, char separator, String filename, int resX, int resY) {
         // по час. стрелке, начиная с верхней левой
         Pixel v1 = new Pixel(rectangle.getLeft().getI(), rectangle.getRight().getJ());
         Pixel v2 = rectangle.getRight();
@@ -138,7 +135,7 @@ public class MyClass {
         throw new IllegalArgumentException("end");
     }
 
-    public static double[] toMinus(double... vals) {
+    static double[] toMinus(double... vals) {
         double[] newVals = new double[vals.length];
         for (int i = 0; i < vals.length; i++) {
             if (vals[i] < 90)
@@ -149,24 +146,24 @@ public class MyClass {
         return newVals;
     }
 
-    public static double sss(double diameter, int n, double coef, char separator, String filename, int resX, int resY, Pixel... pixels) {
+    static double sss(double diameter, int n, double coef, char separator, String filename, int resX, int resY, Pixel... pixels) {
         double sum = 0;
         for (Pixel pixel : pixels)
             sum += f(diameter, pixel, n, coef, separator, filename, resX, resY);
         return sum / pixels.length;
     }
 
-    public static double realToMatrix(double distance, double height, double pixelSize, double focalLength) {
+    static double realToMatrix(double distance, double height, double pixelSize, double focalLength) {
         return distance / Thermogram.reverseScale(height, focalLength) / pixelSize;
     }
 
-    public static double sq(Polygon<Pixel> polygon, double height, double focalLength, double pixelSize) {
+    static double sq(Polygon<Pixel> polygon, double height, double focalLength, double pixelSize) {
         List<Pixel> v = polygon.getVertices();
         return Thermogram.earthDistance(v.get(0), v.get(1), height, focalLength, pixelSize) *
                 Thermogram.earthDistance(v.get(1), v.get(2), height, focalLength, pixelSize);
     }
 
-    /*public static boolean pointInLine(Pixel p, Pixel p1, Pixel p2) {
+    /*static boolean pointInLine(Pixel p, Pixel p1, Pixel p2) {
         // Случай вертикальной прямой.
         if (p1.getI() == p2.getI())
             return p1.getI() == p.getI();
@@ -179,7 +176,7 @@ public class MyClass {
         return a * p.getI() + b == p.getJ();
     }*/
 
-    /*public static Pixel segmentsIntersect(Pixel a1, Pixel b1, Pixel a2, Pixel b2) {
+    /*static Pixel segmentsIntersect(Pixel a1, Pixel b1, Pixel a2, Pixel b2) {
         Pixel intersection = Pixel.findIntersection(a1, b1, a2, b2);
         if (intersection.getI() != Integer.MIN_VALUE) return intersection;
 
@@ -194,7 +191,7 @@ public class MyClass {
         return new Pixel(-1, -1);
     }*/
 
-    /*public static Map<String, List<Rectangle<Pixel>>> readForbiddenZones(String filename) {
+    /*static Map<String, List<Rectangle<Pixel>>> readForbiddenZones(String filename) {
         return Helper.mapFromFileWithJsonArray(filename, o -> {
             JsonObject jRectangle = (JsonObject) o;
             JsonObject jLeft = (JsonObject) jRectangle.get("Left");
@@ -205,11 +202,11 @@ public class MyClass {
         }, "Name", "ForbiddenZones");
     }*/
 
-    /*public static Map<String, List<Double>> readStandardPipeAngles(String filename) {
+    /*static Map<String, List<Double>> readStandardPipeAngles(String filename) {
         return Helper.mapFromFileWithJsonArray(filename, JsonElement::getAsDouble, "Name", "CustomPipeAngles");
     }*/
 
-    /*public static Map<String, List<Double>> readStandardPipeAngles(String filename) {
+    /*static Map<String, List<Double>> readStandardPipeAngles(String filename) {
         JsonArray arrEntries = null, arrAngles;
         JsonObject jEntry;
 
@@ -237,35 +234,16 @@ public class MyClass {
         return map;
     }*/
 
-    public static boolean checkInteriorIntersection(Polygon<Pixel> polygon1, Polygon<Pixel> polygon2, double focalLength) {
+    static boolean checkInteriorIntersection(Polygon<Pixel> polygon1, Polygon<Pixel> polygon2, double focalLength) {
         return Polygon.getIntersection(polygon1, polygon2, focalLength).square(focalLength) > 0;
     }
 
-    public static Pixel middle(Rectangle<Pixel> rectangle) {
+    static Pixel middle(Rectangle<Pixel> rectangle) {
         return new Pixel((rectangle.getLeft().getI() + rectangle.getRight().getI()) / 2,
                 (rectangle.getLeft().getJ() + rectangle.getRight().getJ()) / 2);
     }
 
-    static class A {
-    }
-
-    static class B extends A {
-        int f() {
-            return 0;
-        }
-    }
-
-    static class C extends B {
-        int f() {
-            return 1;
-        }
-
-        int g() {
-            return 44;
-        }
-    }
-
-    public synchronized static double check(Polygon<Pixel> defect, double minLengthwiseDistance, double maxTransverseDistance) {
+    synchronized static double check(Polygon<Pixel> defect, double minLengthwiseDistance, double maxTransverseDistance) {
         var distances = new ArrayList<Double>();
         double no = -1;
         List<Pixel> vertices = defect.getVertices();
@@ -344,7 +322,7 @@ public class MyClass {
     }
 
 
-    public static void main(String[] args) throws IOException {
+    static void main(String[] args) throws IOException {
 
         /*Pixel centre2 = new Pixel(0, 1);
         Pixel centre1 = new Pixel(0, 0);

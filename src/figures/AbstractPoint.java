@@ -1,7 +1,5 @@
 package figures;
 
-import main.Pixel;
-
 import java.util.List;
 import java.util.OptionalDouble;
 import java.util.function.Function;

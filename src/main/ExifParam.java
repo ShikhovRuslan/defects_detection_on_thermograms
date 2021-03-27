@@ -39,11 +39,11 @@ public enum ExifParam {
         }
     }
 
-    public double value() {
+    double value() {
         return value;
     }
 
-    public int intValue() {
+    int intValue() {
         return (int) value;
     }
 

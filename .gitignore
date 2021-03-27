@@ -1,6 +1,7 @@
 .gradle
 .idea
 build
+!build/libs/defects.jar
 gradle
 out
 gradlew

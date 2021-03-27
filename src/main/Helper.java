@@ -5,9 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.opencsv.*;
+import figures.Pixel;
 import figures.Rectangle;
 import javenue.csv.Csv;
-import polygons.Segment;
+import figures.Segment;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
