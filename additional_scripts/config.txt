@@ -4,7 +4,7 @@ SED                          = C:\Program Files (x86)\GnuWin32\bin\sed.exe
 
 
    Папка с термограммами.
-DIR_THERMOGRAMS              = %userprofile%\Documents\Geo\Thermograms
+DIR_THERMOGRAMS              = C:\Users\shikh\Documents\Geo\Thermograms
 
 
 
