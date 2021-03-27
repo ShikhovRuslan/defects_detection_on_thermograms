@@ -4,7 +4,7 @@ SED                          = C:\Program Files (x86)\GnuWin32\bin\sed.exe
 
 
    Папка с термограммами.
-DIR_THERMOGRAMS              = /home/ruslan/geo/The rmograms 3
+DIR_THERMOGRAMS              = %userprofile%\Documents\Geo\Thermograms
 
 
 
@@ -74,7 +74,7 @@ DIAMETER                     = 0.7
 T_MIN                        = 30
 
    Максимальная температура, гр. Ц.
-T_MAX                        = 60
+T_MAX                        = 100
 
    Минимальная площадь изначального варианта дефекта (в кв. пикселях).
 MIN_PIXEL_SQUARE             = 25

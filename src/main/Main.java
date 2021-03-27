@@ -1237,8 +1237,7 @@ public class Main {
                 }
             }
             iter++;
-            System.out.println(iter);
-        } while (n > 0 & iter <= 1);////
+        } while (n > 0 & iter < 2);
 
         // Корректировка.
         var defectsChanged = new HashSet<Integer>();
