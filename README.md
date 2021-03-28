@@ -103,7 +103,7 @@ Usage: java -jar defects.jar [-gp | -ti | -trt | -csv | -d]
              Запускает copy_gps.[bat/sh] из директории, содержащей defects.jar.
 ```
 
-* Картинки с выделенными дефектами сохраняются в папке `SUBDIR_DEFECTS`, а их площади &mdash; в файле `SUBDIR_OUTPUT\pipe_squares.txt`.
+* Картинки с выделенными дефектами сохраняются в папке `SUBDIR_DEFECTS`, а их площади &mdash; в файле `<folder_with_defects.jar>\SUBDIR_OUTPUT\pipe_squares.txt`.
 
 ## Результаты
 
