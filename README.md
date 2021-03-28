@@ -1,8 +1,8 @@
-# Defects Detection of Heating Systems on Thermograms
+# Heating Systems Defects Detection on Thermograms
 
 Репозиторий содержит программу, которая выделяет дефекты тепловых сетей (т. е. зоны разрушения теплоизоляционного слоя) на термограммах, сделанных БПЛА, а также производит подсчёт их площадей. 
 
-Чтобы произвести расчёты, необходимо сначала запустить ряд скриптов, а затем выполнить непосредственно расчёты. Скрипты извлекают из термограмм различные EXIF-параметры и 
+Чтобы произвести расчёты, необходимо запустить программу с определёнными параметрами. Программа использует скрипты, которые извлекают из термограмм различные EXIF-параметры и 
 необработанные температурные данные. Скрипты самодостаточны, их можно использовать независимо от программы.
 
 ## Using the Sample Code
@@ -106,29 +106,20 @@ Usage: java -jar defects.jar [-gp | -ti | -trt | -csv | -d]
 
 Суммарная площадь дефектов составляет 316.53 м<sup>2</sup>.
 
-![alt text](https://github.com/ShikhovRuslan/defects_detection_on_thermograms/blob/master/DJI_0319_R.JPG?raw=true)
-https://github.com/ShikhovRuslan/defects_detection_on_thermograms/blob/master/DJI_0319_R.JPG?raw=true
+На картинках выделены дефекты теплосети, а также зоны перекрытия соседних термограмм. На последней картинке также выделен прямоугольник, в котором не нужно искать дефекты.
 
-![Screenshot](sample_thermograms/DJI_0319_R.JPG)
-![Screenshot](sample_thermograms/DJI_0321_R.JPG)
-
-<img src="sample_thermograms/DJI_0319_R.JPG" alt="drawing" width="200"/>
-<img src="sample_thermograms/DJI_0321_R.JPG" alt="drawing" width="200"/>
-
-Деф:
-
-<p float="left">
-  <img src="results/defects/DJI_0319_R_defects.jpg" width="500" />
-  <img src="results/defects/DJI_0321_R_defects.jpg" width="500" /> 
-  <img src="results/defects/DJI_0323_R_defects.jpg" width="500" />
-  <img src="results/defects/DJI_0325_R_defects.jpg" width="500" />
-  <img src="results/defects/DJI_0327_R_defects.jpg" width="100" />
-  <img src="results/defects/DJI_0329_R_defects.jpg" width="100" />
-  <img src="results/defects/DJI_0331_R_defects.jpg" width="100" />
-  <img src="results/defects/DJI_0333_R_defects.jpg" width="100" />
-  <img src="results/defects/DJI_0335_R_defects.jpg" width="100" /> 
-  <img src="results/defects/DJI_0337_R_defects.jpg" width="100" />
-  <img src="results/defects/DJI_0339_R_defects.jpg" width="100" />
-  <img src="results/defects/DJI_0341_R_defects.jpg" width="100" />
-  <img src="results/defects/DJI_0343_R_defects.jpg" width="100" />
+<p>
+  <img src="results/defects/DJI_0319_R_defects.jpg">
+  <img src="results/defects/DJI_0321_R_defects.jpg"> 
+  <img src="results/defects/DJI_0323_R_defects.jpg">
+  <img src="results/defects/DJI_0325_R_defects.jpg">
+  <img src="results/defects/DJI_0327_R_defects.jpg">
+  <img src="results/defects/DJI_0329_R_defects.jpg">
+  <img src="results/defects/DJI_0331_R_defects.jpg">
+  <img src="results/defects/DJI_0333_R_defects.jpg">
+  <img src="results/defects/DJI_0335_R_defects.jpg"> 
+  <img src="results/defects/DJI_0337_R_defects.jpg">
+  <img src="results/defects/DJI_0339_R_defects.jpg">
+  <img src="results/defects/DJI_0341_R_defects.jpg">
+  <img src="results/defects/DJI_0343_R_defects.jpg">
 </p>
