@@ -118,17 +118,17 @@ https://github.com/ShikhovRuslan/defects_detection_on_thermograms/blob/master/DJ
 Деф:
 
 <p float="left">
-  <img src="sample_thermograms/DJI_0319_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0321_R.JPG" width="100" /> 
-  <img src="sample_thermograms/DJI_0323_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0325_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0327_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0329_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0331_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0333_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0335_R.JPG" width="100" /> 
-  <img src="sample_thermograms/DJI_0337_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0339_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0341_R.JPG" width="100" />
-  <img src="sample_thermograms/DJI_0343_R.JPG" width="100" />
+  <img src="results/defects/DJI_0319_R_defects.jpg" width="500" />
+  <img src="results/defects/DJI_0321_R_defects.jpg" width="500" /> 
+  <img src="results/defects/DJI_0323_R_defects.jpg" width="500" />
+  <img src="results/defects/DJI_0325_R_defects.jpg" width="500" />
+  <img src="results/defects/DJI_0327_R_defects.jpg" width="100" />
+  <img src="results/defects/DJI_0329_R_defects.jpg" width="100" />
+  <img src="results/defects/DJI_0331_R_defects.jpg" width="100" />
+  <img src="results/defects/DJI_0333_R_defects.jpg" width="100" />
+  <img src="results/defects/DJI_0335_R_defects.jpg" width="100" /> 
+  <img src="results/defects/DJI_0337_R_defects.jpg" width="100" />
+  <img src="results/defects/DJI_0339_R_defects.jpg" width="100" />
+  <img src="results/defects/DJI_0341_R_defects.jpg" width="100" />
+  <img src="results/defects/DJI_0343_R_defects.jpg" width="100" />
 </p>
