@@ -1,23 +1,25 @@
- Использование: java -jar geo.jar [-gp | -ti | -trt | -csv | -d]
+ Использование: java -jar defects.jar [-gp | -ti | -trt | -csv | -d]
 
  -gp        Извлекает общие для всех термограмм параметры: Focal Length, Planck R1, Planck R2, Planck O, Planck B, 
             Planck F, emissivity, Reflected Apparent Temperature, Raw Thermal Image Height, Raw Thermal Image Width 
-            - из данных EXIF первой термограммы из папки DIR_THERMOGRAMS в файл .\SUBDIR_OUTPUT\global_params.txt в 
+            - из данных EXIF первой термограммы из папки DIR_THERMOGRAMS в файл A\SUBDIR_OUTPUT\global_params.txt в
             формате JSON.
 
  -ti        Извлекает параметры термограмм из папки DIR_THERMOGRAMS: Relative Altitude, Gimbal Yaw Degree, 
-            GPS Latitude, GPS Longitude - из данных EXIF в файл .\SUBDIR_OUTPUT\thermograms_info.txt в виде массива 
+            GPS Latitude, GPS Longitude - из данных EXIF в файл A\SUBDIR_OUTPUT\thermograms_info.txt в виде массива
             JSON.
 
  -trt       Извлекает из всех термограмм из папки DIR_THERMOGRAMS необработанные температурные данные в файлы в папке 
-            .\SUBDIR_RAW_TEMPS.
+            A\SUBDIR_RAW_TEMPS.
 
  -csv       Для каждой термограммы из папки DIR_THERMOGRAMS конвертирует файл с необработанными температурными данными 
-            из папки .\SUBDIR_RAW_TEMPS в файл с температурами в формате CSV в папке .\SUBDIR_REAL_TEMPS.
+            из папки A\SUBDIR_RAW_TEMPS в файл с температурами в формате CSV в папке A\SUBDIR_REAL_TEMPS.
 
- -d         Для каждой термограммы из файла .\SUBDIR_OUTPUT\thermograms_info.txt создаёт изображение с выделенными 
-            дефектами в папке .\SUBDIR_DEFECTS.
+ -d         Для каждой термограммы из файла A\SUBDIR_OUTPUT\thermograms_info.txt создаёт изображение с выделенными
+            дефектами в папке A\SUBDIR_DEFECTS.
             Копирует EXIF-параметры термограмм из папки DIR_THERMOGRAMS: GPS Latitude, GPS Longitude - в данные
-            EXIF картинки с дефектами .\SUBDIR_DEFECTS\<thermogram_name>POSTFIX_DEFECTS.jpg.
+            EXIF картинки с дефектами A\SUBDIR_DEFECTS\<thermogram_name>POSTFIX_DEFECTS.jpg.
 
  Без пар.   Отображает справку.
+
+A - каталог, содержащий файл defects.jar.
