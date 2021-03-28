@@ -73,19 +73,62 @@ EXIF картинки с дефектами .\SUBDIR_DEFECTS\<thermogram_name>PO
 ```
 Usage: java -jar defects.jar [-gp | -ti | -trt | -csv | -d]
 
-  -gp        Запуск global_params.bat.
-  -ti        Запуск thermograms_info.bat.
-  -trt       Запуск thermograms_raw_temperatures.bat.
+  -gp        Запускает global_params.bat.
+  -ti        Запускает thermograms_info.bat.
+  -trt       Запускает thermograms_raw_temperatures.bat.
   -csv       Для каждой термограммы из папки DIR_THERMOGRAMS конвертирует файл с необработанными 
              температурными данными из папки .\SUBDIR_RAW_TEMPS в файл с температурами в формате CSV 
              в папке .\SUBDIR_REAL_TEMPS.
   -d         Для каждой термограммы из файла .\SUBDIR_OUTPUT\thermograms_info.txt создаёт изображение с 
              выделенными дефектами в папке .\SUBDIR_DEFECTS.
-             Копирует EXIF-параметры термограмм из папки DIR_THERMOGRAMS: GPS Latitude, GPS Longitude - 
-             в данные EXIF картинки с дефектами .\SUBDIR_DEFECTS\<thermogram_name>POSTFIX_DEFECTS.jpg.
+             Запускает copy_gps.bat.
 ```
 
 * Картинки с выделенными дефектами сохраняются в папке `.\SUBDIR_DEFECTS`, а площади - в файле `.\SUBDIR_OUTPUT\pipe_squares.txt`.
 
 ## Результаты
-Для термограмм из папки `sample_thermograms` программа даёт следующий результат.
+Для термограмм из папки `sample_thermograms` программа даёт следующий результат. (Минимальная температура равна 30 &deg;C, а максимальная &mdash; 100 &deg;C.)
+| Термограмма | Площадь дефектов, м<sup>2</sup> |
+| :---        | :----:                          |
+| DJI_0319_R | 75.96 |
+| DJI_0321_R | 0     |
+| DJI_0323_R | 0     |
+| DJI_0325_R | 0     |
+| DJI_0327_R | 0     |
+| DJI_0329_R | 5.11  |
+| DJI_0331_R | 14.1  |
+| DJI_0333_R | 0     |
+| DJI_0335_R | 75.12 |
+| DJI_0337_R | 53.05 |
+| DJI_0339_R | 41.59 |
+| DJI_0341_R | 43.07 |
+| DJI_0343_R | 8.54  |
+
+Суммарная площадь дефектов составляет 316.53 м<sup>2</sup>.
+
+![alt text](https://github.com/ShikhovRuslan/defects_detection_on_thermograms/blob/master/DJI_0319_R.JPG?raw=true)
+https://github.com/ShikhovRuslan/defects_detection_on_thermograms/blob/master/DJI_0319_R.JPG?raw=true
+
+![Screenshot](sample_thermograms/DJI_0319_R.JPG)
+![Screenshot](sample_thermograms/DJI_0321_R.JPG)
+
+<img src="sample_thermograms/DJI_0319_R.JPG" alt="drawing" width="200"/>
+<img src="sample_thermograms/DJI_0321_R.JPG" alt="drawing" width="200"/>
+
+Деф:
+
+<p float="left">
+  <img src="sample_thermograms/DJI_0319_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0321_R.JPG" width="100" /> 
+  <img src="sample_thermograms/DJI_0323_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0325_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0327_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0329_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0331_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0333_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0335_R.JPG" width="100" /> 
+  <img src="sample_thermograms/DJI_0337_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0339_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0341_R.JPG" width="100" />
+  <img src="sample_thermograms/DJI_0343_R.JPG" width="100" />
+</p>
