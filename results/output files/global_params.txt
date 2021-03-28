@@ -1,0 +1,13 @@
+{
+  "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0319_R.JPG",
+  "FocalLength": 25,
+  "PlanckR1": 344449,
+  "PlanckR2": 1,
+  "PlanckO": -515,
+  "PlanckB": 1428,
+  "PlanckF": 1,
+  "Emissivity": 1,
+  "ReflectedApparentTemperature": 19.9999938964844,
+  "RawThermalImageHeight": 512,
+  "RawThermalImageWidth": 640
+}

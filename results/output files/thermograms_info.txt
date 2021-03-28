@@ -1,0 +1,93 @@
+[
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0319_R.JPG",
+    "RelativeAltitude": 100.400002,
+    "GimbalYawDegree": -56.900002,
+    "GPSLatitude": 55.0721588133333,
+    "GPSLongitude": 82.9854812622222
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0321_R.JPG",
+    "RelativeAltitude": 100.599998,
+    "GimbalYawDegree": -56.099998,
+    "GPSLatitude": 55.0722122191111,
+    "GPSLongitude": 82.9853515624445
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0323_R.JPG",
+    "RelativeAltitude": 100.400002,
+    "GimbalYawDegree": -55.599998,
+    "GPSLatitude": 55.072280884,
+    "GPSLongitude": 82.985168457
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0325_R.JPG",
+    "RelativeAltitude": 100.400002,
+    "GimbalYawDegree": -55.599998,
+    "GPSLatitude": 55.0723724364444,
+    "GPSLongitude": 82.9849472045556
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0327_R.JPG",
+    "RelativeAltitude": 100.300003,
+    "GimbalYawDegree": -55.400002,
+    "GPSLatitude": 55.0724334715556,
+    "GPSLongitude": 82.9847717285556
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0329_R.JPG",
+    "RelativeAltitude": 100.300003,
+    "GimbalYawDegree": -55.500000,
+    "GPSLatitude": 55.0725135804444,
+    "GPSLongitude": 82.9845809936667
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0331_R.JPG",
+    "RelativeAltitude": 100.300003,
+    "GimbalYawDegree": -55.400002,
+    "GPSLatitude": 55.0725898742222,
+    "GPSLongitude": 82.9843978882222
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0333_R.JPG",
+    "RelativeAltitude": 100.300003,
+    "GimbalYawDegree": -55.500000,
+    "GPSLatitude": 55.0726585386667,
+    "GPSLongitude": 82.9842071533333
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0335_R.JPG",
+    "RelativeAltitude": 100.300003,
+    "GimbalYawDegree": -55.500000,
+    "GPSLatitude": 55.0727729795556,
+    "GPSLongitude": 82.9839324951111
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0337_R.JPG",
+    "RelativeAltitude": 100.300003,
+    "GimbalYawDegree": -55.500000,
+    "GPSLatitude": 55.0728569031111,
+    "GPSLongitude": 82.9837265014722
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0339_R.JPG",
+    "RelativeAltitude": 100.400002,
+    "GimbalYawDegree": -55.500000,
+    "GPSLatitude": 55.0729331968889,
+    "GPSLongitude": 82.9835357665833
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0341_R.JPG",
+    "RelativeAltitude": 100.400002,
+    "GimbalYawDegree": -55.500000,
+    "GPSLatitude": 55.0730056764444,
+    "GPSLongitude": 82.9833755493055
+  },
+  {
+    "SourceFile": "C:/Users/shikh/Documents/Geo/Thermograms/DJI_0343_R.JPG",
+    "RelativeAltitude": 100.400002,
+    "GimbalYawDegree": -44.400002,
+    "GPSLatitude": 55.0731391906667,
+    "GPSLongitude": 82.9833068853333
+  }
+]
