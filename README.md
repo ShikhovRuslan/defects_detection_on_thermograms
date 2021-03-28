@@ -67,7 +67,7 @@ EXIF картинки с дефектами .\SUBDIR_DEFECTS\<thermogram_name>PO
 ## Запуск из командной строки
 
 * Клонировать репозиторий:
-* 
+
 ```
 > git clone https://github.com/ShikhovRuslan/defects_detection_on_thermograms.git
 ```
