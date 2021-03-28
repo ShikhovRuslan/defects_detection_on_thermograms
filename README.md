@@ -92,15 +92,15 @@ EXIF картинки с дефектами .\SUBDIR_DEFECTS\<thermogram_name>PO
 ```
 Usage: java -jar defects.jar [-gp | -ti | -trt | -csv | -d]
 
-  -gp        Запускает global_params.[bat/sh].
-  -ti        Запускает thermograms_info.[bat/sh].
-  -trt       Запускает thermograms_raw_temperatures.[bat/sh].
+  -gp        Запускает global_params.[bat/sh] из директории, содержащей defects.jar.
+  -ti        Запускает thermograms_info.[bat/sh] из директории, содержащей defects.jar.
+  -trt       Запускает thermograms_raw_temperatures.[bat/sh] из директории, содержащей defects.jar.
   -csv       Для каждой термограммы из папки DIR_THERMOGRAMS конвертирует файл с необработанными 
              температурными данными из папки .\SUBDIR_RAW_TEMPS в файл с температурами в формате CSV 
              в папке .\SUBDIR_REAL_TEMPS.
   -d         Для каждой термограммы из файла .\SUBDIR_OUTPUT\thermograms_info.txt создаёт изображение с 
              выделенными дефектами в папке .\SUBDIR_DEFECTS.
-             Запускает copy_gps.[bat/sh].
+             Запускает copy_gps.[bat/sh] из директории, содержащей defects.jar.
 ```
 
 * Картинки с выделенными дефектами сохраняются в папке `.\SUBDIR_DEFECTS`, а их площади &mdash; в файле `.\SUBDIR_OUTPUT\pipe_squares.txt`.
