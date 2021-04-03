@@ -24,6 +24,7 @@
 
 Ниже представлено описание скриптов для Windows (описание скриптов для Linux аналогично).
 
+Скрипт `global_params.bat` извлекает общие для всех термограмм EXIF-параметры.
 ```
 Usage: global_params.bat
 
@@ -33,6 +34,7 @@ Planck F, emissivity, Reflected Apparent Temperature, Raw Thermal Image Height, 
 формате JSON.
 ```
 
+Скрипт `thermograms_info.bat` извлекает из всех термограмм геометрические характеристики съёмки.
 ```
 Usage: thermograms_info.bat
 
@@ -40,6 +42,7 @@ Usage: thermograms_info.bat
 Latitude, GPS Longitude - из данных EXIF в файл .\SUBDIR_OUTPUT\thermograms_info.txt в виде массива JSON.
 ```
 
+Скрипт `thermograms_raw_temperatures.bat` извлекает из всех термограмм необработанные температурные данные.
 ```
 Usage: thermograms_raw_temperatures.bat
 
@@ -47,6 +50,7 @@ Usage: thermograms_raw_temperatures.bat
 .\SUBDIR_RAW_TEMPS.
 ```
 
+Скрипт `raw.bat` извлекает из термограммы необработанные температурные данные.
 ```
 Usage: raw.bat %1 %2
 
@@ -57,6 +61,7 @@ Usage: raw.bat %1 %2
   %2         папка, содержащая файл с необработанными температурными данными термограммы
 ```
 
+Скрипт `copy_gps.bat` копирует GPS-координаты из термограмм в картинки с дефектами.
 ```
 Usage: copy_gps.bat
 
@@ -78,7 +83,7 @@ EXIF картинки с дефектами .\SUBDIR_DEFECTS\<thermogram_name>PO
 > gradle jar
 ```
 
-* Скопировать файл `defects.jar` в каталог, который содержит:
+* Скопировать файл `<root_directory_of_project>\build\libs\defects.jar` в каталог, который содержит:
   - все 5 скриптов (с расширением `.bat` для Windows и `.sh` для Linux);
   - папки `SUBDIR_RAW_TEMPS`, `SUBDIR_REAL_TEMPS`, `SUBDIR_AUXILIARY`, `SUBDIR_RAW_DEFECTS` и `SUBDIR_DEFECTS`;
   - файлы `angles.txt`, `pipe_angles_log.txt` и `squares.txt` в папке `SUBDIR_AUXILIARY`;
